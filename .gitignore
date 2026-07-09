@@ -16,10 +16,10 @@ coverage/
 # .env.*
 
 # App data
-uploads/
-outputs/
-final-outputs/
-temp/
+# uploads/
+# outputs/
+# final-outputs/
+# temp/
 # cookies/
 
 # OS / editor
