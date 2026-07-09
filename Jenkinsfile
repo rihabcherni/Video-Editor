@@ -5,7 +5,7 @@ pipeline {
     REPO_DIR = 'repo'
     COMPOSE_FILE = 'docker-compose.yml'
     COMPOSE_PROJECT_NAME = 'video-editor'
-    VIDEO_EDITOR_DATA_ROOT = '/var/lib/jenkins/video-editor-data'
+    VIDEO_EDITOR_DATA_ROOT = '/home/jenkins/video-editor-data'
   }
 
   options {
