@@ -1,0 +1,43 @@
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:3005:3005"
+    volumes:
+      - ${VIDEO_EDITOR_DATA_ROOT:-.}/uploads:/app/uploads
+      - ${VIDEO_EDITOR_DATA_ROOT:-.}/outputs:/app/outputs
+      - ${VIDEO_EDITOR_DATA_ROOT:-.}/final-outputs:/app/final-outputs
+      - ${VIDEO_EDITOR_DATA_ROOT:-.}/temp:/app/temp
+      - ${VIDEO_EDITOR_DATA_ROOT:-.}/cookies:/app/cookies
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - NODE_ENV=production
+      - BACKEND_PORT=3005
+      - YTDLP_COOKIES=/app/cookies
+      - YTDLP_JS_RUNTIME=node
+      - YTDLP_DEBUG=true
+      - YTDLP_SLEEP_REQUESTS=0.25
+      - YTDLP_SLEEP_INTERVAL=1
+      - YTDLP_MAX_SLEEP_INTERVAL=3
+      - YTDLP_TIMEOUT_MS=900000
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5175:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes: {}
