@@ -16,11 +16,11 @@ coverage/
 # .env.*
 
 # App data
-# uploads/
-# outputs/
-# final-outputs/
-# temp/
-# cookies/
+uploads/
+outputs/
+final-outputs/
+temp/
+cookies/
 
 # OS / editor
 .DS_Store
