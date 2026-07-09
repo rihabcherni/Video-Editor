@@ -64,7 +64,16 @@ pipeline {
     stage('Deploy') {
       steps {
         dir(env.REPO_DIR) {
-          sh 'docker compose -p $COMPOSE_PROJECT_NAME -f $COMPOSE_FILE down || true'
+          // Gracefully stop; fall back to force-removing any stuck containers
+          sh '''
+            docker compose -p $COMPOSE_PROJECT_NAME -f $COMPOSE_FILE down || true
+
+            # Force-remove any containers from this project that are still running
+            # (e.g. started by root or another user — permission denied on normal stop)
+            for cid in $(docker ps -aq --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME"); do
+              docker rm -f "$cid" || true
+            done
+          '''
           sh 'docker compose -p $COMPOSE_PROJECT_NAME -f $COMPOSE_FILE up -d --force-recreate --remove-orphans'
         }
       }
