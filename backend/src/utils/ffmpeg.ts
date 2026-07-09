@@ -140,7 +140,7 @@ export interface BorderStyle {
   sizeX?: number
   sizeY?: number
   color?: string
-  mode?: 'inside' | 'outside'
+  mode?: 'outside'
 }
 
 export interface CropSettings {
@@ -436,15 +436,7 @@ function buildBorderFilter(style?: BorderStyle) {
   const sizeY = clamp(Number(style.sizeY ?? 0), 0, 300)
   if (sizeX <= 0 && sizeY <= 0) return null
   const color = style.color || '#ffffff'
-  const mode = style.mode || 'inside'
-  if (mode === 'outside') {
-    return `pad=iw+${sizeX * 2}:ih+${sizeY * 2}:${sizeX}:${sizeY}:color=${color}`
-  }
-  const sx = sizeX
-  const sy = sizeY
-  const safeX = `min(${sx}\\,max(iw/2-2\\,0))`
-  const safeY = `min(${sy}\\,max(ih/2-2\\,0))`
-  return `crop=iw-2*${safeX}:ih-2*${safeY}:${safeX}:${safeY},pad=iw+${sx * 2}:ih+${sy * 2}:${sx}:${sy}:color=${color}`
+  return `pad=iw+${sizeX * 2}:ih+${sizeY * 2}:${sizeX}:${sizeY}:color=${color}`
 }
 
 function buildCropFilter(crop?: CropSettings) {
@@ -691,7 +683,7 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
       }
     }
 
-    if (borderStyle?.enabled && borderStyle.mode === 'outside') {
+    if (borderStyle?.enabled) {
       const sizeX = clamp(Number(borderStyle.sizeX ?? 0), 0, 300)
       estimatedVideoWidth += sizeX * 2
     }

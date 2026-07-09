@@ -294,8 +294,19 @@ interface EditorState {
   setBorderHeight: (s: number) => void
   borderColor: string
   setBorderColor: (c: string) => void
-  borderMode: 'inside' | 'outside'
-  setBorderMode: (m: 'inside' | 'outside') => void
+  borderMode: 'outside'
+  setBorderMode: (m: 'outside') => void
+
+  borderDraftEnabled: boolean
+  setBorderDraftEnabled: (e: boolean) => void
+  borderDraftWidth: number
+  setBorderDraftWidth: (s: number) => void
+  borderDraftHeight: number
+  setBorderDraftHeight: (s: number) => void
+  borderDraftColor: string
+  setBorderDraftColor: (c: string) => void
+  borderDraftMode: 'outside'
+  setBorderDraftMode: (m: 'outside') => void
 
   cropEnabled: boolean
   setCropEnabled: (enabled: boolean) => void
@@ -405,6 +416,11 @@ type PersistedEditorState = Pick<EditorState,
   | 'borderHeight'
   | 'borderColor'
   | 'borderMode'
+  | 'borderDraftEnabled'
+  | 'borderDraftWidth'
+  | 'borderDraftHeight'
+  | 'borderDraftColor'
+  | 'borderDraftMode'
   | 'cropEnabled'
   | 'cropDraftEnabled'
   | 'crop'
@@ -780,6 +796,17 @@ export const useStore = create<EditorState>()(persist((set) => ({
   borderMode: 'outside',
   setBorderMode: m => set({ borderMode: m }),
 
+  borderDraftEnabled: defaultBorderSize > 0,
+  setBorderDraftEnabled: e => set({ borderDraftEnabled: e }),
+  borderDraftWidth: defaultBorderSize,
+  setBorderDraftWidth: s => set({ borderDraftWidth: s }),
+  borderDraftHeight: defaultBorderSize,
+  setBorderDraftHeight: s => set({ borderDraftHeight: s }),
+  borderDraftColor: defaultBorderColor,
+  setBorderDraftColor: c => set({ borderDraftColor: c }),
+  borderDraftMode: 'outside',
+  setBorderDraftMode: m => set({ borderDraftMode: m }),
+
   cropEnabled: false,
   setCropEnabled: enabled => set({ cropEnabled: enabled }),
   cropDraftEnabled: false,
@@ -885,6 +912,11 @@ export const useStore = create<EditorState>()(persist((set) => ({
     borderHeight: defaultBorderSize,
     borderColor: defaultBorderColor,
     borderMode: 'outside',
+    borderDraftEnabled: defaultBorderSize > 0,
+    borderDraftWidth: defaultBorderSize,
+    borderDraftHeight: defaultBorderSize,
+    borderDraftColor: defaultBorderColor,
+    borderDraftMode: 'outside',
     cropEnabled: false,
     cropDraftEnabled: false,
     crop: defaultCrop,
@@ -968,6 +1000,11 @@ export const useStore = create<EditorState>()(persist((set) => ({
     borderHeight: state.borderHeight,
     borderColor: state.borderColor,
     borderMode: state.borderMode,
+    borderDraftEnabled: state.borderDraftEnabled,
+    borderDraftWidth: state.borderDraftWidth,
+    borderDraftHeight: state.borderDraftHeight,
+    borderDraftColor: state.borderDraftColor,
+    borderDraftMode: state.borderDraftMode,
     cropEnabled: state.cropEnabled,
     cropDraftEnabled: state.cropDraftEnabled,
     crop: state.crop,

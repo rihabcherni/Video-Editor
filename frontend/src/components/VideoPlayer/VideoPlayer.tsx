@@ -24,8 +24,10 @@ export default function VideoPlayer() {
     appliedAudioTrimStart, appliedAudioTrimEnd, appliedAudioOffset, activeTab, titleText, titleFont, titleDraftFont, titleSize, titleDraftSize, titleColor, titleDraftColor, titleBgColor, titleDraftBgColor,
     titleBorderColor, titleDraftBorderColor, titleBorderWidth, titleDraftBorderWidth, titleFrameColor, titleDraftFrameColor, titleFrameWidth, titleDraftFrameWidth, titlePadding, titleDraftPadding, titleLineSpacing, titleDraftLineSpacing, titleX, titleY, titleDraftX,
     titleDraftY, setTitleDraftXY, titleDraftText, titleAlign, titleDraftAlign, isApplyingTitle, previewLoading, logoImage, logoSize,
-    logoDraftImage, logoDraftSize, logoDraftX, logoDraftY, logoX, logoY, setLogoDraftXY, borderEnabled, borderWidth,
-    borderHeight, borderMode, cropEnabled, cropDraftEnabled, crop, cropDraft, exportQuality, exportAspectRatio, seekTo,
+    logoDraftImage, logoDraftSize, logoDraftX, logoDraftY, logoX, logoY, setLogoDraftXY,
+    borderEnabled, borderWidth, borderHeight, borderColor,
+    borderDraftEnabled, borderDraftWidth, borderDraftHeight, borderDraftColor,
+    cropEnabled, cropDraftEnabled, crop, cropDraft, exportQuality, exportAspectRatio, seekTo,
     setSeekTo, setTitleRenderLayout, videoSourceWidth, videoSourceHeight, setVideoSourceDimensions } = useStore()
   const videoRef = useRef<HTMLVideoElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
@@ -258,15 +260,19 @@ export default function VideoPlayer() {
     cropEnabled,
     crop,
   })
+  const previewBorderEnabled = activeTab === 'border' ? borderDraftEnabled : borderEnabled
+  const previewBorderWidth = activeTab === 'border' ? borderDraftWidth : borderWidth
+  const previewBorderHeight = activeTab === 'border' ? borderDraftHeight : borderHeight
+  const previewBorderColor = activeTab === 'border' ? borderDraftColor : borderColor
+
   const renderedVideoDimensions = getRenderedVideoDimensions({
     sourceWidth: effectiveSourceDimensions.width,
     sourceHeight: effectiveSourceDimensions.height,
     quality: exportQuality,
     aspectRatio: exportAspectRatio,
-    borderEnabled,
-    borderWidth,
-    borderHeight,
-    borderMode,
+    borderEnabled: previewBorderEnabled,
+    borderWidth: previewBorderWidth,
+    borderHeight: previewBorderHeight,
   })
   const titleOuterRect = getContainRect({
     containerWidth: overlayRef.current?.clientWidth || 0,
@@ -274,6 +280,14 @@ export default function VideoPlayer() {
     contentWidth: renderedVideoDimensions.width || videoIntrinsicWidth || videoDisplayRect.width,
     contentHeight: renderedVideoDimensions.height || videoIntrinsicHeight || videoDisplayRect.height,
   })
+
+  const sizeX = Math.min(300, Math.max(0, Number(previewBorderWidth || 0)))
+  const sizeY = Math.min(300, Math.max(0, Number(previewBorderHeight || 0)))
+  const scale = renderedVideoDimensions.width > 0
+    ? titleOuterRect.width / renderedVideoDimensions.width
+    : 1
+  const displayBorderX = sizeX * scale
+  const displayBorderY = sizeY * scale
   const titleDraftRect = titleOuterRect
   const logoDraftRect = getContainRect({
     containerWidth: overlayRef.current?.clientWidth || 0,
@@ -435,7 +449,22 @@ export default function VideoPlayer() {
   return (
     <div className="space-y-2">
       <div ref={overlayRef} className="relative bg-zinc-950 rounded-xl overflow-hidden w-full flex items-center justify-center h-[40vh] min-h-[372px]">
-        <video ref={videoRef} src={src} muted={isMuted} className="w-full h-full object-contain"
+        <video
+          ref={videoRef}
+          src={src}
+          muted={isMuted}
+          className="object-contain"
+          style={{
+            width: `${titleOuterRect.width}px`,
+            height: `${titleOuterRect.height}px`,
+            padding: previewBorderEnabled
+              ? `${displayBorderY}px ${displayBorderX}px`
+              : '0px',
+            backgroundColor: previewBorderEnabled
+              ? previewBorderColor
+              : 'transparent',
+            boxSizing: 'border-box',
+          }}
           onTimeUpdate={handleTimeUpdate}
           onEnded={() => setPlaying(false)}
           onLoadedMetadata={() => {

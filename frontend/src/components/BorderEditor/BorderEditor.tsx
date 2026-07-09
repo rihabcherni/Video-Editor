@@ -23,7 +23,10 @@ export default function BorderEditor() {
     borderWidth, setBorderWidth,
     borderHeight, setBorderHeight,
     borderColor, setBorderColor,
-    borderMode, setBorderMode,
+    borderDraftEnabled, setBorderDraftEnabled,
+    borderDraftWidth, setBorderDraftWidth,
+    borderDraftHeight, setBorderDraftHeight,
+    borderDraftColor, setBorderDraftColor,
     setPendingPreviewAction,
   } = useStore()
 
@@ -31,22 +34,24 @@ export default function BorderEditor() {
   const [draftWidth, setDraftWidth] = useState(borderWidth)
   const [draftHeight, setDraftHeight] = useState(borderHeight)
   const [draftColor, setDraftColor] = useState(borderColor)
-  const [draftMode, setDraftMode] = useState(borderMode)
 
   useEffect(() => {
     setDraftEnabled(borderEnabled)
     setDraftWidth(borderWidth)
     setDraftHeight(borderHeight)
     setDraftColor(borderColor)
-    setDraftMode(borderMode)
-  }, [borderEnabled, borderWidth, borderHeight, borderColor, borderMode])
+
+    setBorderDraftEnabled(borderEnabled)
+    setBorderDraftWidth(borderWidth)
+    setBorderDraftHeight(borderHeight)
+    setBorderDraftColor(borderColor)
+  }, [borderEnabled, borderWidth, borderHeight, borderColor, setBorderDraftEnabled, setBorderDraftWidth, setBorderDraftHeight, setBorderDraftColor])
 
   const hasChanges =
     draftEnabled !== borderEnabled ||
     draftWidth !== borderWidth ||
     draftHeight !== borderHeight ||
-    draftColor !== borderColor ||
-    draftMode !== borderMode
+    draftColor !== borderColor
 
   const applyChanges = () => {
     setPendingPreviewAction('Border applied successfully.')
@@ -54,7 +59,18 @@ export default function BorderEditor() {
     setBorderWidth(draftWidth)
     setBorderHeight(draftHeight)
     setBorderColor(draftColor)
-    setBorderMode(draftMode)
+  }
+
+  const resetDraft = () => {
+    setDraftEnabled(borderEnabled)
+    setDraftWidth(borderWidth)
+    setDraftHeight(borderHeight)
+    setDraftColor(borderColor)
+
+    setBorderDraftEnabled(borderEnabled)
+    setBorderDraftWidth(borderWidth)
+    setBorderDraftHeight(borderHeight)
+    setBorderDraftColor(borderColor)
   }
 
   return (
@@ -70,7 +86,10 @@ export default function BorderEditor() {
             id="border-enabled"
             type="checkbox"
             checked={draftEnabled}
-            onChange={e => setDraftEnabled(e.target.checked)}
+            onChange={e => {
+              setDraftEnabled(e.target.checked)
+              setBorderDraftEnabled(e.target.checked)
+            }}
             className="accent-cyan-600"
           />
           <Square size={16} />
@@ -91,7 +110,11 @@ export default function BorderEditor() {
             max={300}
             step={1}
             value={draftWidth}
-            onChange={e => setDraftWidth(Number(e.target.value))}
+            onChange={e => {
+              const val = Number(e.target.value)
+              setDraftWidth(val)
+              setBorderDraftWidth(val)
+            }}
             disabled={!draftEnabled}
             className="w-full accent-cyan-600 h-1 disabled:opacity-50"
           />
@@ -109,7 +132,11 @@ export default function BorderEditor() {
             max={300}
             step={1}
             value={draftHeight}
-            onChange={e => setDraftHeight(Number(e.target.value))}
+            onChange={e => {
+              const val = Number(e.target.value)
+              setDraftHeight(val)
+              setBorderDraftHeight(val)
+            }}
             disabled={!draftEnabled}
             className="w-full accent-cyan-600 h-1 disabled:opacity-50"
           />
@@ -130,7 +157,12 @@ export default function BorderEditor() {
                   key={color.hex}
                   type="button"
                   title={color.name}
-                  onClick={() => draftEnabled && setDraftColor(color.hex)}
+                  onClick={() => {
+                    if (draftEnabled) {
+                      setDraftColor(color.hex)
+                      setBorderDraftColor(color.hex)
+                    }
+                  }}
                   disabled={!draftEnabled}
                   className={`relative w-8 h-8 rounded-full border transition-all flex items-center justify-center focus:outline-none ${
                     color.hex === '#ffffff' ? 'border-zinc-300' : 'border-transparent'
@@ -154,14 +186,25 @@ export default function BorderEditor() {
         </div>
       </div>
 
-      <button type="button"
-        onClick={applyChanges}
-        disabled={!hasChanges}
-        className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
-      >
-        <CheckCircle2 size={16} />
-        Apply border
-      </button>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={resetDraft}
+          disabled={!hasChanges}
+          className="flex-1 py-2 bg-white hover:bg-zinc-100 disabled:bg-zinc-100 disabled:text-zinc-400 text-zinc-700 rounded-xl text-sm font-medium transition-colors border border-zinc-200"
+        >
+          Reset draft
+        </button>
+        <button
+          type="button"
+          onClick={applyChanges}
+          disabled={!hasChanges}
+          className="flex-1 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5"
+        >
+          <CheckCircle2 size={15} />
+          Apply border
+        </button>
+      </div>
     </div>
   )
 }

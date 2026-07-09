@@ -21,7 +21,7 @@ export default function ExportPanel() {
     appliedAudioTrimStart, appliedAudioTrimEnd, subtitles, subtitleFilename, appliedSubtitleStyle,
     logoImage, logoSize, logoX, logoY, titleText, titleFont, titleSize, titleColor, titleBgColor,
     titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleLineSpacing, titleAlign, titleX,
-    titleY, borderEnabled, borderWidth, borderHeight, borderColor, borderMode, appliedAudioOffset,
+    titleY, borderEnabled, borderWidth, borderHeight, borderColor, appliedAudioOffset,
     cropEnabled, crop, exportQuality, exportAspectRatio, setExportAspectRatio, exportFilename,
     setExportFilename, setProcessedUrl, videoSourceWidth, videoSourceHeight,
   } = useStore()
@@ -54,7 +54,6 @@ export default function ExportPanel() {
     borderEnabled,
     borderWidth,
     borderHeight,
-    borderMode,
   })
   const resolvedTitleX = titleX ?? 0.5
   const resolvedTitleY = titleY ?? 0.2
@@ -114,7 +113,7 @@ export default function ExportPanel() {
           padding: titlePadding,
           lineSpacing: titleLineSpacing,
           align: titleAlign,
-          frameMode: borderEnabled && borderMode === 'outside' ? 'outside' : 'inside',
+          frameMode: borderEnabled ? 'outside' : 'inside',
           x: resolvedTitleX,
           y: resolvedTitleY,
           layout: currentTitleRenderLayout || undefined,
@@ -124,7 +123,7 @@ export default function ExportPanel() {
           sizeX: borderWidth,
           sizeY: borderHeight,
           color: borderColor,
-          mode: borderMode,
+          mode: 'outside',
         },
         logoFilename: logoImage?.filename,
         logoSize,
@@ -399,7 +398,7 @@ export default function ExportPanel() {
               <span className="flex items-center gap-2 text-zinc-500"><Square size={13} /> Border</span>
               <span className="text-zinc-700 text-xs">
                 {borderEnabled && (borderWidth > 0 || borderHeight > 0)
-                  ? `${borderWidth}px × ${borderHeight}px ${borderColor} (${borderMode})`
+                  ? `${borderWidth}px × ${borderHeight}px ${borderColor} (outside)`
                   : 'None'}
               </span>
             </div>

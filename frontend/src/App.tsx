@@ -94,7 +94,7 @@ export default function App() {
     appliedSubtitleStyle,
     logoImage, logoSize, logoX, logoY,
     titleText, titleFont, titleSize, titleColor, titleBgColor, titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleLineSpacing, titleAlign, titleX, titleY, titleRenderLayout,
-    borderEnabled, borderWidth, borderHeight, borderColor, borderMode,
+    borderEnabled, borderWidth, borderHeight, borderColor,
     cropEnabled,
     crop,
     exportQuality,
@@ -128,7 +128,6 @@ export default function App() {
     borderEnabled,
     borderWidth,
     borderHeight,
-    borderMode,
   })
   const resolvedTitleRenderLayout = titleText.trim() && titleRenderedVideoDimensions.width > 0
     ? getTitleRenderLayout({
@@ -252,7 +251,7 @@ export default function App() {
           padding: titlePadding,
           lineSpacing: titleLineSpacing,
           align: titleAlign,
-          frameMode: borderEnabled && borderMode === 'outside' ? 'outside' : 'inside',
+          frameMode: borderEnabled ? 'outside' : 'inside',
           x: resolvedTitleX,
           y: resolvedTitleY,
           layout: currentTitleRenderLayout || undefined,
@@ -262,7 +261,7 @@ export default function App() {
           sizeX: borderWidth,
           sizeY: borderHeight,
           color: borderColor,
-          mode: borderMode,
+          mode: 'outside',
         },
         logoFilename: undefined,
       })
@@ -316,7 +315,6 @@ export default function App() {
     borderWidth,
     borderHeight,
     borderColor,
-    borderMode,
     cropEnabled,
     crop,
     exportQuality,
@@ -388,7 +386,7 @@ export default function App() {
       logo: logoImage ? { id: logoImage.id, size: logoSize, x: logoX, y: logoY } : null,
       title: titleText.trim() ? { text: titleText, font: titleFont, size: titleSize, color: titleColor, bg: titleBgColor, border: titleBorderColor, bw: titleBorderWidth, frame: titleFrameColor, fw: titleFrameWidth, pad: titlePadding, ls: titleLineSpacing, align: titleAlign } : null,
       titleXY: titleX !== null && titleY !== null ? { x: titleX, y: titleY } : null,
-      border: borderEnabled ? { sizeX: borderWidth, sizeY: borderHeight, color: borderColor, mode: borderMode } : null,
+      border: borderEnabled ? { sizeX: borderWidth, sizeY: borderHeight, color: borderColor, mode: 'outside' } : null,
     })
 
     if (sig === lastPreviewSig.current) return
@@ -447,7 +445,6 @@ export default function App() {
     borderWidth,
     borderHeight,
     borderColor,
-    borderMode,
     pendingPreviewAction,
     handlePreview,
     previewLoading,

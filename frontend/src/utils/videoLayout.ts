@@ -1,6 +1,5 @@
 export type ExportQuality = '480p' | '720p' | '1080p'
 export type ExportAspectRatio = 'original' | '16:9' | '9:16' | '1:1' | '4:5' | '5:4' | '4:3' | '3:2'
-export type BorderMode = 'inside' | 'outside'
 
 const aspectRatioMap: Record<ExportAspectRatio, { w: number; h: number }> = {
   original: { w: 16, h: 9 },
@@ -30,9 +29,8 @@ export function getRenderedVideoDimensions(params: {
   borderEnabled: boolean
   borderWidth: number
   borderHeight: number
-  borderMode: BorderMode
 }) {
-  const { sourceWidth, sourceHeight, quality, aspectRatio, borderEnabled, borderWidth, borderHeight, borderMode } = params
+  const { sourceWidth, sourceHeight, quality, aspectRatio, borderEnabled, borderWidth, borderHeight } = params
   if (!sourceWidth || !sourceHeight) return { width: 0, height: 0 }
 
   const scaleMap: Record<ExportQuality, number> = { '480p': 854, '720p': 1280, '1080p': 1920 }
@@ -62,14 +60,10 @@ export function getRenderedVideoDimensions(params: {
   const sizeY = clamp(Number(borderHeight || 0), 0, 300)
   if (sizeX <= 0 && sizeY <= 0) return { width, height }
 
-  if (borderMode === 'outside') {
-    return {
-      width: width + sizeX * 2,
-      height: height + sizeY * 2,
-    }
+  return {
+    width: width + sizeX * 2,
+    height: height + sizeY * 2,
   }
-
-  return { width, height }
 }
 
 export function getCroppedSourceDimensions(params: {

@@ -267,7 +267,7 @@ export async function processRoute(app: FastifyInstance) {
         sizeX?: number
         sizeY?: number
         color?: string
-        mode?: 'inside' | 'outside'
+        mode?: 'outside'
       }
       logoFilename?: string
       logoSize?: number
@@ -375,7 +375,7 @@ export async function processRoute(app: FastifyInstance) {
         sizeX?: number
         sizeY?: number
         color?: string
-        mode?: 'inside' | 'outside'
+        mode?: 'outside'
       }
       logoFilename?: string
       logoSize?: number
