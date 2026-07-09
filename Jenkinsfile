@@ -22,6 +22,8 @@ pipeline {
                    "$VIDEO_EDITOR_DATA_ROOT/final-outputs" \
                    "$VIDEO_EDITOR_DATA_ROOT/temp" \
                    "$VIDEO_EDITOR_DATA_ROOT/cookies"
+          # Ensure jenkins owns the dirs (fixes read-only mount errors from Docker)
+          chown -R jenkins:jenkins "$VIDEO_EDITOR_DATA_ROOT" || true
         '''
       }
     }
@@ -64,17 +66,33 @@ pipeline {
     stage('Deploy') {
       steps {
         dir(env.REPO_DIR) {
-          // Gracefully stop; fall back to force-removing any stuck containers
           sh '''
+            echo "=== [1/4] Graceful down ==="
             docker compose -p $COMPOSE_PROJECT_NAME -f $COMPOSE_FILE down || true
 
-            # Force-remove any containers from this project that are still running
-            # (e.g. started by root or another user — permission denied on normal stop)
+            echo "=== [2/4] Kill tout conteneur du projet bloqué (permission denied fallback) ==="
             for cid in $(docker ps -aq --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME"); do
-              docker rm -f "$cid" || true
+              # Tenter suppression normale
+              docker rm -f "$cid" 2>/dev/null && continue || true
+
+              # Fallback : tuer le processus Linux directement
+              pid=$(docker inspect --format="{{.State.Pid}}" "$cid" 2>/dev/null || echo "")
+              if [ -n "$pid" ] && [ "$pid" != "0" ]; then
+                echo "Force-killing PID $pid for container $cid"
+                sudo kill -9 "$pid" 2>/dev/null || true
+                sleep 1
+              fi
+              sudo docker rm -f "$cid" 2>/dev/null || true
             done
+
+            echo "=== [3/4] Supprimer les conteneurs zombies Created du projet ==="
+            for cid in $(docker ps -aq --filter "status=created" --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME"); do
+              docker rm -f "$cid" 2>/dev/null || sudo docker rm -f "$cid" 2>/dev/null || true
+            done
+
+            echo "=== [4/4] Démarrage ==="
+            docker compose -p $COMPOSE_PROJECT_NAME -f $COMPOSE_FILE up -d --force-recreate --remove-orphans
           '''
-          sh 'docker compose -p $COMPOSE_PROJECT_NAME -f $COMPOSE_FILE up -d --force-recreate --remove-orphans'
         }
       }
     }
