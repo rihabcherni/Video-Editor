@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import axios from 'axios'
-import { Upload, Scissors, FileText, Download, Film, RotateCcw, Image as ImageIcon, Type, Square, ChevronLeft, ChevronRight, Volume2, Crop as CropIcon, CheckCircle2, X, History, ChevronDown, AlertCircle } from 'lucide-react'
+import { Upload, Scissors, FileText, Download, Film, RotateCcw, Image as ImageIcon, Type, Square, ChevronLeft, ChevronRight, Volume2, Crop as CropIcon, CheckCircle2, X, History, ChevronDown, AlertCircle, Layers } from 'lucide-react'
 import { useStore } from './store/useStore'
 import ImportPanel from './components/ImportPanel/ImportPanel'
 import VideoPlayer from './components/VideoPlayer/VideoPlayer'
@@ -11,16 +11,18 @@ import TitleEditor from './components/TitleEditor/TitleEditor'
 import BorderEditor from './components/BorderEditor/BorderEditor'
 import AudioEditor from './components/AudioEditor/AudioEditor'
 import CropEditor from './components/CropEditor/CropEditor'
+import MontageTimeline from './components/MontageTimeline/MontageTimeline'
 import { EditSidebar } from './components/VideoTimeline/VideoTimeline'
 import { getApiErrorMessage, previewVideo } from './api/client'
 import { ensureTitleFontLoaded } from './hooks/useTitleFontReady'
 import { getRenderedTitleFontSize, getTitleRenderLayout } from './utils/titleLayout'
 import { getCroppedSourceDimensions, getRenderedVideoDimensions } from './utils/videoLayout'
 
-type Tab = 'import' | 'edit' | 'crop' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
+type Tab = 'import' | 'montage' | 'edit' | 'crop' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode; requiresVideo?: boolean }[] = [
   { id: 'import', label: 'Import', icon: <Upload size={15} /> },
+  { id: 'montage', label: 'Montage', icon: <Layers size={15} /> },
   { id: 'edit', label: 'Edit', icon: <Scissors size={15} />, requiresVideo: true },
   { id: 'crop', label: 'Crop', icon: <CropIcon size={15} />, requiresVideo: true },
   { id: 'subtitles', label: 'Subtitles', icon: <FileText size={15} />, requiresVideo: true },
@@ -761,6 +763,7 @@ export default function App() {
           <div className="w-full lg:w-80 xl:w-[28rem] flex-shrink-0 lg:sticky lg:top-[64px]">
             <div className="bg-white rounded-2xl px-4 py-2 border border-zinc-200 min-h-[300px] shadow-sm">
               {activeTab === 'import' && <ImportPanel />}
+              {activeTab === 'montage' && <MontageTimeline />}
               {activeTab === 'edit' && <EditPanel />}
               {activeTab === 'crop' && <CropEditor />}
               {activeTab === 'subtitles' && <SubtitleEditor />}

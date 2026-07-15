@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react'
-import { Upload, Link, Loader2, Download, CheckCircle, X } from 'lucide-react'
+import { Upload, Link, Loader2, Download, CheckCircle, X, Layers, Scissors } from 'lucide-react'
 import { downloadFromUrl, uploadVideo, getApiErrorMessage } from '../../api/client'
 import { useStore } from '../../store/useStore'
 import { SocialIcon } from 'react-social-icons'
@@ -65,7 +65,7 @@ export default function VideoUploadSection() {
         <div className="space-y-3">
             {/* Video loaded state */}
             {video ? (
-                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-4 border border-green-200">
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-4 border border-green-200 space-y-3">
                     <div className="flex items-start justify-between">
                         <div className="flex items-start gap-3">
                             <div className="w-12 h-12 bg-green-600/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
@@ -92,6 +92,33 @@ export default function VideoUploadSection() {
                             aria-label="Remove video"
                         >
                             <X size={18} />
+                        </button>
+                    </div>
+
+                    <div className="pt-2 border-t border-green-200/50 flex flex-col gap-2">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const { addMontageClip, setActiveTab } = useStore.getState()
+                                addMontageClip(video, video.duration)
+                                setVideo(null)
+                                setActiveTab('montage')
+                                pushActionToast('Added to montage timeline. Upload next video!')
+                            }}
+                            className="w-full py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                        >
+                            <Layers size={13} /> Add to Montage Timeline
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const { setActiveTab } = useStore.getState()
+                                setActiveTab('edit')
+                            }}
+                            className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-semibold text-xs transition-colors flex items-center justify-center gap-1.5"
+                        >
+                            <Scissors size={13} /> Edit Single Video
                         </button>
                     </div>
                 </div>

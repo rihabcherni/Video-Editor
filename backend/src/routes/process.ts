@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify'
-import { cutVideo, splitVideo, mergeVideos, mergeSegments, mergeAudio, burnSubtitles, exportVideo, getVideoMeta, cleanupTempPreviews, cleanupStaleCutOutputs, cleanupTitleTextArtifacts, deleteManagedCutOutput } from '../utils/ffmpeg'
+import { cutVideo, splitVideo, mergeVideos, mergeClips, mergeSegments, mergeAudio, burnSubtitles, exportVideo, getVideoMeta, cleanupTempPreviews, cleanupStaleCutOutputs, cleanupTitleTextArtifacts, deleteManagedCutOutput } from '../utils/ffmpeg'
 import type { TitleStyle } from '../utils/ffmpeg'
 import path from 'path'
 import fs from 'fs'
@@ -179,6 +179,56 @@ export async function processRoute(app: FastifyInstance) {
     } catch (err: unknown) {
       app.log.error(err)
       const message = err instanceof Error ? err.message : 'Merge failed'
+      return reply.code(500).send({ error: message })
+    }
+  })
+
+  app.post('/merge-clips', async (req, reply) => {
+    const { clips, audioTracks } = req.body as {
+      clips: { filename: string; startTime: number; endTime: number }[]
+      audioTracks?: { filename: string; startTime?: number; endTime?: number; offset?: number }[]
+    }
+
+    if (!Array.isArray(clips) || clips.length === 0) {
+      return reply.code(400).send({ error: 'At least one clip is required' })
+    }
+
+    const resolvedClips = clips.map(clip => ({
+      inputPath: resolveMediaPath(clip.filename),
+      startTime: clip.startTime,
+      endTime: clip.endTime,
+    }))
+
+    const missingClip = resolvedClips.find(clip => !clip.inputPath)
+    if (missingClip) {
+      return reply.code(404).send({ error: 'One or more video files were not found' })
+    }
+
+    const resolvedAudioTracks = audioTracks
+      ? audioTracks.map(track => ({
+          inputPath: resolveMediaPath(track.filename) || path.join(process.cwd(), 'uploads', track.filename),
+          startTime: track.startTime,
+          endTime: track.endTime,
+          offset: track.offset,
+        }))
+      : undefined
+
+    if (resolvedAudioTracks) {
+      const missingAudio = resolvedAudioTracks.find(track => !fs.existsSync(track.inputPath))
+      if (missingAudio) {
+        return reply.code(404).send({ error: 'One or more audio files were not found' })
+      }
+    }
+
+    try {
+      const outPath = await mergeClips(
+        resolvedClips as { inputPath: string; startTime: number; endTime: number }[],
+        resolvedAudioTracks
+      )
+      return { url: `/outputs/${path.basename(outPath)}`, filename: path.basename(outPath) }
+    } catch (err: unknown) {
+      app.log.error(err)
+      const message = err instanceof Error ? err.message : 'Merge clips failed'
       return reply.code(500).send({ error: message })
     }
   })

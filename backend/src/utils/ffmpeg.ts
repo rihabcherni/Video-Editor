@@ -583,6 +583,110 @@ export function mergeVideos({ inputPaths }: MergeVideosOptions): Promise<string>
   })
 }
 
+export interface MontageClipDefinition {
+  inputPath: string
+  startTime: number
+  endTime: number
+}
+
+export interface MontageAudioDefinition {
+  inputPath: string
+  startTime?: number
+  endTime?: number
+  offset?: number
+}
+
+export async function mergeClips(
+  clips: MontageClipDefinition[],
+  audioTracks?: MontageAudioDefinition[]
+): Promise<string> {
+  if (!clips.length) throw new Error('No clips provided')
+
+  // Step 1: Cut each clip to its trim range
+  const cutPaths: string[] = []
+  for (const clip of clips) {
+    const outPath = await cutVideo({
+      inputPath: clip.inputPath,
+      startTime: clip.startTime,
+      endTime: Math.max(clip.endTime, clip.startTime + 0.1),
+    })
+    cutPaths.push(outPath)
+  }
+
+  // Step 2: Concatenate all cut clips
+  const merged = await mergeVideos({ inputPaths: cutPaths })
+
+  // Step 3: Clean up temp cut files
+  for (const p of cutPaths) {
+    try { fs.unlinkSync(p) } catch { /* ignore */ }
+  }
+
+  // Step 4: If no additional audio tracks, return merged video as-is
+  if (!audioTracks || audioTracks.length === 0) return merged
+
+  // Step 5: Mix audio tracks on top of the merged video
+  const outFile = path.join(outputDir, `montage_${uuidv4()}.mp4`)
+
+  return new Promise((resolve, reject) => {
+    const cmd = ffmpeg(merged)
+
+    for (const track of audioTracks) {
+      cmd.input(track.inputPath)
+    }
+
+    const filterParts: string[] = []
+    const audioOutputs: string[] = ['[0:a]']
+
+    audioTracks.forEach((track, index) => {
+      const inputIndex = index + 1
+      const filters: string[] = []
+
+      // Apply trim if specified
+      if ((track.startTime ?? 0) > 0 || (track.endTime ?? 0) > 0) {
+        const trimStart = track.startTime ?? 0
+        const trimEnd = track.endTime ?? 0
+        if (trimEnd > trimStart) {
+          filters.push(`atrim=start=${trimStart}:end=${trimEnd}`)
+          filters.push('asetpts=PTS-STARTPTS')
+        }
+      }
+
+      // Apply offset (delay) if specified
+      if ((track.offset ?? 0) > 0) {
+        const delayMs = Math.round((track.offset ?? 0) * 1000)
+        filters.push(`adelay=${delayMs}|${delayMs}`)
+      }
+
+      const label = `[a${inputIndex}]`
+      if (filters.length > 0) {
+        filterParts.push(`[${inputIndex}:a]${filters.join(',')}${label}`)
+      } else {
+        filterParts.push(`[${inputIndex}:a]anull${label}`)
+      }
+      audioOutputs.push(label)
+    })
+
+    const numInputs = audioOutputs.length
+    filterParts.push(`${audioOutputs.join('')}amix=inputs=${numInputs}:duration=first:dropout_transition=2[aout]`)
+
+    cmd
+      .complexFilter(filterParts)
+      .outputOptions(['-map 0:v', '-map [aout]', '-c:v copy', '-c:a aac', '-shortest'])
+      .output(outFile)
+      .on('end', () => {
+        try { fs.unlinkSync(merged) } catch { /* ignore */ }
+        resolve(outFile)
+      })
+      .on('error', (err) => {
+        try { fs.unlinkSync(merged) } catch { /* ignore */ }
+        reject(err)
+      })
+      .run()
+  })
+}
+
+
+
 export async function mergeSegments({ inputPath, segments }: MergeSegmentsOptions): Promise<string> {
   if (!segments.length) {
     throw new Error('No segments provided for merge')

@@ -164,6 +164,14 @@ export const mergeVideos = async (filenames: string[]) => {
   return { ...data, url: withMediaBase(data.url) } as { url: string; filename: string }
 }
 
+export const mergeClips = async (params: {
+  clips: { filename: string; startTime: number; endTime: number }[]
+  audioTracks?: { filename: string; startTime?: number; endTime?: number; offset?: number }[]
+}) => {
+  const { data } = await api.post('/merge-clips', params)
+  return { ...data, url: withMediaBase(data.url) } as { url: string; filename: string }
+}
+
 export const mergeSegments = async (filename: string, segments: SegmentDefinition[]) => {
   const { data } = await api.post('/merge-segments', { filename, segments })
   return { ...data, url: withMediaBase(data.url) } as { url: string; filename: string }

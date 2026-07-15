@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react'
-import { Music, Upload, Link, Loader2, CheckCircle, X, Download } from 'lucide-react'
+import { Music, Upload, Link, Loader2, CheckCircle, X, Download, Volume2 } from 'lucide-react'
 import { uploadAudio, downloadAudioFromUrl, getApiErrorMessage } from '../../api/client'
 import { useStore } from '../../store/useStore'
 import { SocialIcon } from 'react-social-icons'
@@ -92,7 +92,7 @@ export default function AudioUploadSection() {
         <div className="space-y-3">
             {/* Audio loaded state */}
             {audioTrack ? (
-                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-4 border border-blue-200">
+                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-4 border border-blue-200 space-y-3">
                     <div className="flex items-start justify-between">
                         <div className="flex items-start gap-3">
                             <div className="w-12 h-12 bg-blue-600/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
@@ -109,6 +109,33 @@ export default function AudioUploadSection() {
                             aria-label="Remove audio track"
                         >
                             <X size={18} />
+                        </button>
+                    </div>
+
+                    <div className="pt-2 border-t border-blue-200/50 flex flex-col gap-2">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const { addMontageAudioClip, audioDuration, setActiveTab } = useStore.getState()
+                                addMontageAudioClip(audioTrack, audioDuration || 30)
+                                setAudioTrack(null)
+                                setActiveTab('montage')
+                                pushActionToast('Added to montage timeline. Upload next audio track!')
+                            }}
+                            className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                        >
+                            <Music size={13} /> Add to Montage Timeline
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const { setActiveTab } = useStore.getState()
+                                setActiveTab('edit')
+                            }}
+                            className="w-full py-2 bg-zinc-700 hover:bg-zinc-650 text-white rounded-xl font-semibold text-xs transition-colors flex items-center justify-center gap-1.5"
+                        >
+                            <Volume2 size={13} /> Set as Project Audio
                         </button>
                     </div>
                 </div>

@@ -138,6 +138,33 @@ export interface VideoSegment {
   kind?: 'cut' | 'merge'
 }
 
+export interface MediaAsset {
+  id: string
+  type: 'video' | 'audio'
+  title: string
+  filename: string
+  url: string
+  duration: number
+  thumbnail?: string
+}
+
+export interface MontageClip {
+  id: string
+  video: VideoProject
+  trimStart: number
+  trimEnd: number
+  order: number
+}
+
+export interface MontageAudioClip {
+  id: string
+  audio: AudioTrack
+  trimStart: number
+  trimEnd: number
+  duration: number
+  offset: number
+}
+
 export type TitlePosition =
   | 'top-left' | 'top' | 'top-right'
   | 'middle-left' | 'middle' | 'middle-right'
@@ -330,8 +357,8 @@ interface EditorState {
   exportFilename: string
   setExportFilename: (name: string) => void
 
-  activeTab: 'import' | 'edit' | 'crop' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
-  setActiveTab: (t: 'import' | 'edit' | 'crop' | 'subtitles' | 'logo' | 'title' | 'border' | 'export') => void
+  activeTab: 'import' | 'montage' | 'edit' | 'crop' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
+  setActiveTab: (t: 'import' | 'montage' | 'edit' | 'crop' | 'subtitles' | 'logo' | 'title' | 'border' | 'export') => void
   isProcessing: boolean
   setIsProcessing: (p: boolean) => void
   processedUrl: string | null
@@ -349,6 +376,29 @@ interface EditorState {
 
   seekTo: number | null
   setSeekTo: (t: number | null) => void
+
+  // Montage multi-clip state
+  montageClips: MontageClip[]
+  addMontageClip: (video: VideoProject, duration: number) => void
+  removeMontageClip: (id: string) => void
+  reorderMontageClips: (activeId: string, overId: string) => void
+  updateMontageClipTrim: (id: string, trimStart: number, trimEnd: number) => void
+  clearMontageClips: () => void
+  montageAudioClips: MontageAudioClip[]
+  addMontageAudioClip: (audio: AudioTrack, duration: number) => void
+  removeMontageAudioClip: (id: string) => void
+  updateMontageAudioClip: (id: string, updates: Partial<Omit<MontageAudioClip, 'id'>>) => void
+  clearMontageAudioClips: () => void
+  mergeLoading: boolean
+  setMergeLoading: (v: boolean) => void
+  mergeStatus: string | null
+  setMergeStatus: (s: string | null) => void
+
+  // Unified Canva-style media library pool
+  mediaAssets: MediaAsset[]
+  addMediaAsset: (asset: MediaAsset) => void
+  removeMediaAsset: (id: string) => void
+  clearMediaAssets: () => void
 
   reset: () => void
 }
@@ -431,6 +481,9 @@ type PersistedEditorState = Pick<EditorState,
   | 'activeTab'
   | 'processedUrl'
   | 'actionHistory'
+  | 'montageClips'
+  | 'montageAudioClips'
+  | 'mediaAssets'
 >
 
 const defaultSubtitleSize = Number(import.meta.env.VITE_SUBTITLE_DEFAULT_SIZE || 22)
@@ -935,6 +988,74 @@ export const useStore = create<EditorState>()(persist((set) => ({
 
   seekTo: null,
   setSeekTo: t => set({ seekTo: t }),
+
+  // Montage clip actions
+  montageClips: [],
+  addMontageClip: (video, _duration) => set(state => {
+    const order = state.montageClips.length
+    return {
+      montageClips: [
+        ...state.montageClips,
+        { id: createId(), video, trimStart: 0, trimEnd: video.duration, order },
+      ],
+    }
+  }),
+  removeMontageClip: id => set(state => ({
+    montageClips: state.montageClips
+      .filter(c => c.id !== id)
+      .map((c, i) => ({ ...c, order: i })),
+  })),
+  reorderMontageClips: (activeId, overId) => set(state => {
+    const clips = [...state.montageClips].sort((a, b) => a.order - b.order)
+    const activeIndex = clips.findIndex(c => c.id === activeId)
+    const overIndex = clips.findIndex(c => c.id === overId)
+    if (activeIndex === -1 || overIndex === -1) return {}
+    const [removed] = clips.splice(activeIndex, 1)
+    clips.splice(overIndex, 0, removed)
+    return { montageClips: clips.map((c, i) => ({ ...c, order: i })) }
+  }),
+  updateMontageClipTrim: (id, trimStart, trimEnd) => set(state => ({
+    montageClips: state.montageClips.map(c =>
+      c.id === id ? { ...c, trimStart, trimEnd } : c
+    ),
+  })),
+  clearMontageClips: () => set({ montageClips: [] }),
+
+  montageAudioClips: [],
+  addMontageAudioClip: (audio, duration) => set(state => ({
+    montageAudioClips: [
+      ...state.montageAudioClips,
+      { id: createId(), audio, trimStart: 0, trimEnd: duration, duration, offset: 0 },
+    ],
+  })),
+  removeMontageAudioClip: id => set(state => ({
+    montageAudioClips: state.montageAudioClips.filter(c => c.id !== id),
+  })),
+  updateMontageAudioClip: (id, updates) => set(state => ({
+    montageAudioClips: state.montageAudioClips.map(c =>
+      c.id === id ? { ...c, ...updates } : c
+    ),
+  })),
+  clearMontageAudioClips: () => set({ montageAudioClips: [] }),
+
+  mergeLoading: false,
+  setMergeLoading: v => set({ mergeLoading: v }),
+  mergeStatus: null,
+  setMergeStatus: s => set({ mergeStatus: s }),
+
+  // Unified Media Assets Library
+  mediaAssets: [],
+  addMediaAsset: asset => set(state => {
+    // Avoid duplicates if same filename/url
+    if (state.mediaAssets.some(a => a.url === asset.url || a.filename === asset.filename)) {
+      return {}
+    }
+    return { mediaAssets: [...state.mediaAssets, asset] }
+  }),
+  removeMediaAsset: id => set(state => ({
+    mediaAssets: state.mediaAssets.filter(a => a.id !== id),
+  })),
+  clearMediaAssets: () => set({ mediaAssets: [] }),
 }), {
   name: 'video-editor-project',
   partialize: (state): PersistedEditorState => ({
@@ -1015,5 +1136,8 @@ export const useStore = create<EditorState>()(persist((set) => ({
     activeTab: state.activeTab,
     processedUrl: state.processedUrl,
     actionHistory: state.actionHistory,
+    montageClips: state.montageClips,
+    montageAudioClips: state.montageAudioClips,
+    mediaAssets: state.mediaAssets,
   }),
 }))
