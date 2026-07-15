@@ -605,7 +605,11 @@ export default function App() {
             </nav>
           </div>
           <div className="flex-1 min-w-0 w-full overflow-hidden">
-            {video ? (
+            {activeTab === 'montage' ? (
+              <div className="rounded-2xl border border-zinc-200 bg-white p-2">
+                <MontageTimeline />
+              </div>
+            ) : video ? (
               <div className='space-y-1'>
                 <div className="justify-between bg-white rounded-2xl border border-zinc-200 px-4 py-2 flex flex-col sm:flex-row sm:items-center gap-3">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -760,10 +764,9 @@ export default function App() {
               </div>
             )}
           </div>
-          <div className="w-full lg:w-80 xl:w-[28rem] flex-shrink-0 lg:sticky lg:top-[64px]">
+          <div className={`w-full lg:w-80 xl:w-[28rem] flex-shrink-0 lg:sticky lg:top-[64px] ${activeTab === 'montage' ? 'hidden' : ''}`}>
             <div className="bg-white rounded-2xl px-4 py-2 border border-zinc-200 min-h-[300px] shadow-sm">
               {activeTab === 'import' && <ImportPanel />}
-              {activeTab === 'montage' && <MontageTimeline />}
               {activeTab === 'edit' && <EditPanel />}
               {activeTab === 'crop' && <CropEditor />}
               {activeTab === 'subtitles' && <SubtitleEditor />}

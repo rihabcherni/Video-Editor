@@ -153,6 +153,7 @@ export interface MontageClip {
   video: VideoProject
   trimStart: number
   trimEnd: number
+  timelineStart: number
   order: number
 }
 
@@ -383,6 +384,7 @@ interface EditorState {
   removeMontageClip: (id: string) => void
   reorderMontageClips: (activeId: string, overId: string) => void
   updateMontageClipTrim: (id: string, trimStart: number, trimEnd: number) => void
+  updateMontageClip: (id: string, updates: Partial<Omit<MontageClip, 'id' | 'video'>>) => void
   clearMontageClips: () => void
   montageAudioClips: MontageAudioClip[]
   addMontageAudioClip: (audio: AudioTrack, duration: number) => void
@@ -993,10 +995,14 @@ export const useStore = create<EditorState>()(persist((set) => ({
   montageClips: [],
   addMontageClip: (video, _duration) => set(state => {
     const order = state.montageClips.length
+    const timelineStart = state.montageClips.reduce(
+      (max, clip) => Math.max(max, (clip.timelineStart ?? clip.order ?? 0) + Math.max(0, clip.trimEnd - clip.trimStart)),
+      0,
+    )
     return {
       montageClips: [
         ...state.montageClips,
-        { id: createId(), video, trimStart: 0, trimEnd: video.duration, order },
+        { id: createId(), video, trimStart: 0, trimEnd: video.duration, timelineStart, order },
       ],
     }
   }),
@@ -1017,6 +1023,11 @@ export const useStore = create<EditorState>()(persist((set) => ({
   updateMontageClipTrim: (id, trimStart, trimEnd) => set(state => ({
     montageClips: state.montageClips.map(c =>
       c.id === id ? { ...c, trimStart, trimEnd } : c
+    ),
+  })),
+  updateMontageClip: (id, updates) => set(state => ({
+    montageClips: state.montageClips.map(c =>
+      c.id === id ? { ...c, ...updates } : c
     ),
   })),
   clearMontageClips: () => set({ montageClips: [] }),
