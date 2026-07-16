@@ -580,6 +580,11 @@ export default function MontageTimeline() {
   }, [updateDrag])
 
   const beginDrag = (event: React.MouseEvent, target: DragTarget, kind: DragKind, clip: MontageClip | MontageAudioClip) => {
+    const isButtonInteraction = (event.target as HTMLElement | null)?.closest('button')
+    if (kind === 'move' && isButtonInteraction) {
+      return
+    }
+
     event.preventDefault()
     event.stopPropagation()
     setSelectedId(clip.id)
@@ -786,8 +791,8 @@ export default function MontageTimeline() {
             </div>
           </div>
 
-          <div className="mt-3 rounded-2xl border border-zinc-200 bg-zinc-50/70 p-2">
-            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <div className="mt-3 rounded-2xl border border-zinc-200 bg-gradient-to-b from-zinc-50 via-white to-zinc-50 p-3 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+            <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 pb-2.5">
               <div>
                 <p className="text-sm font-semibold text-zinc-900">Clip order & timing</p>
                 <p className="text-[11px] text-zinc-500">Drag to reorder, trim and position clips from here.</p>
@@ -813,9 +818,9 @@ export default function MontageTimeline() {
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="max-h-[420px] space-y-2.5 overflow-y-auto pr-1">
               <div>
-                <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Videos</p>
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Videos</p>
                 {videoClips.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-zinc-200 bg-white px-3 py-3 text-xs text-zinc-500">
                     Add a video clip to build the montage list.
@@ -861,11 +866,11 @@ export default function MontageTimeline() {
                         setDropListPlacement('before')
                         setDropListKind(null)
                       }}
-                      className={`rounded-xl border bg-white p-2 shadow-sm transition-all ${isDropTarget ? 'border-cyan-400 ring-2 ring-cyan-100' : 'border-zinc-200'} ${draggedListId === clip.id ? 'opacity-70' : 'opacity-100'} ${isResetFlash ? 'border-amber-300 bg-amber-50/80 ring-2 ring-amber-200 shadow-[0_0_0_2px_rgba(245,158,11,0.18)]' : ''}`}
+                      className={`rounded-xl border bg-white/90 p-2.5 shadow-[0_4px_12px_rgba(15,23,42,0.04)] transition-all ${isDropTarget ? 'border-cyan-400 ring-2 ring-cyan-100' : 'border-zinc-200/80'} ${draggedListId === clip.id ? 'opacity-70' : 'opacity-100'} ${isResetFlash ? 'border-amber-300 bg-amber-50/80 ring-2 ring-amber-200 shadow-[0_0_0_2px_rgba(245,158,11,0.18)]' : ''}`}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex min-w-0 items-start gap-2">
-                          <div className="mt-0.5 rounded-lg bg-cyan-50 p-1 text-cyan-600">
+                          <div className="mt-0.5 rounded-lg bg-cyan-50 p-1 text-cyan-600 shadow-sm">
                             <GripVertical size={14} />
                           </div>
                           <div className="min-w-0">
@@ -880,7 +885,7 @@ export default function MontageTimeline() {
                             )}
                           </div>
                         </div>
-                        <div className="text-right text-[11px] font-medium text-zinc-500">
+                        <div className="min-w-[88px] text-right text-[11px] font-medium text-zinc-500">
                           <div>Pos {formatDuration(clip.timelineStart)}</div>
                           <div>Dur {duration.toFixed(1)}s</div>
                           {hasCustomTrim && (
@@ -893,13 +898,13 @@ export default function MontageTimeline() {
                       </div>
 
                       {isResetFlash && (
-                        <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-700 animate-pulse">
+                        <div className="mt-2.5 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-700 animate-pulse">
                           <RotateCcw size={10} />
                           Restored
                         </div>
                       )}
 
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <div className="mt-2.5 flex flex-wrap items-center gap-2">
                         <button
                           type="button"
                           onClick={() => setActiveTrimEditor(current => current?.kind === 'video' && current.id === clip.id ? null : { kind: 'video', id: clip.id })}
@@ -1048,7 +1053,7 @@ export default function MontageTimeline() {
               </div>
 
               <div>
-                <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Audio</p>
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Audio</p>
                 {audioClips.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-zinc-200 bg-white px-3 py-3 text-xs text-zinc-500">
                     Audio tracks will appear here when added to the montage.
@@ -1093,11 +1098,11 @@ export default function MontageTimeline() {
                         setDropListPlacement('before')
                         setDropListKind(null)
                       }}
-                      className={`rounded-xl border bg-white p-2 shadow-sm transition-all ${isDropTarget ? 'border-cyan-400 ring-2 ring-cyan-100' : 'border-zinc-200'} ${draggedListId === clip.id ? 'opacity-70' : 'opacity-100'} ${isResetFlash ? 'border-amber-300 bg-amber-50/80 ring-2 ring-amber-200 shadow-[0_0_0_2px_rgba(245,158,11,0.18)]' : ''}`}
+                      className={`rounded-xl border bg-white/90 p-2.5 shadow-[0_4px_12px_rgba(15,23,42,0.04)] transition-all ${isDropTarget ? 'border-cyan-400 ring-2 ring-cyan-100' : 'border-zinc-200/80'} ${draggedListId === clip.id ? 'opacity-70' : 'opacity-100'} ${isResetFlash ? 'border-amber-300 bg-amber-50/80 ring-2 ring-amber-200 shadow-[0_0_0_2px_rgba(245,158,11,0.18)]' : ''}`}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex min-w-0 items-start gap-2">
-                          <div className="mt-0.5 rounded-lg bg-teal-50 p-1 text-teal-600">
+                          <div className="mt-0.5 rounded-lg bg-teal-50 p-1 text-teal-600 shadow-sm">
                             <GripVertical size={14} />
                           </div>
                           <div className="min-w-0">
@@ -1112,7 +1117,7 @@ export default function MontageTimeline() {
                             )}
                           </div>
                         </div>
-                        <div className="text-right text-[11px] font-medium text-zinc-500">
+                        <div className="min-w-[88px] text-right text-[11px] font-medium text-zinc-500">
                           <div>Pos {formatDuration(clip.offset)}</div>
                           <div>Dur {duration.toFixed(1)}s</div>
                           {hasCustomTrim && (
@@ -1125,13 +1130,13 @@ export default function MontageTimeline() {
                       </div>
 
                       {isResetFlash && (
-                        <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-700 animate-pulse">
+                        <div className="mt-2.5 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-700 animate-pulse">
                           <RotateCcw size={10} />
                           Restored
                         </div>
                       )}
 
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <div className="mt-2.5 flex flex-wrap items-center gap-2">
                         <button
                           type="button"
                           onClick={() => setActiveTrimEditor(current => current?.kind === 'audio' && current.id === clip.id ? null : { kind: 'audio', id: clip.id })}
@@ -1504,7 +1509,20 @@ export default function MontageTimeline() {
                             </div>
                           )}
                         </div>
-                        <button type="button" onClick={event => { event.stopPropagation(); removeMontageClip(clip.id) }} className="absolute right-1 top-1 rounded bg-white/20 p-0.5 text-white/80 opacity-0 hover:bg-red-500/80 hover:text-white group-hover:opacity-100" aria-label="Remove video clip">
+                        <button
+                          type="button"
+                          onMouseDown={event => {
+                            event.preventDefault()
+                            event.stopPropagation()
+                          }}
+                          onClick={event => {
+                            event.preventDefault()
+                            event.stopPropagation()
+                            removeMontageClip(clip.id)
+                          }}
+                          className="absolute right-1.5 top-1.5 z-20 flex h-6 w-6 items-center justify-center rounded-full border border-white/30 bg-slate-900/70 p-1 text-white shadow-lg backdrop-blur-sm transition-colors hover:bg-red-500/90"
+                          aria-label="Remove video clip"
+                        >
                           <Trash2 size={11} />
                         </button>
                       </div>
@@ -1613,7 +1631,20 @@ export default function MontageTimeline() {
                               </div>
                             )}
                           </div>
-                          <button type="button" onClick={event => { event.stopPropagation(); removeMontageAudioClip(clip.id) }} className="absolute right-1 top-1 rounded bg-white/20 p-0.5 text-white/80 opacity-0 hover:bg-red-500/80 hover:text-white group-hover:opacity-100" aria-label="Remove audio clip">
+                          <button
+                            type="button"
+                            onMouseDown={event => {
+                              event.preventDefault()
+                              event.stopPropagation()
+                            }}
+                            onClick={event => {
+                              event.preventDefault()
+                              event.stopPropagation()
+                              removeMontageAudioClip(clip.id)
+                            }}
+                            className="absolute right-1.5 top-1.5 z-20 flex h-6 w-6 items-center justify-center rounded-full border border-white/30 bg-slate-900/70 p-1 text-white shadow-lg backdrop-blur-sm transition-colors hover:bg-red-500/90"
+                            aria-label="Remove audio clip"
+                          >
                             <Trash2 size={11} />
                           </button>
                         </div>

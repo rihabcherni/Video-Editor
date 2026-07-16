@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react'
-import { Upload, Loader2, Download, Trash2, Plus, Film, Music, Image as ImageIcon} from 'lucide-react'
+import { Upload, Loader2, Download, Trash2, Plus, Film, Music, Image as ImageIcon } from 'lucide-react'
 import { useStore } from '../../store/useStore'
-import {  uploadVideo, uploadAudio, downloadFromUrl, downloadAudioFromUrl, getApiErrorMessage
+import {
+  uploadVideo, uploadAudio, downloadFromUrl, downloadAudioFromUrl, getApiErrorMessage
 } from '../../api/client'
 import { createId } from '../../utils/id'
 
@@ -211,32 +212,21 @@ export default function ImportPanel() {
 
   return (
     <div className="space-y-6 min-w-0 w-full overflow-hidden">
-      <div className="rounded-[2rem] bg-slate-950 px-6 py-5 shadow-[0_20px_80px_rgba(15,23,42,0.12)]">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <p className="text-2xl font-semibold text-white">Importer audio et vidéo</p>
-            <p className="mt-2 max-w-2xl text-sm text-slate-300">
-              Glisser-déposer un fichier local ou coller des liens publics pour importer rapidement du contenu dans votre projet.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {['YouTube', 'Instagram', 'Facebook', 'TikTok', 'Local'].map(source => (
-              <span key={source} className="rounded-full border border-slate-700/80 bg-slate-800/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">
-                {source}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-
       <div className="grid gap-4">
         <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <p className="text-base font-semibold text-slate-900">Importer un média</p>
+              <p className="text-base font-semibold text-slate-900">Importer un média (audio et vidéo)</p>
               <p className="mt-1 text-sm text-slate-500">
-                Choisissez un fichier local ou collez un lien pour importer de la vidéo ou de l’audio.
+                Glisser-déposer un fichier local ou coller des liens publics pour importer rapidement du contenu dans votre projet.
               </p>
+              <div className="flex flex-wrap gap-1.5">
+                {['YouTube', 'Instagram', 'Facebook', 'TikTok', 'Local'].map(source => (
+                  <span key={source} className="rounded-full border border-slate-700/80 bg-cyan-600 px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-300">
+                    {source}
+                  </span>
+                ))}
+              </div>
             </div>
             <div className="inline-flex rounded-full bg-slate-100 p-1 shadow-sm">
               <button
@@ -308,7 +298,7 @@ export default function ImportPanel() {
                     value={urlInput}
                     onChange={e => setUrlInput(e.target.value)}
                     placeholder="YouTube, Instagram, Facebook, TikTok ou URL directe audio/vidéo"
-                    rows={5}
+                    rows={3}
                     disabled={loading}
                     className="w-full resize-none rounded-3xl border border-slate-200 bg-white py-4 px-4 text-sm text-slate-700 focus:outline-none focus:border-cyan-500 placeholder:text-slate-400"
                   />
@@ -319,7 +309,7 @@ export default function ImportPanel() {
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Aperçu des liens</p>
                     <span className="text-xs text-slate-400">Valide / invalide</span>
                   </div>
-                  <div className="mt-3 space-y-2 max-h-40 overflow-y-auto pr-1">
+                  <div className="mt-2 space-y-2 max-h-40 overflow-y-auto pr-1">
                     {urlInput.trim() ? (
                       urlInput
                         .split(/\s+/)
@@ -346,19 +336,14 @@ export default function ImportPanel() {
                     )}
                   </div>
                 </div>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <button
-                    type="button"
-                    onClick={handleUrlDownload}
-                    disabled={loading || !urlInput.trim()}
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-cyan-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400"
-                  >
-                    {loading ? <><Loader2 size={14} className="animate-spin" /> Fetching media...</> : <><Download size={14} /> Fetch media</>}
-                  </button>
-                  <div className="rounded-2xl bg-white border border-zinc-200 px-4 py-3 text-xs text-zinc-500 shadow-sm">
-                    Supported: YouTube · Instagram · Facebook · TikTok
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  onClick={handleUrlDownload}
+                  disabled={loading || !urlInput.trim()}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-cyan-600 p-3 text-xs font-semibold text-white transition hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400"
+                >
+                  {loading ? <><Loader2 size={14} className="animate-spin" /> Fetching media...</> : <><Download size={14} /> Fetch media</>}
+                </button>
               </div>
             )}
 
