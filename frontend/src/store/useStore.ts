@@ -1102,10 +1102,33 @@ export const useStore = create<EditorState>()(persist((set) => ({
     }
     return { mediaAssets: [...state.mediaAssets, asset] }
   }),
-  removeMediaAsset: id => set(state => ({
-    mediaAssets: state.mediaAssets.filter(a => a.id !== id),
-  })),
-  clearMediaAssets: () => set({ mediaAssets: [] }),
+  removeMediaAsset: id => set(state => {
+    const removedAsset = state.mediaAssets.find(asset => asset.id === id)
+    if (!removedAsset) {
+      return { mediaAssets: state.mediaAssets }
+    }
+
+    const nextMediaAssets = state.mediaAssets.filter(asset => asset.id !== id)
+    const shouldRemoveMontageClip = (clip: MontageClip) => clip.video.filename !== removedAsset.filename && clip.video.url !== removedAsset.url
+    const shouldRemoveMontageAudioClip = (clip: MontageAudioClip) => clip.audio.filename !== removedAsset.filename && clip.audio.url !== removedAsset.url
+
+    return {
+      mediaAssets: nextMediaAssets,
+      montageClips: state.montageClips.filter(shouldRemoveMontageClip).map((clip, index) => ({ ...clip, order: index })),
+      montageAudioClips: state.montageAudioClips.filter(shouldRemoveMontageAudioClip).map((clip, index) => ({ ...clip, order: index })),
+    }
+  }),
+  clearMediaAssets: () => set(state => {
+    const remainingAssets = state.mediaAssets
+    const removeReferencedMontageClips = (clip: MontageClip) => !remainingAssets.some(asset => asset.filename === clip.video.filename || asset.url === clip.video.url)
+    const removeReferencedMontageAudioClips = (clip: MontageAudioClip) => !remainingAssets.some(asset => asset.filename === clip.audio.filename || asset.url === clip.audio.url)
+
+    return {
+      mediaAssets: [],
+      montageClips: state.montageClips.filter(removeReferencedMontageClips).map((clip, index) => ({ ...clip, order: index })),
+      montageAudioClips: state.montageAudioClips.filter(removeReferencedMontageAudioClips).map((clip, index) => ({ ...clip, order: index })),
+    }
+  }),
 }), {
   name: 'video-editor-project',
   partialize: (state): PersistedEditorState => ({

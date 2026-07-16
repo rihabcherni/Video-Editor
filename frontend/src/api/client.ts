@@ -159,6 +159,16 @@ export const deleteOutputFile = async (filename: string) => {
   return data as { ok: true; deleted: boolean }
 }
 
+export const deleteUploadedFile = async (filename: string) => {
+  const { data } = await api.post('/upload/delete', { filename })
+  return data as { ok: true; deleted: boolean }
+}
+
+export const deleteUploadedFiles = async (filenames: string[]) => {
+  const { data } = await api.post('/upload/delete-many', { filenames })
+  return data as { ok: true; deleted: number }
+}
+
 export const mergeVideos = async (filenames: string[]) => {
   const { data } = await api.post('/merge-videos', { filenames })
   return { ...data, url: withMediaBase(data.url) } as { url: string; filename: string }

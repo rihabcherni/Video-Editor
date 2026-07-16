@@ -63,6 +63,50 @@ async function validateUploadedMedia(filePath: string, kind: 'video' | 'audio') 
 }
 
 export async function uploadRoute(app: FastifyInstance) {
+  app.post('/upload/delete', async (req, reply) => {
+    const { filename } = req.body as { filename?: string }
+    if (!filename || typeof filename !== 'string') {
+      return reply.code(400).send({ error: 'Missing filename' })
+    }
+
+    const safeName = path.basename(filename)
+    const filePath = path.join(uploadDir, safeName)
+    try {
+      if (!fs.existsSync(filePath)) {
+        return reply.send({ ok: true, deleted: false })
+      }
+      fs.unlinkSync(filePath)
+      return reply.send({ ok: true, deleted: true })
+    } catch (error: unknown) {
+      app.log.error(error)
+      return reply.code(500).send({ error: 'Failed to delete uploaded file' })
+    }
+  })
+
+  app.post('/upload/delete-many', async (req, reply) => {
+    const { filenames } = req.body as { filenames?: string[] }
+    if (!Array.isArray(filenames)) {
+      return reply.code(400).send({ error: 'Missing filenames' })
+    }
+
+    let deleted = 0
+    for (const filename of filenames) {
+      if (typeof filename !== 'string') continue
+      const safeName = path.basename(filename)
+      const filePath = path.join(uploadDir, safeName)
+      try {
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath)
+          deleted += 1
+        }
+      } catch (error: unknown) {
+        app.log.error(error)
+      }
+    }
+
+    return reply.send({ ok: true, deleted })
+  })
+
   app.post('/upload', async (req, reply) => {
     const data = await req.file()
     if (!data) return reply.code(400).send({ error: 'No file uploaded' })
@@ -225,7 +269,7 @@ export async function uploadRoute(app: FastifyInstance) {
         if (stat.isDirectory()) {
           targetPath = path.join(targetPath, 'ytdlp_cookies.txt')
         }
-      } catch {  }
+      } catch { }
     }
     if (targetPath && !path.extname(targetPath)) {
       targetPath = path.join(targetPath, 'ytdlp_cookies.txt')

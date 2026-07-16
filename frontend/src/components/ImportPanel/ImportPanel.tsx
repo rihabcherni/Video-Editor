@@ -2,7 +2,8 @@ import React, { useRef, useState } from 'react'
 import { Upload, Loader2, Download, Trash2, Plus, Film, Music, Image as ImageIcon } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import {
-  uploadVideo, uploadAudio, downloadFromUrl, downloadAudioFromUrl, getApiErrorMessage
+  uploadVideo, uploadAudio, downloadFromUrl, downloadAudioFromUrl, getApiErrorMessage,
+  deleteUploadedFile, deleteUploadedFiles
 } from '../../api/client'
 import { createId } from '../../utils/id'
 
@@ -210,6 +211,32 @@ export default function ImportPanel() {
     setActiveTab('montage')
   }
 
+  const handleDeleteAsset = async (asset: typeof mediaAssets[0]) => {
+    try {
+      await deleteUploadedFile(asset.filename)
+      removeMediaAsset(asset.id)
+      pushActionToast(`Deleted "${asset.title}" from the library and uploads folder`)
+    } catch (err: unknown) {
+      const message = getApiErrorMessage(err, 'Failed to delete asset')
+      setError(message)
+    }
+  }
+
+  const handleClearLibrary = async () => {
+    if (mediaAssets.length === 0) return
+
+    const filenames = mediaAssets.map(asset => asset.filename)
+    try {
+      await deleteUploadedFiles(filenames)
+      const { clearMediaAssets } = useStore.getState()
+      clearMediaAssets()
+      pushActionToast(`Deleted ${filenames.length} asset${filenames.length > 1 ? 's' : ''} from the library and uploads folder`)
+    } catch (err: unknown) {
+      const message = getApiErrorMessage(err, 'Failed to clear library')
+      setError(message)
+    }
+  }
+
   return (
     <div className="space-y-6 min-w-0 w-full overflow-hidden">
       <div className="grid gap-4">
@@ -360,10 +387,7 @@ export default function ImportPanel() {
             {mediaAssets.length > 0 && (
               <button
                 type="button"
-                onClick={() => {
-                  const { clearMediaAssets } = useStore.getState()
-                  clearMediaAssets()
-                }}
+                onClick={handleClearLibrary}
                 className="rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold text-zinc-600 transition hover:border-red-300 hover:text-red-600"
               >
                 Clear library
@@ -415,7 +439,7 @@ export default function ImportPanel() {
                       </span>
                       <button
                         type="button"
-                        onClick={() => removeMediaAsset(asset.id)}
+                        onClick={() => void handleDeleteAsset(asset)}
                         className="text-zinc-400 transition hover:text-red-500"
                         title="Delete asset"
                       >
