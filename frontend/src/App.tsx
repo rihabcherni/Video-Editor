@@ -604,168 +604,170 @@ export default function App() {
               })}
             </nav>
           </div>
-          <div className="flex-1 min-w-0 w-full overflow-hidden">
-            {activeTab === 'montage' ? (
-              <div className="rounded-2xl border border-zinc-200 bg-white p-2">
-                <MontageTimeline />
-              </div>
-            ) : video ? (
-              <div className='space-y-1'>
-                <div className="justify-between bg-white rounded-2xl border border-zinc-200 px-4 py-2 flex flex-col sm:flex-row sm:items-center gap-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                    {video.thumbnail && (
-                      <img
-                        src={video.thumbnail}
-                        alt=""
-                        className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
-                        onError={event => {
-                          event.currentTarget.style.display = 'none'
+          {activeTab !== 'import' && (
+            <div className="flex-1 min-w-0 w-full overflow-hidden">
+              {activeTab === 'montage' ? (
+                <div className="rounded-2xl border border-zinc-200 bg-white p-2">
+                  <MontageTimeline />
+                </div>
+              ) : video ? (
+                <div className='space-y-1'>
+                  <div className="justify-between bg-white rounded-2xl border border-zinc-200 px-4 py-2 flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                      {video.thumbnail && (
+                        <img
+                          src={video.thumbnail}
+                          alt=""
+                          className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+                          onError={event => {
+                            event.currentTarget.style.display = 'none'
+                          }}
+                        />
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-zinc-900 truncate">{video.title}</p>
+                        <p className="text-xs text-zinc-500">
+                          {formatTime(video.duration)} &nbsp;·&nbsp; Trim: {formatTime(trimStart)}–{formatTime(trimEnd)}
+                          {cropEnabled && (crop.top > 0 || crop.bottom > 0 || crop.left > 0 || crop.right > 0) && <>&nbsp;·&nbsp; <span className="text-emerald-600">Crop</span></>}
+                          {segments.length > 0 && <>&nbsp;·&nbsp; <span className="text-yellow-600">{segments.length} segments</span></>}
+                          {audioTrack && <>&nbsp;·&nbsp; <span className="text-yellow-600">Audio ♪</span></>}
+                          {subtitles.length > 0 && <>&nbsp;·&nbsp; <span className="text-yellow-600">{subtitles.length} subs</span></>}
+                          {titleText.trim() && <>&nbsp;·&nbsp; <span className="text-yellow-600">Title</span></>}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPendingPreviewAction('Preview updated successfully.')
+                          void handlePreview()
                         }}
-                      />
-                    )}
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-zinc-900 truncate">{video.title}</p>
-                      <p className="text-xs text-zinc-500">
-                        {formatTime(video.duration)} &nbsp;·&nbsp; Trim: {formatTime(trimStart)}–{formatTime(trimEnd)}
-                        {cropEnabled && (crop.top > 0 || crop.bottom > 0 || crop.left > 0 || crop.right > 0) && <>&nbsp;·&nbsp; <span className="text-emerald-600">Crop</span></>}
-                        {segments.length > 0 && <>&nbsp;·&nbsp; <span className="text-yellow-600">{segments.length} segments</span></>}
-                        {audioTrack && <>&nbsp;·&nbsp; <span className="text-yellow-600">Audio ♪</span></>}
-                        {subtitles.length > 0 && <>&nbsp;·&nbsp; <span className="text-yellow-600">{subtitles.length} subs</span></>}
-                        {titleText.trim() && <>&nbsp;·&nbsp; <span className="text-yellow-600">Title</span></>}
-                      </p>
+                        disabled={previewLoading}
+                        className="px-2 py-2 rounded-lg text-[11px] font-medium bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white transition-colors"
+                      >
+                        {previewLoading ? 'Generating preview...' : 'Preview changes'}
+                      </button>
+                      {processedUrl && (
+                        <button
+                          onClick={() => setProcessedUrl(null)}
+                          className="px-2 py-2 rounded-lg text-[11px] font-medium bg-zinc-100 hover:bg-zinc-200 text-zinc-700 transition-colors"
+                        >
+                          Show original
+                        </button>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPendingPreviewAction('Preview updated successfully.')
-                        void handlePreview()
-                      }}
-                      disabled={previewLoading}
-                      className="px-2 py-2 rounded-lg text-[11px] font-medium bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white transition-colors"
-                    >
-                      {previewLoading ? 'Generating preview...' : 'Preview changes'}
-                    </button>
-                    {processedUrl && (
-                      <button
-                        onClick={() => setProcessedUrl(null)}
-                        className="px-2 py-2 rounded-lg text-[11px] font-medium bg-zinc-100 hover:bg-zinc-200 text-zinc-700 transition-colors"
-                      >
-                        Show original
-                      </button>
-                    )}
+                  <div className="bg-white rounded-2xl border border-zinc-200 p-2">
+                    <VideoPlayer />
                   </div>
-                </div>
-                <div className="bg-white rounded-2xl border border-zinc-200 p-2">
-                  <VideoPlayer />
-                </div>
-                {actionToasts.length > 0 && (
-                  <div className="pointer-events-none fixed bottom-4 right-4 z-[70] flex w-[min(22rem,calc(100vw-2rem))] flex-col gap-2">
-                    {actionToasts.map(toast => (
-                      <div
-                        key={toast.id}
-                        className="pointer-events-auto flex items-start gap-3 rounded-2xl border border-emerald-200 bg-white/95 px-4 py-3 shadow-[0_16px_40px_rgba(5,150,105,0.16)] backdrop-blur-sm"
-                      >
-                        <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-                          <CheckCircle2 size={16} />
+                  {actionToasts.length > 0 && (
+                    <div className="pointer-events-none fixed bottom-4 right-4 z-[70] flex w-[min(22rem,calc(100vw-2rem))] flex-col gap-2">
+                      {actionToasts.map(toast => (
+                        <div
+                          key={toast.id}
+                          className="pointer-events-auto flex items-start gap-3 rounded-2xl border border-emerald-200 bg-white/95 px-4 py-3 shadow-[0_16px_40px_rgba(5,150,105,0.16)] backdrop-blur-sm"
+                        >
+                          <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                            <CheckCircle2 size={16} />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">Preview</p>
+                            <p className="mt-1 text-sm text-zinc-700">{toast.message}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeActionToast(toast.id)}
+                            className="rounded-lg p-1 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600"
+                            aria-label="Close notification"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {previewError && (
+                    <div className="pointer-events-none fixed bottom-4 left-4 z-[70] flex w-[min(22rem,calc(100vw-2rem))] flex-col gap-2">
+                      <div className="pointer-events-auto flex items-start gap-3 rounded-2xl border border-red-200 bg-white/95 px-4 py-3 shadow-[0_16px_40px_rgba(220,38,38,0.14)] backdrop-blur-sm">
+                        <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-red-100 text-red-600">
+                          <AlertCircle size={16} />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">Preview</p>
-                          <p className="mt-1 text-sm text-zinc-700">{toast.message}</p>
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-red-600">Preview error</p>
+                          <p className="mt-1 text-sm text-zinc-700">{previewError}</p>
                         </div>
                         <button
                           type="button"
-                          onClick={() => removeActionToast(toast.id)}
+                          onClick={() => setPreviewError(null)}
                           className="rounded-lg p-1 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600"
-                          aria-label="Close notification"
+                          aria-label="Close preview error"
                         >
                           <X size={14} />
                         </button>
                       </div>
-                    ))}
-                  </div>
-                )}
-                {previewError && (
-                  <div className="pointer-events-none fixed bottom-4 left-4 z-[70] flex w-[min(22rem,calc(100vw-2rem))] flex-col gap-2">
-                    <div className="pointer-events-auto flex items-start gap-3 rounded-2xl border border-red-200 bg-white/95 px-4 py-3 shadow-[0_16px_40px_rgba(220,38,38,0.14)] backdrop-blur-sm">
-                      <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-red-100 text-red-600">
-                        <AlertCircle size={16} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-red-600">Preview error</p>
-                        <p className="mt-1 text-sm text-zinc-700">{previewError}</p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setPreviewError(null)}
-                        className="rounded-lg p-1 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600"
-                        aria-label="Close preview error"
-                      >
-                        <X size={14} />
-                      </button>
                     </div>
-                  </div>
-                )}
-                {activeTab === 'subtitles' && subtitles.length > 0 && (
-                  <div className="overflow-hidden rounded-3xl border border-zinc-200/90 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(244,244,245,0.96)_100%)] shadow-[0_18px_45px_rgba(24,24,27,0.08)] backdrop-blur-sm">
-                    <div className="flex items-center justify-between gap-3 border-b border-zinc-200/80 px-4 py-3">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-600 ring-1 ring-cyan-100">
-                            <FileText size={16} />
-                          </div>
-                          <div className="min-w-0">
-                            <h3 className="text-sm font-semibold text-zinc-900">Subtitle preview</h3>
-                            <p className="text-[11px] text-zinc-500">Quick look at the first subtitle lines</p>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="shrink-0 rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[11px] font-semibold text-cyan-700">
-                        {subtitles.length} lines
-                      </div>
-                    </div>
-                    <div className="max-h-48 space-y-2 overflow-y-auto px-3 py-3">
-                      {subtitles.slice(0, 10).map((s, i) => (
-                        <div
-                          key={i}
-                          className="rounded-2xl border border-white/80 bg-white/90 px-3 py-2.5 shadow-[0_10px_24px_rgba(24,24,27,0.04)]"
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className="min-w-[88px] shrink-0 rounded-xl bg-zinc-100 px-2 py-1 text-center font-mono text-[10px] font-medium tracking-wide text-zinc-500">
-                              <div>{s.startTime.slice(0, 8)}</div>
-                              <div className="text-zinc-400">{s.endTime.slice(0, 8)}</div>
+                  )}
+                  {activeTab === 'subtitles' && subtitles.length > 0 && (
+                    <div className="overflow-hidden rounded-3xl border border-zinc-200/90 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(244,244,245,0.96)_100%)] shadow-[0_18px_45px_rgba(24,24,27,0.08)] backdrop-blur-sm">
+                      <div className="flex items-center justify-between gap-3 border-b border-zinc-200/80 px-4 py-3">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-600 ring-1 ring-cyan-100">
+                              <FileText size={16} />
                             </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-400">Line {i + 1}</p>
-                              <p className="mt-1 text-sm leading-5 text-zinc-700">{s.text}</p>
+                            <div className="min-w-0">
+                              <h3 className="text-sm font-semibold text-zinc-900">Subtitle preview</h3>
+                              <p className="text-[11px] text-zinc-500">Quick look at the first subtitle lines</p>
                             </div>
                           </div>
                         </div>
-                      ))}
-                      {subtitles.length > 10 && (
-                        <div className="rounded-2xl border border-dashed border-zinc-200 bg-white/70 px-3 py-2 text-center text-xs font-medium text-zinc-500">
-                          +{subtitles.length - 10} more subtitle lines
+                        <div className="shrink-0 rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[11px] font-semibold text-cyan-700">
+                          {subtitles.length} lines
                         </div>
-                      )}
+                      </div>
+                      <div className="max-h-48 space-y-2 overflow-y-auto px-3 py-3">
+                        {subtitles.slice(0, 10).map((s, i) => (
+                          <div
+                            key={i}
+                            className="rounded-2xl border border-white/80 bg-white/90 px-3 py-2.5 shadow-[0_10px_24px_rgba(24,24,27,0.04)]"
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="min-w-[88px] shrink-0 rounded-xl bg-zinc-100 px-2 py-1 text-center font-mono text-[10px] font-medium tracking-wide text-zinc-500">
+                                <div>{s.startTime.slice(0, 8)}</div>
+                                <div className="text-zinc-400">{s.endTime.slice(0, 8)}</div>
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-400">Line {i + 1}</p>
+                                <p className="mt-1 text-sm leading-5 text-zinc-700">{s.text}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        {subtitles.length > 10 && (
+                          <div className="rounded-2xl border border-dashed border-zinc-200 bg-white/70 px-3 py-2 text-center text-xs font-medium text-zinc-500">
+                            +{subtitles.length - 10} more subtitle lines
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="bg-white rounded-2xl border border-zinc-200 border-dashed h-full min-h-[360px] sm:min-h-[500px] flex flex-col items-center justify-center p-8 sm:p-10 text-center">
-                <div className="w-16 h-16 bg-zinc-100 rounded-2xl flex items-center justify-center mb-4">
-                  <Film size={28} className="text-zinc-500" />
+                  )}
                 </div>
-                <h2 className="text-lg font-semibold text-zinc-700 mb-2">No video loaded</h2>
-                <p className="text-sm text-zinc-500 max-w-xs">
-                  Use the Import tab on the right to load a video from YouTube, Instagram, Facebook, or a local file.
-                </p>
-              </div>
-            )}
-          </div>
-          <div className={`w-full lg:w-80 xl:w-[28rem] flex-shrink-0 lg:sticky lg:top-[64px] ${activeTab === 'montage' ? 'hidden' : ''}`}>
-            <div className="bg-white rounded-2xl px-4 py-2 border border-zinc-200 min-h-[300px] shadow-sm">
+              ) : (
+                <div className="bg-white rounded-2xl border border-zinc-200 border-dashed h-full min-h-[360px] sm:min-h-[500px] flex flex-col items-center justify-center p-8 sm:p-10 text-center">
+                  <div className="w-16 h-16 bg-zinc-100 rounded-2xl flex items-center justify-center mb-4">
+                    <Film size={28} className="text-zinc-500" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-zinc-700 mb-2">No video loaded</h2>
+                  <p className="text-sm text-zinc-500 max-w-xs">
+                    Use the Import tab on the right to load a video from YouTube, Instagram, Facebook, or a local file.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+          <div className={`w-full ${activeTab === 'import' ? 'lg:flex-1 lg:min-w-0' : 'lg:w-80 xl:w-[28rem] flex-shrink-0'} lg:sticky lg:top-[64px] ${activeTab === 'montage' ? 'hidden' : ''}`}>
+            <div className="bg-white rounded-2xl px-4 py-4 border border-zinc-200 min-h-[300px] shadow-sm max-w-full">
               {activeTab === 'import' && <ImportPanel />}
               {activeTab === 'edit' && <EditPanel />}
               {activeTab === 'crop' && <CropEditor />}
