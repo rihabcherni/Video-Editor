@@ -16,6 +16,15 @@ function formatDuration(s: number) {
   return `${m}:${sec.toString().padStart(2, '0')}`
 }
 
+function isValidUrl(url: string) {
+  try {
+    const parsed = new URL(url)
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
 export default function ImportPanel() {
   const {
     mediaAssets, addMediaAsset, removeMediaAsset,
@@ -108,15 +117,27 @@ export default function ImportPanel() {
 
     if (urls.length === 0) return
 
+    const urlEntries = urls.map(url => ({
+      url,
+      valid: isValidUrl(url)
+    }))
+
+    const validUrls = urlEntries.filter(entry => entry.valid).map(entry => entry.url)
+    const invalidUrls = urlEntries.filter(entry => !entry.valid).map(entry => entry.url)
+
+    if (validUrls.length === 0) {
+      setError('No valid links found. Please paste valid http or https URLs.')
+      return
+    }
+
     setLoading(true)
     setError(null)
 
     const importedCount: string[] = []
-    const invalidUrls: string[] = []
     const failedUrls: string[] = []
 
-    for (let index = 0; index < urls.length; index += 1) {
-      const url = urls[index]
+    for (let index = 0; index < validUrls.length; index += 1) {
+      const url = validUrls[index]
       const isAudioLink = url.includes('.mp3') || url.includes('.wav') || url.includes('.ogg')
 
       try {
@@ -156,7 +177,9 @@ export default function ImportPanel() {
       setUrlInput('')
     }
 
-    if (failedUrls.length > 0) {
+    if (invalidUrls.length > 0) {
+      setError(`Invalid link${invalidUrls.length > 1 ? 's' : ''}: ${invalidUrls.join(', ')}.`)
+    } else if (failedUrls.length > 0) {
       setError(failedUrls.join(' '))
     }
   }
@@ -191,18 +214,18 @@ export default function ImportPanel() {
   }
 
   return (
-    <div className="space-y-4 min-w-0 w-full overflow-hidden">
-      <div className="rounded-3xl border border-zinc-200 bg-white p-4 shadow-sm">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div className="space-y-6 min-w-0 w-full overflow-hidden">
+      <div className="rounded-[2rem] bg-slate-950 px-6 py-5 shadow-[0_20px_80px_rgba(15,23,42,0.12)]">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <p className="text-lg font-semibold text-zinc-900">Media Library</p>
-            <p className="mt-2 text-sm text-zinc-500">
-              Import videos and audio from YouTube, Instagram, Facebook, TikTok, or your local files. Then add assets to your timeline with a single click.
+            <p className="text-2xl font-semibold text-white">Importer audio et vidéo</p>
+            <p className="mt-2 max-w-2xl text-sm text-slate-300">
+              Glisser-déposer un fichier local ou coller des liens publics pour importer rapidement du contenu dans votre projet.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {['YouTube', 'Instagram', 'Facebook', 'TikTok', 'Local file'].map(source => (
-              <span key={source} className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] font-semibold text-zinc-600">
+          <div className="flex flex-wrap gap-2">
+            {['YouTube', 'Instagram', 'Facebook', 'TikTok', 'Local'].map(source => (
+              <span key={source} className="rounded-full border border-slate-700/80 bg-slate-800/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">
                 {source}
               </span>
             ))}
@@ -211,41 +234,40 @@ export default function ImportPanel() {
       </div>
 
       <div className="grid gap-4">
-        <div className="rounded-3xl border border-zinc-200 bg-zinc-50 p-4 shadow-sm">
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-zinc-900">Import assets</p>
-              <p className="mt-1 text-xs text-zinc-500">
-                Drop a file, browse local media, or paste a supported link to import video or audio.
+              <p className="text-base font-semibold text-slate-900">Importer un média</p>
+              <p className="mt-1 text-sm text-slate-500">
+                Choisissez un fichier local ou collez un lien pour importer de la vidéo ou de l’audio.
               </p>
             </div>
-            <div className="inline-flex rounded-2xl bg-white p-1 shadow-sm">
+            <div className="inline-flex rounded-full bg-slate-100 p-1 shadow-sm">
               <button
                 type="button"
                 onClick={() => setUploadTab('file')}
-                className={`rounded-2xl px-4 py-2 text-xs font-semibold transition ${uploadTab === 'file' ? 'bg-cyan-600 text-white shadow-sm' : 'bg-transparent text-zinc-700 hover:text-zinc-900 hover:bg-zinc-50'} border border-transparent ${uploadTab === 'file' ? '' : 'border-zinc-200'}`}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${uploadTab === 'file' ? 'bg-cyan-600 text-white shadow' : 'bg-transparent text-slate-700 hover:text-slate-900 hover:bg-slate-50'} ${uploadTab === 'file' ? '' : 'border border-slate-200'}`}
               >
-                Local files
+                Fichier local
               </button>
               <button
                 type="button"
                 onClick={() => setUploadTab('link')}
-                className={`rounded-2xl px-4 py-2 text-xs font-semibold transition ${uploadTab === 'link' ? 'bg-cyan-600 text-white shadow-sm' : 'bg-transparent text-zinc-700 hover:text-zinc-900 hover:bg-zinc-50'} border border-transparent ${uploadTab === 'link' ? '' : 'border-zinc-200'}`}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${uploadTab === 'link' ? 'bg-cyan-600 text-white shadow' : 'bg-transparent text-slate-700 hover:text-slate-900 hover:bg-slate-50'} ${uploadTab === 'link' ? '' : 'border border-slate-200'}`}
               >
-                Paste URL
+                URL publique
               </button>
             </div>
           </div>
 
-          <div className="mt-4">
+          <div className="mt-5">
             {uploadTab === 'file' ? (
               <div
                 onDrop={handleDrop}
                 onDragOver={e => { e.preventDefault(); setDragOver(true) }}
                 onDragLeave={() => setDragOver(false)}
                 onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-3xl p-6 min-h-[160px] text-center cursor-pointer transition-all ${dragOver ? 'border-cyan-600 bg-cyan-50' : 'border-zinc-300 bg-white hover:border-zinc-400 hover:bg-zinc-100'
-                  }`}
+                className={`group rounded-[1.75rem] border border-dashed p-8 text-center transition ${dragOver ? 'border-cyan-500 bg-cyan-50' : 'border-slate-300 bg-slate-50 hover:border-slate-400 hover:bg-slate-100'}`}
               >
                 <input
                   ref={fileInputRef}
@@ -260,37 +282,72 @@ export default function ImportPanel() {
                 />
                 {loading ? (
                   <div className="space-y-3">
-                    <Loader2 className="mx-auto text-cyan-600 animate-spin" size={28} />
-                    <p className="text-sm font-semibold text-zinc-700">Importing asset...</p>
+                    <Loader2 className="mx-auto text-cyan-600 animate-spin" size={32} />
+                    <p className="text-base font-semibold text-slate-900">Import en cours...</p>
                     {uploadProgress > 0 && (
-                      <div className="mx-auto w-full max-w-full bg-zinc-200 h-2 rounded-full overflow-hidden">
-                        <div className="bg-cyan-600 h-full transition-all" style={{ width: `${uploadProgress}%` }} />
+                      <div className="mx-auto mt-4 w-full max-w-xl overflow-hidden rounded-full bg-slate-200 h-2">
+                        <div className="h-full bg-cyan-600 transition-all" style={{ width: `${uploadProgress}%` }} />
                       </div>
                     )}
                   </div>
                 ) : (
                   <>
-                    <Upload size={28} className="mx-auto mb-3 text-zinc-400" />
-                    <p className="text-sm font-semibold text-zinc-900">Click to browse or drop files here</p>
-                    <p className="mt-2 text-xs text-zinc-500">
-                      Supported formats: MP4, MOV, MKV, MP3, WAV, AAC.
+                    <Upload size={32} className="mx-auto mb-4 text-slate-400 transition group-hover:text-cyan-600" />
+                    <p className="text-base font-semibold text-slate-900">Déposez vos fichiers ici</p>
+                    <p className="mt-2 text-sm text-slate-500">
+                      MP4, MOV, MKV, MP3, WAV, AAC
                     </p>
+                    <p className="mt-3 text-xs uppercase tracking-[0.2em] text-slate-400">Cliquez ou glissez pour importer</p>
                   </>
                 )}
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="rounded-3xl border border-zinc-200 bg-white p-3 shadow-sm">
-                  <div className="relative">
-                    <Globe size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
-                    <textarea
-                      value={urlInput}
-                      onChange={e => setUrlInput(e.target.value)}
-                      placeholder="Paste one or more public YouTube, Instagram, Facebook or TikTok links, separated by spaces or new lines"
-                      disabled={loading}
-                      rows={4}
-                      className="w-full resize-none rounded-2xl border border-zinc-200 bg-white py-3 pl-12 pr-4 text-sm text-zinc-700 focus:outline-none focus:border-zinc-900 placeholder:text-zinc-400"
-                    />
+                <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4 shadow-sm">
+                  <label htmlFor="import-url" className="block text-xs font-semibold text-slate-600 mb-2">
+                    Coller un ou plusieurs liens publics
+                  </label>
+                  <textarea
+                    id="import-url"
+                    value={urlInput}
+                    onChange={e => setUrlInput(e.target.value)}
+                    placeholder="YouTube, Instagram, Facebook, TikTok ou URL directe audio/vidéo"
+                    rows={5}
+                    disabled={loading}
+                    className="w-full resize-none rounded-3xl border border-slate-200 bg-white py-4 px-4 text-sm text-slate-700 focus:outline-none focus:border-cyan-500 placeholder:text-slate-400"
+                  />
+                  <p className="mt-3 text-xs text-slate-500">Séparez plusieurs liens par un saut de ligne ou un espace.</p>
+                </div>
+                <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4 shadow-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Aperçu des liens</p>
+                    <span className="text-xs text-slate-400">Valide / invalide</span>
+                  </div>
+                  <div className="mt-3 space-y-2 max-h-40 overflow-y-auto pr-1">
+                    {urlInput.trim() ? (
+                      urlInput
+                        .split(/\s+/)
+                        .map(url => url.trim())
+                        .filter(Boolean)
+                        .map((url, index) => {
+                          const valid = isValidUrl(url)
+                          return (
+                            <div
+                              key={index}
+                              className={`flex items-center justify-between rounded-2xl px-4 py-3 ring-1 ${valid ? 'bg-cyan-50 ring-cyan-100' : 'bg-white ring-slate-200'}`}
+                            >
+                              <span className={`truncate text-sm ${valid ? 'text-slate-900' : 'text-slate-700'}`}>{url}</span>
+                              {!valid && (
+                                <span className="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-red-600">
+                                  Invalide
+                                </span>
+                              )}
+                            </div>
+                          )
+                        })
+                    ) : (
+                      <p className="text-sm text-slate-500">Collez des liens pour voir l’aperçu avant import.</p>
+                    )}
                   </div>
                 </div>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -390,8 +447,8 @@ export default function ImportPanel() {
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </div >
+    </div >
   )
 }
 
