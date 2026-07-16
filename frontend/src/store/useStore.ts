@@ -164,6 +164,7 @@ export interface MontageAudioClip {
   trimEnd: number
   duration: number
   offset: number
+  order: number
 }
 
 export type TitlePosition =
@@ -382,7 +383,8 @@ interface EditorState {
   montageClips: MontageClip[]
   addMontageClip: (video: VideoProject, duration: number) => void
   removeMontageClip: (id: string) => void
-  reorderMontageClips: (activeId: string, overId: string) => void
+  reorderMontageClips: (activeId: string, overId: string, placement?: 'before' | 'after') => void
+  reorderMontageAudioClips: (activeId: string, overId: string, placement?: 'before' | 'after') => void
   updateMontageClipTrim: (id: string, trimStart: number, trimEnd: number) => void
   updateMontageClip: (id: string, updates: Partial<Omit<MontageClip, 'id' | 'video'>>) => void
   clearMontageClips: () => void
@@ -1011,14 +1013,24 @@ export const useStore = create<EditorState>()(persist((set) => ({
       .filter(c => c.id !== id)
       .map((c, i) => ({ ...c, order: i })),
   })),
-  reorderMontageClips: (activeId, overId) => set(state => {
+  reorderMontageClips: (activeId, overId, placement = 'before') => set(state => {
     const clips = [...state.montageClips].sort((a, b) => a.order - b.order)
     const activeIndex = clips.findIndex(c => c.id === activeId)
     const overIndex = clips.findIndex(c => c.id === overId)
     if (activeIndex === -1 || overIndex === -1) return {}
     const [removed] = clips.splice(activeIndex, 1)
-    clips.splice(overIndex, 0, removed)
-    return { montageClips: clips.map((c, i) => ({ ...c, order: i })) }
+    const insertIndex = placement === 'after' ? overIndex : overIndex
+    clips.splice(insertIndex, 0, removed)
+
+    let cursor = 0
+    const reordered = clips.map((clip, index) => {
+      const duration = Math.max(0, clip.trimEnd - clip.trimStart)
+      const timelineStart = cursor
+      cursor += duration
+      return { ...clip, order: index, timelineStart }
+    })
+
+    return { montageClips: reordered }
   }),
   updateMontageClipTrim: (id, trimStart, trimEnd) => set(state => ({
     montageClips: state.montageClips.map(c =>
@@ -1033,15 +1045,42 @@ export const useStore = create<EditorState>()(persist((set) => ({
   clearMontageClips: () => set({ montageClips: [] }),
 
   montageAudioClips: [],
-  addMontageAudioClip: (audio, duration) => set(state => ({
-    montageAudioClips: [
-      ...state.montageAudioClips,
-      { id: createId(), audio, trimStart: 0, trimEnd: duration, duration, offset: 0 },
-    ],
-  })),
+  addMontageAudioClip: (audio, duration) => set(state => {
+    const order = state.montageAudioClips.length
+    const offset = state.montageAudioClips.reduce((max, clip) => {
+      const clipDuration = Math.max(0, clip.trimEnd - clip.trimStart)
+      return Math.max(max, clip.offset + clipDuration)
+    }, 0)
+
+    return {
+      montageAudioClips: [
+        ...state.montageAudioClips,
+        { id: createId(), audio, trimStart: 0, trimEnd: duration, duration, offset, order },
+      ],
+    }
+  }),
   removeMontageAudioClip: id => set(state => ({
-    montageAudioClips: state.montageAudioClips.filter(c => c.id !== id),
+    montageAudioClips: state.montageAudioClips.filter(c => c.id !== id).map((c, i) => ({ ...c, order: i })),
   })),
+  reorderMontageAudioClips: (activeId, overId, placement = 'before') => set(state => {
+    const clips = [...state.montageAudioClips].sort((a, b) => a.order - b.order)
+    const activeIndex = clips.findIndex(c => c.id === activeId)
+    const overIndex = clips.findIndex(c => c.id === overId)
+    if (activeIndex === -1 || overIndex === -1) return {}
+    const [removed] = clips.splice(activeIndex, 1)
+    const insertIndex = placement === 'after' ? overIndex + 1 : overIndex
+    clips.splice(insertIndex, 0, removed)
+
+    let cursor = 0
+    const reordered = clips.map((clip, index) => {
+      const duration = Math.max(0, clip.trimEnd - clip.trimStart)
+      const offset = cursor
+      cursor += duration
+      return { ...clip, order: index, offset }
+    })
+
+    return { montageAudioClips: reordered }
+  }),
   updateMontageAudioClip: (id, updates) => set(state => ({
     montageAudioClips: state.montageAudioClips.map(c =>
       c.id === id ? { ...c, ...updates } : c
