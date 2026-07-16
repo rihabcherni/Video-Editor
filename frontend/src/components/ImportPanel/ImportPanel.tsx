@@ -1,11 +1,7 @@
 import React, { useRef, useState } from 'react'
-import {
-  Upload, Loader2, Download, Trash2, Plus,
-  Film, Music, Globe, Image as ImageIcon, Sparkles, FolderOpen
-} from 'lucide-react'
+import { Upload, Loader2, Download, Trash2, Plus, Film, Music, Image as ImageIcon} from 'lucide-react'
 import { useStore } from '../../store/useStore'
-import {
-  uploadVideo, uploadAudio, downloadFromUrl, downloadAudioFromUrl, getApiErrorMessage
+import {  uploadVideo, uploadAudio, downloadFromUrl, downloadAudioFromUrl, getApiErrorMessage
 } from '../../api/client'
 import { createId } from '../../utils/id'
 
