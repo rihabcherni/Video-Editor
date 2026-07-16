@@ -238,7 +238,7 @@ export default function ImportPanel() {
   }
 
   return (
-    <div className="space-y-6 min-w-0 w-full overflow-hidden">
+    <div className="space-y-3 min-w-0 w-full overflow-hidden">
       <div className="grid gap-4">
         <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -247,13 +247,6 @@ export default function ImportPanel() {
               <p className="mt-1 text-sm text-slate-500">
                 Glisser-déposer un fichier local ou coller des liens publics pour importer rapidement du contenu dans votre projet.
               </p>
-              <div className="flex flex-wrap gap-1.5">
-                {['YouTube', 'Instagram', 'Facebook', 'TikTok', 'Local'].map(source => (
-                  <span key={source} className="rounded-full border border-slate-700/80 bg-cyan-600 px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-300">
-                    {source}
-                  </span>
-                ))}
-              </div>
             </div>
             <div className="inline-flex rounded-full bg-slate-100 p-1 shadow-sm">
               <button
@@ -305,21 +298,29 @@ export default function ImportPanel() {
                   </div>
                 ) : (
                   <>
-                    <Upload size={32} className="mx-auto mb-4 text-slate-400 transition group-hover:text-cyan-600" />
+                    <Upload size={32} className="mx-auto mb-2 text-slate-400 transition group-hover:text-cyan-600" />
                     <p className="text-base font-semibold text-slate-900">Déposez vos fichiers ici</p>
-                    <p className="mt-2 text-sm text-slate-500">
+                    <p className="mt-2 text-xs text-slate-500">
                       MP4, MOV, MKV, MP3, WAV, AAC
                     </p>
-                    <p className="mt-3 text-xs uppercase tracking-[0.2em] text-slate-400">Cliquez ou glissez pour importer</p>
+                    <p className="mt-2 text-[12px] tracking-[0.2em] text-slate-400">Cliquez ou glissez pour importer</p>
                   </>
                 )}
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4 shadow-sm">
-                  <label htmlFor="import-url" className="block text-xs font-semibold text-slate-600 mb-2">
-                    Coller un ou plusieurs liens publics
-                  </label>
+                  <div className="flex items-center justify-between gap-3">
+                    <label htmlFor="import-url" className="block text-xs font-semibold text-slate-600 mb-2">Collez un ou plusieurs liens publics. Séparez les liens par un saut de ligne ou un espace.</label>
+                    <button
+                      type="button"
+                      onClick={handleUrlDownload}
+                      disabled={loading || !urlInput.trim()}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-cyan-600 p-3 text-xs font-semibold text-white transition hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400"
+                    >
+                      {loading ? <><Loader2 size={14} className="animate-spin" /> Fetching media...</> : <><Download size={14} /> Fetch media</>}
+                    </button>
+                  </div>
                   <textarea
                     id="import-url"
                     value={urlInput}
@@ -329,14 +330,13 @@ export default function ImportPanel() {
                     disabled={loading}
                     className="w-full resize-none rounded-3xl border border-slate-200 bg-white py-4 px-4 text-sm text-slate-700 focus:outline-none focus:border-cyan-500 placeholder:text-slate-400"
                   />
-                  <p className="mt-3 text-xs text-slate-500">Séparez plusieurs liens par un saut de ligne ou un espace.</p>
                 </div>
                 <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4 shadow-sm">
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Aperçu des liens</p>
+                    <p className="text-xs font-semibold text-slate-500">Aperçu des liens</p>
                     <span className="text-xs text-slate-400">Valide / invalide</span>
                   </div>
-                  <div className="mt-2 space-y-2 max-h-40 overflow-y-auto pr-1">
+                  <div className="mt-1 space-y-2 max-h-40 overflow-y-auto pr-1">
                     {urlInput.trim() ? (
                       urlInput
                         .split(/\s+/)
@@ -359,18 +359,10 @@ export default function ImportPanel() {
                           )
                         })
                     ) : (
-                      <p className="text-sm text-slate-500">Collez des liens pour voir l’aperçu avant import.</p>
+                      <p className="text-sm text-slate-500">Collez des liens pour voir l'aperçu avant import.</p>
                     )}
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleUrlDownload}
-                  disabled={loading || !urlInput.trim()}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-cyan-600 p-3 text-xs font-semibold text-white transition hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400"
-                >
-                  {loading ? <><Loader2 size={14} className="animate-spin" /> Fetching media...</> : <><Download size={14} /> Fetch media</>}
-                </button>
               </div>
             )}
 

@@ -266,11 +266,14 @@ export default function MontageTimeline() {
     [montageAudioClips],
   )
 
+  const hasTimelineMedia = videoClips.length > 0 || audioClips.length > 0
+
   const timelineDuration = useMemo(() => {
+    if (!hasTimelineMedia) return 0
     const videoEnd = videoClips.reduce((max, clip) => Math.max(max, clipStart(clip) + clipDuration(clip)), 0)
     const audioEnd = audioClips.reduce((max, clip) => Math.max(max, clip.offset + clipDuration(clip)), 0)
     return Math.max(10, Math.ceil(Math.max(videoEnd, audioEnd)) + 2)
-  }, [audioClips, videoClips])
+  }, [audioClips, hasTimelineMedia, videoClips])
 
   const minimumZoom = useMemo(() => {
     const availableWidth = Math.max(120, timelineViewportWidth - TRACK_LEFT - 36)
@@ -425,6 +428,7 @@ export default function MontageTimeline() {
   }, [playhead, playing, seekPreview])
 
   const togglePlay = () => {
+    if (!hasTimelineMedia) return
     const nextPlaying = !playing
     setPlaying(nextPlaying)
     seekPreview(playhead >= timelineDuration ? 0 : playhead, nextPlaying)
@@ -745,14 +749,16 @@ export default function MontageTimeline() {
                 <span className="text-xs font-medium">No video at playhead</span>
               </div>
             )}
-            <button
-              type="button"
-              onClick={togglePlay}
-              className="absolute bottom-4 left-1/2 flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-full bg-cyan-600 text-white shadow-lg shadow-cyan-600/20 transition-colors hover:bg-cyan-500"
-              aria-label={playing ? 'Pause montage preview' : 'Play montage preview'}
-            >
-              {playing ? <Pause size={20} /> : <Play size={20} className="ml-0.5" />}
-            </button>
+            {hasTimelineMedia && (
+              <button
+                type="button"
+                onClick={togglePlay}
+                className="absolute bottom-4 left-1/2 flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-full bg-cyan-600 text-white shadow-lg shadow-cyan-600/20 transition-colors hover:bg-cyan-500"
+                aria-label={playing ? 'Pause montage preview' : 'Play montage preview'}
+              >
+                {playing ? <Pause size={20} /> : <Play size={20} className="ml-0.5" />}
+              </button>
+            )}
           </div>
         </div>
 
@@ -812,9 +818,6 @@ export default function MontageTimeline() {
                 >
                   {miniCardView ? 'List' : 'Mini cards'}
                 </button>
-                <span className="rounded-full bg-cyan-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-700">
-                  Live sync
-                </span>
               </div>
             </div>
 
@@ -1298,11 +1301,16 @@ export default function MontageTimeline() {
       <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 bg-zinc-50/80 px-3 py-2">
           <div className="flex items-center gap-2">
-            <button type="button" onClick={togglePlay} className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-600 text-white hover:bg-cyan-500" aria-label="Play timeline">
-              {playing ? <Pause size={15} /> : <Play size={15} />}
-            </button>
-            <span className="font-mono text-xs font-semibold text-zinc-700">{frameLabel(playhead)}</span>
-            <span className="rounded-full border border-cyan-200 bg-cyan-50 px-2 py-1 text-[11px] font-semibold text-cyan-700">Snap on</span>
+            {hasTimelineMedia ? (
+              <>
+                <button type="button" onClick={togglePlay} className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-600 text-white hover:bg-cyan-500" aria-label="Play timeline">
+                  {playing ? <Pause size={15} /> : <Play size={15} />}
+                </button>
+                <span className="font-mono text-xs font-semibold text-zinc-700">{frameLabel(playhead)}</span>
+              </>
+            ) : (
+              <span className="text-xs font-medium text-zinc-500">Add video or audio to enable playback</span>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button type="button" onClick={fitTimeline} className={`h-8 rounded-lg px-3 text-xs font-semibold transition-colors ${autoFit ? 'bg-cyan-600 text-white' : 'bg-white text-zinc-600 ring-1 ring-zinc-200 hover:bg-zinc-100'}`}>
