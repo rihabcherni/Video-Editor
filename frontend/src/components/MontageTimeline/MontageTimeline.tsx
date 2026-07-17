@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  AlertCircle, CheckCircle2, Film, GitMerge, GripVertical, Layers, Loader2, Maximize2, Music,
+  AlertCircle, CheckCircle2, Download, Film, GitMerge, GripVertical, Layers, Loader2, Maximize2, Music,
   Pause, Play, Plus, RotateCcw, Scissors, Sparkles, Trash2, Volume2, ZoomIn, ZoomOut
 } from 'lucide-react'
 import { mergeClips } from '../../api/client'
@@ -223,7 +223,8 @@ export default function MontageTimeline() {
     removeMontageAudioClip, updateMontageAudioClip, reorderMontageAudioClips,
     clearMontageClips, clearMontageAudioClips,
     mergeLoading, setMergeLoading, mergeStatus, setMergeStatus,
-    setVideo, pushActionToast,
+    setMergedVideo, pushActionToast,
+    splitMontageClip, splitMontageAudioClip,
   } = useStore()
 
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -252,7 +253,6 @@ export default function MontageTimeline() {
   const [autoFit, setAutoFit] = useState(true)
   const [timelineViewportWidth, setTimelineViewportWidth] = useState(0)
   const [activeTrimEditor, setActiveTrimEditor] = useState<{ kind: 'video' | 'audio'; id: string } | null>(null)
-  const [resetFlashClip, setResetFlashClip] = useState<{ kind: 'video' | 'audio'; id: string } | null>(null)
 
   const videoClips = useMemo(
     () => [...montageClips].sort((a, b) => clipStart(a) - clipStart(b) || a.order - b.order),
@@ -362,12 +362,6 @@ export default function MontageTimeline() {
   useEffect(() => {
     if (videoClips.length && !selectedId) setSelectedId(videoClips[0].id)
   }, [selectedId, videoClips])
-
-  useEffect(() => {
-    if (!resetFlashClip) return
-    const timeout = window.setTimeout(() => setResetFlashClip(null), 900)
-    return () => window.clearTimeout(timeout)
-  }, [resetFlashClip])
 
   useEffect(() => {
     const node = timelineViewportRef.current
@@ -634,7 +628,7 @@ export default function MontageTimeline() {
 
       setMergeStatus('Rendering final montage on server...')
       const result = await mergeClips({ clips, audioTracks })
-      setVideo({
+      setMergedVideo({
         id: createId(),
         title: `Montage (${videoClips.length} clips)`,
         duration: videoClips.reduce((sum, clip) => sum + clipDuration(clip), 0),
@@ -644,13 +638,48 @@ export default function MontageTimeline() {
       clearMontageClips()
       clearMontageAudioClips()
       setMergeStatus(null)
-      pushActionToast(`Merged ${videoClips.length} clip${videoClips.length !== 1 ? 's' : ''} into one video.`)
+      pushActionToast(`Video generated! You can now add borders, titles, crop, and more.`)
     } catch (err: unknown) {
       setMergeStatus(`Error: ${err instanceof Error ? err.message : 'Merge failed'}`)
     } finally {
       setMergeLoading(false)
     }
-  }, [audioClips, clearMontageAudioClips, clearMontageClips, pushActionToast, setMergeLoading, setMergeStatus, setVideo, videoClips])
+  }, [audioClips, clearMontageAudioClips, clearMontageClips, pushActionToast, setMergeLoading, setMergeStatus, setMergedVideo, videoClips])
+
+  const handleCutSelection = useCallback(() => {
+    if (!selectedId) {
+      pushActionToast('Select a clip to cut.')
+      return
+    }
+    
+    const videoClip = videoClips.find(clip => clip.id === selectedId)
+    const audioClip = audioClips.find(clip => clip.id === selectedId)
+    
+    if (videoClip) {
+      const clipStart = videoClip.timelineStart || videoClip.order || 0
+      const clipDuration = videoClip.trimEnd - videoClip.trimStart
+      const splitPoint = clipStart + (clipDuration / 2)
+      
+      if (clipDuration < 0.2) {
+        pushActionToast('Clip is too short to split.')
+        return
+      }
+      
+      splitMontageClip(selectedId, splitPoint)
+      pushActionToast('Video clip split into 2 parts!')
+    } else if (audioClip) {
+      const clipDuration = audioClip.trimEnd - audioClip.trimStart
+      const splitPoint = audioClip.offset + (clipDuration / 2)
+      
+      if (clipDuration < 0.2) {
+        pushActionToast('Clip is too short to split.')
+        return
+      }
+      
+      splitMontageAudioClip(selectedId, splitPoint)
+      pushActionToast('Audio clip split into 2 parts!')
+    }
+  }, [selectedId, videoClips, audioClips, splitMontageClip, splitMontageAudioClip, pushActionToast])
 
   const previewClip = useMemo(() => {
     if (scrubPreviewTime === null) return null
@@ -708,7 +737,7 @@ export default function MontageTimeline() {
 
   return (
     <div className="space-y-3">
-      <div className="grid gap-3 xl:grid-cols-[minmax(420px,1fr)_minmax(280px,0.34fr)] items-stretch">
+      <div className="grid gap-3 xl:grid-cols-[minmax(450px,1fr)_minmax(300px,0.32fr)] items-stretch">
         <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm flex flex-col">
           <div className="flex items-center justify-between border-b border-zinc-200 px-3 py-2">
             <div className="flex min-w-0 items-center gap-2">
@@ -765,12 +794,23 @@ export default function MontageTimeline() {
               className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-600 px-4 py-2.5 text-xs font-semibold text-white shadow-lg shadow-cyan-500/20 transition-all hover:from-cyan-400 hover:to-cyan-500 hover:shadow-cyan-500/30 disabled:cursor-not-allowed disabled:from-zinc-200 disabled:to-zinc-200 disabled:shadow-none disabled:text-zinc-400"
             >
               {mergeLoading ? <Loader2 size={14} className="animate-spin" /> : <GitMerge size={14} />}
-              Render
+              Generate Final Video
             </button>
           </div>
 
           <div className="mt-4 flex-1 overflow-hidden flex flex-col">
-            <p className="text-sm font-semibold text-zinc-900 mb-3">Clips</p>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-semibold text-zinc-900">Clips</p>
+              <button
+                type="button"
+                onClick={handleCutSelection}
+                disabled={videoClips.length === 0 || !selectedId}
+                className="inline-flex items-center gap-2 rounded-lg bg-cyan-50 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-700 transition-colors hover:bg-cyan-100 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
+              >
+                <Scissors size={12} />
+                Cut Selection
+              </button>
+            </div>
 
             <div className="flex-1 space-y-2 overflow-y-auto pr-1.5 scrollbar-thin scrollbar-thumb-zinc-300 scrollbar-track-transparent">
               <div>
@@ -786,8 +826,8 @@ export default function MontageTimeline() {
                   const isTrimOpen = activeTrimEditor?.kind === 'video' && activeTrimEditor.id === clip.id
                   const trimMax = clip.video.duration
                   const hasCustomTrim = clip.trimStart > 0 || clip.trimEnd < clip.video.duration
-                  const isResetFlash = resetFlashClip?.kind === 'video' && resetFlashClip.id === clip.id
                   const theme = getTheme(VIDEO_CLIP_THEMES, index)
+                  const isSelected = selectedId === clip.id
                   return (
                     <div
                       key={clip.id}
@@ -821,38 +861,80 @@ export default function MontageTimeline() {
                         setDropListPlacement('before')
                         setDropListKind(null)
                       }}
-                      className={`group relative rounded-xl border bg-white p-3 shadow-sm transition-all hover:shadow-md ${isDropTarget ? 'border-cyan-400 ring-2 ring-cyan-100 shadow-cyan-100/20' : 'border-zinc-200'} ${draggedListId === clip.id ? 'opacity-60 scale-95' : 'opacity-100'} ${isResetFlash ? 'border-amber-400 bg-amber-50 ring-2 ring-amber-100' : ''}`}
+                      onClick={() => setSelectedId(clip.id)}
+                      className={`group relative flex items-center gap-2 px-2 py-2.5 rounded-xl border-2 transition-all duration-300 cursor-pointer ${isSelected
+                        ? 'bg-gradient-to-br from-cyan-100 to-cyan-50 border-cyan-500 shadow-[0_8px_24px_rgba(8,145,178,0.25)] ring-2 ring-cyan-400 ring-offset-2'
+                        : 'bg-white border-zinc-200 hover:border-zinc-300 hover:shadow-md hover:bg-zinc-50/50'
+                        } ${isDropTarget ? 'border-t-4 border-t-cyan-500' : ''}`}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: `${theme.bg}20`, color: theme.border }}>
-                          <GripVertical size={14} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="truncate text-sm font-medium text-zinc-900">{clip.video.title || `Clip ${index + 1}`}</p>
-                            {hasCustomTrim && (
-                              <span className="flex-shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-emerald-700">
-                                Trimmed
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-3 mt-1">
-                            <span className="text-[11px] text-zinc-500">{formatDuration(clip.timelineStart)}</span>
-                            <span className="text-zinc-300">·</span>
-                            <span className="text-[11px] font-medium text-zinc-700">{duration.toFixed(1)}s</span>
-                          </div>
+                      <div className={`cursor-grab active:cursor-grabbing p-1 -ml-1 rounded-lg transition-colors flex-shrink-0 ${isSelected ? 'bg-cyan-200 hover:bg-cyan-300' : 'hover:bg-zinc-200/50'}`}>
+                        <GripVertical size={14} className={isSelected ? 'text-cyan-700' : 'text-zinc-300 group-hover:text-zinc-400'} />
+                      </div>
+
+                      <div className={`w-32 aspect-video rounded-xl overflow-hidden relative group/preview flex-shrink-0 border shadow-sm ring-1 ${isSelected ? 'bg-black border-cyan-400 ring-cyan-300' : 'bg-black border-zinc-200 ring-zinc-950/5'}`}>
+                        <video
+                          src={`${withMediaBase(clip.video.url)}#t=${clip.trimStart},${clip.trimEnd}`}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover/preview:scale-110"
+                          muted
+                          onMouseEnter={e => e.currentTarget.play().catch(() => {})}
+                          onMouseLeave={e => {
+                            e.currentTarget.pause()
+                            e.currentTarget.currentTime = clip.trimStart
+                          }}
+                          preload="metadata"
+                          playsInline
+                        />
+                        <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-lg bg-black/70 backdrop-blur-md text-[10px] font-bold text-white uppercase tracking-wider">
+                          {duration.toFixed(1)}s
                         </div>
                       </div>
 
-                      {isTrimOpen && (
-                        <div className="mt-3 rounded-lg bg-gradient-to-r from-cyan-50 to-cyan-100/50 border border-cyan-200 p-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-700">Trim range</span>
-                            <span className="text-[10px] font-mono font-medium text-cyan-800">{clip.trimStart.toFixed(1)}s → {clip.trimEnd.toFixed(1)}s</span>
+                      <div className="flex-1 min-w-0 flex flex-col gap-1.5 pr-10">
+                        <p className={`text-[13px] font-bold truncate transition-colors tracking-tight leading-none ${isSelected ? 'text-cyan-950' : 'text-zinc-800'
+                          }`}>
+                          {clip.video.title || `Clip ${index + 1}`}
+                        </p>
+
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <div className={`px-2 py-0.5 rounded-lg text-[10px] font-bold flex items-center gap-1.5 border transition-colors ${isSelected ? 'bg-cyan-100/50 border-cyan-200/50 text-cyan-800' : 'bg-zinc-50 border-zinc-100 text-zinc-500'
+                            }`}>
+                            <Play size={9} className="fill-current" />
+                            {formatDuration(clip.timelineStart)} <span className="opacity-30">—</span> {formatDuration(clip.timelineStart + duration)}
                           </div>
-                          <div className="space-y-2">
+
+                          {hasCustomTrim && (
+                            <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-600">
+                              <CheckCircle2 size={10} />
+                              <span className="text-[9px] font-bold uppercase tracking-wide">Trimmed</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="absolute top-2 right-2 flex items-center gap-1 transition-opacity">
+                        <button type="button"
+                          onClick={e => {
+                            e.stopPropagation()
+                            removeMontageClip(clip.id)
+                          }}
+                          className={`p-1.5 rounded-lg border bg-white/90 backdrop-blur-sm transition-all duration-200 shadow-sm ${isSelected
+                            ? 'border-red-200 text-red-500 hover:bg-red-50'
+                            : 'border-zinc-100 text-zinc-400 hover:text-red-500 hover:border-red-200'
+                            }`}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+
+                      {isTrimOpen && (
+                        <div className="mt-3 rounded-lg bg-gradient-to-r from-cyan-50 to-cyan-100/50 border border-cyan-200 p-2.5">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-cyan-700">Trim</span>
+                            <span className="text-[9px] font-mono font-medium text-cyan-800">{clip.trimStart.toFixed(1)}s - {clip.trimEnd.toFixed(1)}s</span>
+                          </div>
+                          <div className="space-y-1.5">
                             <div>
-                              <div className="flex justify-between text-[9px] text-zinc-500 mb-1">
+                              <div className="flex justify-between text-[8px] text-zinc-500 mb-0.5">
                                 <span>Start</span>
                                 <span className="font-mono">{clip.trimStart.toFixed(1)}s</span>
                               </div>
@@ -867,11 +949,11 @@ export default function MontageTimeline() {
                                   const safeStart = Math.max(0, Math.min(nextValue, clip.trimEnd - MIN_CLIP_SECONDS))
                                   applyVideoLayout(clip.id, clip.timelineStart, safeStart, clip.trimEnd)
                                 }}
-                                className="h-1.5 w-full accent-cyan-600 rounded-full appearance-none cursor-pointer"
+                                className="h-1 w-full accent-cyan-600 rounded-full appearance-none cursor-pointer"
                               />
                             </div>
                             <div>
-                              <div className="flex justify-between text-[9px] text-zinc-500 mb-1">
+                              <div className="flex justify-between text-[8px] text-zinc-500 mb-0.5">
                                 <span>End</span>
                                 <span className="font-mono">{clip.trimEnd.toFixed(1)}s</span>
                               </div>
@@ -886,7 +968,7 @@ export default function MontageTimeline() {
                                   const safeEnd = Math.max(clip.trimStart + MIN_CLIP_SECONDS, Math.min(trimMax, nextValue))
                                   applyVideoLayout(clip.id, clip.timelineStart, clip.trimStart, safeEnd)
                                 }}
-                                className="h-1.5 w-full accent-cyan-600 rounded-full appearance-none cursor-pointer"
+                                className="h-1 w-full accent-cyan-600 rounded-full appearance-none cursor-pointer"
                               />
                             </div>
                             <button
@@ -895,9 +977,9 @@ export default function MontageTimeline() {
                                 setSelectedId(clip.id)
                                 setActiveTrimEditor(null)
                               }}
-                              className="w-full mt-2 rounded-lg bg-cyan-600 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-white transition-colors hover:bg-cyan-500"
+                              className="w-full mt-1.5 rounded-lg bg-cyan-600 px-2 py-1.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-white transition-colors hover:bg-cyan-500"
                             >
-                              Apply trim
+                              Apply
                             </button>
                           </div>
                         </div>
@@ -906,10 +988,10 @@ export default function MontageTimeline() {
                       <button
                         type="button"
                         onClick={() => setActiveTrimEditor(current => current?.kind === 'video' && current.id === clip.id ? null : { kind: 'video', id: clip.id })}
-                        className={`mt-2 w-full rounded-lg px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] transition-colors ${isTrimOpen ? 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200' : 'bg-cyan-50 text-cyan-700 hover:bg-cyan-100'}`}
+                        className={`mt-2 w-full rounded-lg px-2 py-1.5 text-[9px] font-semibold uppercase tracking-[0.16em] transition-colors ${isTrimOpen ? 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200' : 'bg-cyan-50 text-cyan-700 hover:bg-cyan-100'}`}
                       >
-                        <Scissors size={12} className="inline mr-1.5" />
-                        {isTrimOpen ? 'Hide trim' : 'Edit trim'}
+                        <Scissors size={11} className="inline mr-1" />
+                        {isTrimOpen ? 'Hide' : 'Trim'}
                       </button>
                     </div>
                   )
@@ -928,8 +1010,8 @@ export default function MontageTimeline() {
                   const isDropTarget = dropListTargetId === clip.id && dropListKind === 'audio'
                   const isTrimOpen = activeTrimEditor?.kind === 'audio' && activeTrimEditor.id === clip.id
                   const hasCustomTrim = clip.trimStart > 0 || clip.trimEnd < clip.duration
-                  const isResetFlash = resetFlashClip?.kind === 'audio' && resetFlashClip.id === clip.id
                   const theme = getTheme(AUDIO_CLIP_THEMES, index)
+                  const isSelected = selectedId === clip.id
                   return (
                     <div
                       key={clip.id}
@@ -963,38 +1045,69 @@ export default function MontageTimeline() {
                         setDropListPlacement('before')
                         setDropListKind(null)
                       }}
-                      className={`group relative rounded-xl border bg-white p-3 shadow-sm transition-all hover:shadow-md ${isDropTarget ? 'border-teal-400 ring-2 ring-teal-100 shadow-teal-100/20' : 'border-zinc-200'} ${draggedListId === clip.id ? 'opacity-60 scale-95' : 'opacity-100'} ${isResetFlash ? 'border-amber-400 bg-amber-50 ring-2 ring-amber-100' : ''}`}
+                      onClick={() => setSelectedId(clip.id)}
+                      className={`group relative flex items-center gap-2 px-2 py-2.5 rounded-xl border transition-all duration-300 cursor-pointer ${isSelected
+                        ? 'bg-gradient-to-br from-teal-50/80 to-white/60 border-teal-200 shadow-[0_8px_24px_rgba(13,148,136,0.12)] ring-1 ring-teal-500/10'
+                        : 'bg-white border-zinc-100 hover:border-zinc-200 hover:shadow-md hover:bg-zinc-50/50'
+                        } ${isDropTarget ? 'border-t-4 border-t-teal-500' : ''}`}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: `${theme.bg}20`, color: theme.border }}>
-                          <GripVertical size={14} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="truncate text-sm font-medium text-zinc-900">{clip.audio.filename.replace(/\.[^/.]+$/, '') || `Audio ${index + 1}`}</p>
-                            {hasCustomTrim && (
-                              <span className="flex-shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-emerald-700">
-                                Trimmed
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-3 mt-1">
-                            <span className="text-[11px] text-zinc-500">{formatDuration(clip.offset)}</span>
-                            <span className="text-zinc-300">·</span>
-                            <span className="text-[11px] font-medium text-zinc-700">{duration.toFixed(1)}s</span>
-                          </div>
+                      <div className="cursor-grab active:cursor-grabbing p-1 -ml-1 hover:bg-zinc-200/50 rounded-lg transition-colors flex-shrink-0">
+                        <GripVertical size={14} className={isSelected ? 'text-teal-600' : 'text-zinc-300 group-hover:text-zinc-400'} />
+                      </div>
+
+                      <div className="w-32 aspect-video bg-gradient-to-br from-zinc-800 to-zinc-900 rounded-xl overflow-hidden relative group/preview flex-shrink-0 border border-zinc-200 shadow-sm ring-1 ring-zinc-950/5 flex items-center justify-center">
+                        <Music size={32} className="text-zinc-600" />
+                        <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-lg bg-black/70 backdrop-blur-md text-[10px] font-bold text-white uppercase tracking-wider">
+                          {duration.toFixed(1)}s
                         </div>
                       </div>
 
-                      {isTrimOpen && (
-                        <div className="mt-3 rounded-lg bg-gradient-to-r from-teal-50 to-teal-100/50 border border-teal-200 p-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-teal-700">Trim range</span>
-                            <span className="text-[10px] font-mono font-medium text-teal-800">{clip.trimStart.toFixed(1)}s → {clip.trimEnd.toFixed(1)}s</span>
+                      <div className="flex-1 min-w-0 flex flex-col gap-1.5 pr-10">
+                        <p className={`text-[13px] font-bold truncate transition-colors tracking-tight leading-none ${isSelected ? 'text-teal-950' : 'text-zinc-800'
+                          }`}>
+                          {clip.audio.filename.replace(/\.[^/.]+$/, '') || `Audio ${index + 1}`}
+                        </p>
+
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <div className={`px-2 py-0.5 rounded-lg text-[10px] font-bold flex items-center gap-1.5 border transition-colors ${isSelected ? 'bg-teal-100/50 border-teal-200/50 text-teal-800' : 'bg-zinc-50 border-zinc-100 text-zinc-500'
+                            }`}>
+                            <Volume2 size={9} />
+                            {formatDuration(clip.offset)} <span className="opacity-30">—</span> {formatDuration(clip.offset + duration)}
                           </div>
-                          <div className="space-y-2">
+
+                          {hasCustomTrim && (
+                            <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-600">
+                              <CheckCircle2 size={10} />
+                              <span className="text-[9px] font-bold uppercase tracking-wide">Trimmed</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="absolute top-2 right-2 flex items-center gap-1 transition-opacity">
+                        <button type="button"
+                          onClick={e => {
+                            e.stopPropagation()
+                            removeMontageAudioClip(clip.id)
+                          }}
+                          className={`p-1.5 rounded-lg border bg-white/90 backdrop-blur-sm transition-all duration-200 shadow-sm ${isSelected
+                            ? 'border-red-200 text-red-500 hover:bg-red-50'
+                            : 'border-zinc-100 text-zinc-400 hover:text-red-500 hover:border-red-200'
+                            }`}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+
+                      {isTrimOpen && (
+                        <div className="mt-3 rounded-lg bg-gradient-to-r from-teal-50 to-teal-100/50 border border-teal-200 p-2.5">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-teal-700">Trim</span>
+                            <span className="text-[9px] font-mono font-medium text-teal-800">{clip.trimStart.toFixed(1)}s - {clip.trimEnd.toFixed(1)}s</span>
+                          </div>
+                          <div className="space-y-1.5">
                             <div>
-                              <div className="flex justify-between text-[9px] text-zinc-500 mb-1">
+                              <div className="flex justify-between text-[8px] text-zinc-500 mb-0.5">
                                 <span>Start</span>
                                 <span className="font-mono">{clip.trimStart.toFixed(1)}s</span>
                               </div>
@@ -1009,11 +1122,11 @@ export default function MontageTimeline() {
                                   const safeStart = Math.max(0, Math.min(nextValue, clip.trimEnd - MIN_CLIP_SECONDS))
                                   applyAudioLayout(clip.id, clip.offset, safeStart, clip.trimEnd)
                                 }}
-                                className="h-1.5 w-full accent-teal-600 rounded-full appearance-none cursor-pointer"
+                                className="h-1 w-full accent-teal-600 rounded-full appearance-none cursor-pointer"
                               />
                             </div>
                             <div>
-                              <div className="flex justify-between text-[9px] text-zinc-500 mb-1">
+                              <div className="flex justify-between text-[8px] text-zinc-500 mb-0.5">
                                 <span>End</span>
                                 <span className="font-mono">{clip.trimEnd.toFixed(1)}s</span>
                               </div>
@@ -1028,7 +1141,7 @@ export default function MontageTimeline() {
                                   const safeEnd = Math.max(clip.trimStart + MIN_CLIP_SECONDS, Math.min(clip.duration, nextValue))
                                   applyAudioLayout(clip.id, clip.offset, clip.trimStart, safeEnd)
                                 }}
-                                className="h-1.5 w-full accent-teal-600 rounded-full appearance-none cursor-pointer"
+                                className="h-1 w-full accent-teal-600 rounded-full appearance-none cursor-pointer"
                               />
                             </div>
                             <button
@@ -1037,9 +1150,9 @@ export default function MontageTimeline() {
                                 setSelectedId(clip.id)
                                 setActiveTrimEditor(null)
                               }}
-                              className="w-full mt-2 rounded-lg bg-teal-600 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-white transition-colors hover:bg-teal-500"
+                              className="w-full mt-1.5 rounded-lg bg-teal-600 px-2 py-1.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-white transition-colors hover:bg-teal-500"
                             >
-                              Apply trim
+                              Apply
                             </button>
                           </div>
                         </div>
@@ -1048,10 +1161,10 @@ export default function MontageTimeline() {
                       <button
                         type="button"
                         onClick={() => setActiveTrimEditor(current => current?.kind === 'audio' && current.id === clip.id ? null : { kind: 'audio', id: clip.id })}
-                        className={`mt-2 w-full rounded-lg px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] transition-colors ${isTrimOpen ? 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200' : 'bg-teal-50 text-teal-700 hover:bg-teal-100'}`}
+                        className={`mt-2 w-full rounded-lg px-2 py-1.5 text-[9px] font-semibold uppercase tracking-[0.16em] transition-colors ${isTrimOpen ? 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200' : 'bg-teal-50 text-teal-700 hover:bg-teal-100'}`}
                       >
-                        <Scissors size={12} className="inline mr-1.5" />
-                        {isTrimOpen ? 'Hide trim' : 'Edit trim'}
+                        <Scissors size={11} className="inline mr-1" />
+                        {isTrimOpen ? 'Hide' : 'Trim'}
                       </button>
                     </div>
                   )

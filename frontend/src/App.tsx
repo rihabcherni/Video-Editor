@@ -18,12 +18,11 @@ import { ensureTitleFontLoaded } from './hooks/useTitleFontReady'
 import { getRenderedTitleFontSize, getTitleRenderLayout } from './utils/titleLayout'
 import { getCroppedSourceDimensions, getRenderedVideoDimensions } from './utils/videoLayout'
 
-type Tab = 'import' | 'montage' | 'edit' | 'crop' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
+type Tab = 'import' | 'montage' | 'crop' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode; requiresVideo?: boolean }[] = [
   { id: 'import', label: 'Import', icon: <Upload size={15} /> },
   { id: 'montage', label: 'Montage', icon: <Layers size={15} /> },
-  { id: 'edit', label: 'Edit', icon: <Scissors size={15} />, requiresVideo: true },
   { id: 'crop', label: 'Crop', icon: <CropIcon size={15} />, requiresVideo: true },
   { id: 'subtitles', label: 'Subtitles', icon: <FileText size={15} />, requiresVideo: true },
   { id: 'logo', label: 'Logo', icon: <ImageIcon size={15} />, requiresVideo: true },
@@ -107,6 +106,7 @@ export default function App() {
     previewLoading, setPreviewLoading,
     pendingPreviewAction, setPendingPreviewAction,
     actionToasts, actionHistory, pushActionToast, removeActionToast,
+    montageClips, montageAudioClips, setMergedVideo,
   } = useStore()
 
   const [previewError, setPreviewError] = useState<string | null>(null)
@@ -477,7 +477,7 @@ export default function App() {
   const hasExportChanges = exportQuality !== '720p' || exportAspectRatio !== 'original'
   const completedTabs: Partial<Record<Tab, boolean>> = {
     import: !!video,
-    edit: hasTrim || hasAppliedAudio || segments.length > 0 || segmentHistory.length > 0,
+    montage: montageClips.length > 0 || montageAudioClips.length > 0,
     crop: hasCrop,
     subtitles: hasAppliedSubtitles,
     logo: hasLogo,

@@ -387,11 +387,13 @@ interface EditorState {
   reorderMontageAudioClips: (activeId: string, overId: string, placement?: 'before' | 'after') => void
   updateMontageClipTrim: (id: string, trimStart: number, trimEnd: number) => void
   updateMontageClip: (id: string, updates: Partial<Omit<MontageClip, 'id' | 'video'>>) => void
+  splitMontageClip: (id: string, splitTime: number) => void
   clearMontageClips: () => void
   montageAudioClips: MontageAudioClip[]
   addMontageAudioClip: (audio: AudioTrack, duration: number) => void
   removeMontageAudioClip: (id: string) => void
   updateMontageAudioClip: (id: string, updates: Partial<Omit<MontageAudioClip, 'id'>>) => void
+  splitMontageAudioClip: (id: string, splitTime: number) => void
   clearMontageAudioClips: () => void
   mergeLoading: boolean
   setMergeLoading: (v: boolean) => void
@@ -1042,6 +1044,40 @@ export const useStore = create<EditorState>()(persist((set) => ({
       c.id === id ? { ...c, ...updates } : c
     ),
   })),
+  splitMontageClip: (id, splitTime) => set(state => {
+    const clipIndex = state.montageClips.findIndex(c => c.id === id)
+    if (clipIndex === -1) return {}
+    const clip = state.montageClips[clipIndex]
+    const clipStart = clip.timelineStart || clip.order || 0
+    const clipDuration = clip.trimEnd - clip.trimStart
+    const splitPointWithinClip = splitTime - clipStart
+    
+    if (splitPointWithinClip <= 0.1 || splitPointWithinClip >= clipDuration - 0.1) {
+      return {}
+    }
+    
+    const firstPart = {
+      ...clip,
+      id: createId(),
+      trimEnd: clip.trimStart + splitPointWithinClip,
+      order: clip.order,
+    }
+    
+    const secondPart = {
+      ...clip,
+      id: createId(),
+      trimStart: clip.trimStart + splitPointWithinClip,
+      timelineStart: clipStart + splitPointWithinClip,
+      order: clip.order + 0.5,
+    }
+    
+    const newClips = [...state.montageClips]
+    newClips.splice(clipIndex, 1, firstPart, secondPart)
+    
+    return {
+      montageClips: newClips.map((c, i) => ({ ...c, order: i, timelineStart: c.timelineStart || i })),
+    }
+  }),
   clearMontageClips: () => set({ montageClips: [] }),
 
   montageAudioClips: [],
@@ -1086,6 +1122,41 @@ export const useStore = create<EditorState>()(persist((set) => ({
       c.id === id ? { ...c, ...updates } : c
     ),
   })),
+  splitMontageAudioClip: (id, splitTime) => set(state => {
+    const clipIndex = state.montageAudioClips.findIndex(c => c.id === id)
+    if (clipIndex === -1) return {}
+    const clip = state.montageAudioClips[clipIndex]
+    const clipDuration = clip.trimEnd - clip.trimStart
+    const splitPointWithinClip = splitTime - clip.offset
+    
+    if (splitPointWithinClip <= 0.1 || splitPointWithinClip >= clipDuration - 0.1) {
+      return {}
+    }
+    
+    const firstPart = {
+      ...clip,
+      id: createId(),
+      trimEnd: clip.trimStart + splitPointWithinClip,
+      duration: splitPointWithinClip,
+      order: clip.order,
+    }
+    
+    const secondPart = {
+      ...clip,
+      id: createId(),
+      trimStart: clip.trimStart + splitPointWithinClip,
+      offset: clip.offset + splitPointWithinClip,
+      duration: clipDuration - splitPointWithinClip,
+      order: clip.order + 0.5,
+    }
+    
+    const newClips = [...state.montageAudioClips]
+    newClips.splice(clipIndex, 1, firstPart, secondPart)
+    
+    return {
+      montageAudioClips: newClips.map((c, i) => ({ ...c, order: i })),
+    }
+  }),
   clearMontageAudioClips: () => set({ montageAudioClips: [] }),
 
   mergeLoading: false,
