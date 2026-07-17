@@ -10,6 +10,15 @@ const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
 const DEFAULT_COOKIES_PATH = path.join(process.cwd(), 'cookies', 'ytdlp_cookies.txt')
 
+function ensureWritableDir(dir: string): void {
+  fs.mkdirSync(dir, { recursive: true })
+  try {
+    fs.chmodSync(dir, 0o755)
+  } catch {
+    // Ignore chmod errors on some environments
+  }
+}
+
 function logCookiesStatus(cookiesPath: string, debug: boolean): void {
   if (!debug) return
   if (!cookiesPath) {
@@ -153,6 +162,7 @@ function readDownloadedInfo(outputDir: string, id: string): Record<string, unkno
 export async function downloadVideo(url: string): Promise<DownloadResult> {
   const id = uuidv4()
   const outputDir = path.join(process.cwd(), 'uploads')
+  ensureWritableDir(outputDir)
   const outputTemplate = path.join(outputDir, `${id}.%(ext)s`)
   const jsRuntime = process.env.YTDLP_JS_RUNTIME || 'node'
   const ytdlpTimeoutMs = Number(process.env.YTDLP_TIMEOUT_MS || 15 * 60 * 1000)
@@ -170,7 +180,7 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
     '--user-agent', `"${USER_AGENT}"`,
     '--geo-bypass',
     ...sleepFlags,
-    '--write-info-json',
+    '--no-update',
     '-f', `"${format}"`,
     '--merge-output-format', 'mp4',
     '-o', `"${outputTemplate}"`,
@@ -184,7 +194,7 @@ export async function downloadVideo(url: string): Promise<DownloadResult> {
     '--geo-bypass',
     ...sleepFlags,
     ...cookiesFlags,
-    '--write-info-json',
+    '--no-update',
     '-f', `"${format}"`,
     '--merge-output-format', 'mp4',
     '-o', `"${outputTemplate}"`,
@@ -326,6 +336,7 @@ export async function checkYtdlp(): Promise<boolean> {
 export async function downloadAudio(url: string): Promise<{ id: string; filename: string; url: string }> {
   const id = uuidv4()
   const outputDir = path.join(process.cwd(), 'uploads')
+  ensureWritableDir(outputDir)
   const outputTemplate = path.join(outputDir, `audio_${id}.%(ext)s`)
   const jsRuntime = process.env.YTDLP_JS_RUNTIME || 'node'
   const ytdlpTimeoutMs = Number(process.env.YTDLP_TIMEOUT_MS || 15 * 60 * 1000)
@@ -340,6 +351,7 @@ export async function downloadAudio(url: string): Promise<{ id: string; filename
     '--js-runtimes', jsRuntime,
     '--user-agent', `"${USER_AGENT}"`,
     ...sleepFlags,
+    '--no-update',
     '-x',
     '--audio-format', 'mp3',
     '--audio-quality', '0',
@@ -353,6 +365,7 @@ export async function downloadAudio(url: string): Promise<{ id: string; filename
     '--user-agent', `"${USER_AGENT}"`,
     ...sleepFlags,
     ...cookiesFlags,
+    '--no-update',
     '-x',
     '--audio-format', 'mp3',
     '--audio-quality', '0',

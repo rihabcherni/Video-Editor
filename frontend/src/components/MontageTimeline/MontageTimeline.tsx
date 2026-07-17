@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  AlertCircle, CheckCircle2, Film, GitMerge, GripVertical, Loader2, Maximize2, Music,
+  AlertCircle, CheckCircle2, Film, GitMerge, GripVertical, Layers, Loader2, Maximize2, Music,
   Pause, Play, Plus, RotateCcw, Scissors, Sparkles, Trash2, Volume2, ZoomIn, ZoomOut
 } from 'lucide-react'
 import { mergeClips } from '../../api/client'
@@ -251,8 +251,6 @@ export default function MontageTimeline() {
   const [scrubPreviewTime, setScrubPreviewTime] = useState<number | null>(null)
   const [autoFit, setAutoFit] = useState(true)
   const [timelineViewportWidth, setTimelineViewportWidth] = useState(0)
-  const [compactSidebar, setCompactSidebar] = useState(false)
-  const [miniCardView, setMiniCardView] = useState(false)
   const [activeTrimEditor, setActiveTrimEditor] = useState<{ kind: 'video' | 'audio'; id: string } | null>(null)
   const [resetFlashClip, setResetFlashClip] = useState<{ kind: 'video' | 'audio'; id: string } | null>(null)
 
@@ -392,15 +390,6 @@ export default function MontageTimeline() {
     if (!autoFit) return
     setZoom(fitZoom)
   }, [autoFit, fitZoom])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const mediaQuery = window.matchMedia('(max-width: 767px)')
-    const syncCompact = () => setCompactSidebar(mediaQuery.matches)
-    syncCompact()
-    mediaQuery.addEventListener('change', syncCompact)
-    return () => mediaQuery.removeEventListener('change', syncCompact)
-  }, [])
 
   useEffect(() => {
     if (!playing) return
@@ -716,15 +705,11 @@ export default function MontageTimeline() {
   const rulerStep = getRulerStep(pxPerSecond)
   const rulerLabelStep = Math.max(rulerStep, getRulerStep(Math.max(pxPerSecond * 0.7, ABSOLUTE_MIN_ZOOM)))
   const rulerMarks = Array.from({ length: Math.ceil(timelineDuration / rulerStep) + 1 }, (_, i) => i * rulerStep)
-  const selectedDuration = selectedClip ? clipDuration(selectedClip) : 0
-  const selectedTimelineStart = selectedClip
-    ? 'video' in selectedClip ? clipStart(selectedClip) : selectedClip.offset
-    : 0
 
   return (
     <div className="space-y-3">
-      <div className="grid gap-3 xl:grid-cols-[minmax(420px,1fr)_minmax(280px,0.34fr)]">
-        <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+      <div className="grid gap-3 xl:grid-cols-[minmax(420px,1fr)_minmax(280px,0.34fr)] items-stretch">
+        <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm flex flex-col">
           <div className="flex items-center justify-between border-b border-zinc-200 px-3 py-2">
             <div className="flex min-w-0 items-center gap-2">
               <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-cyan-50 text-cyan-600">
@@ -734,7 +719,7 @@ export default function MontageTimeline() {
             </div>
             <span className="rounded-lg bg-zinc-100 px-2 py-1 font-mono text-xs text-zinc-600">{frameLabel(playhead)} / {formatClock(timelineDuration)}</span>
           </div>
-          <div className="relative flex h-[32vh] min-h-[280px] items-center justify-center bg-[linear-gradient(135deg,#f8fafc_0%,#eef2f7_100%)]">
+          <div className="relative flex flex-1 min-h-[280px] items-center justify-center bg-[linear-gradient(135deg,#f8fafc_0%,#eef2f7_100%)]">
             {activeVideoClip ? (
               <video
                 ref={videoRef}
@@ -762,80 +747,47 @@ export default function MontageTimeline() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200 bg-gradient-to-br from-white to-zinc-50 p-4 shadow-[0_8px_30px_rgba(15,23,42,0.08)] flex flex-col">
           <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-base font-semibold text-zinc-900">Montage</h2>
-              <p className="text-xs text-zinc-500">{videoClips.length} video clips · {audioClips.length} audio tracks</p>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-600 text-white shadow-lg shadow-cyan-500/25">
+                <Layers size={18} />
+              </div>
+              <div>
+                <h2 className="text-base font-semibold text-zinc-900">Montage</h2>
+                <p className="text-xs text-zinc-500">{videoClips.length} video · {audioClips.length} audio</p>
+              </div>
             </div>
             <button
               type="button"
               onClick={handleMerge}
               disabled={mergeLoading || videoClips.length === 0}
-              className="inline-flex items-center gap-2 rounded-xl bg-cyan-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-cyan-500 disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:text-zinc-400"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-600 px-4 py-2.5 text-xs font-semibold text-white shadow-lg shadow-cyan-500/20 transition-all hover:from-cyan-400 hover:to-cyan-500 hover:shadow-cyan-500/30 disabled:cursor-not-allowed disabled:from-zinc-200 disabled:to-zinc-200 disabled:shadow-none disabled:text-zinc-400"
             >
               {mergeLoading ? <Loader2 size={14} className="animate-spin" /> : <GitMerge size={14} />}
               Render
             </button>
           </div>
 
-          <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2">
-            <div className="flex items-center gap-2 text-xs text-zinc-500">
-              {selectedClip ? (
-                <>
-                  <CheckCircle2 size={14} className="text-cyan-600" />
-                  <span className="min-w-0 truncate">
-                    Selected · {formatDuration(selectedTimelineStart)} to {formatDuration(selectedTimelineStart + selectedDuration)} · {selectedDuration.toFixed(1)}s
-                  </span>
-                </>
-              ) : (
-                <>
-                  <Plus size={14} />
-                  <span>Select a block in the timeline</span>
-                </>
-              )}
-            </div>
-          </div>
+          <div className="mt-4 flex-1 overflow-hidden flex flex-col">
+            <p className="text-sm font-semibold text-zinc-900 mb-3">Clips</p>
 
-          <div className="mt-3 rounded-2xl border border-zinc-200 bg-gradient-to-b from-zinc-50 via-white to-zinc-50 p-3 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
-            <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 pb-2.5">
+            <div className="flex-1 space-y-2 overflow-y-auto pr-1.5 scrollbar-thin scrollbar-thumb-zinc-300 scrollbar-track-transparent">
               <div>
-                <p className="text-sm font-semibold text-zinc-900">Clip order & timing</p>
-                <p className="text-[11px] text-zinc-500">Drag to reorder, trim and position clips from here.</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setCompactSidebar(value => !value)}
-                  className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-600 transition-colors hover:border-cyan-200 hover:text-cyan-700"
-                >
-                  {compactSidebar ? 'Expanded' : 'Compact'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMiniCardView(value => !value)}
-                  className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-600 transition-colors hover:border-cyan-200 hover:text-cyan-700"
-                >
-                  {miniCardView ? 'List' : 'Mini cards'}
-                </button>
-              </div>
-            </div>
-
-            <div className="max-h-[420px] space-y-2.5 overflow-y-auto pr-1">
-              <div>
-                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Videos</p>
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400">Videos</p>
                 {videoClips.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-zinc-200 bg-white px-3 py-3 text-xs text-zinc-500">
-                    Add a video clip to build the montage list.
+                  <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-6 text-center">
+                    <Film size={24} className="mx-auto text-zinc-300 mb-2" />
+                    <p className="text-xs text-zinc-500">Add video clips to build your montage</p>
                   </div>
                 ) : videoClips.map((clip, index) => {
                   const duration = clipDuration(clip)
                   const isDropTarget = dropListTargetId === clip.id && dropListKind === 'video'
                   const isTrimOpen = activeTrimEditor?.kind === 'video' && activeTrimEditor.id === clip.id
                   const trimMax = clip.video.duration
-                  const isMiniCard = miniCardView || compactSidebar
                   const hasCustomTrim = clip.trimStart > 0 || clip.trimEnd < clip.video.duration
                   const isResetFlash = resetFlashClip?.kind === 'video' && resetFlashClip.id === clip.id
+                  const theme = getTheme(VIDEO_CLIP_THEMES, index)
                   return (
                     <div
                       key={clip.id}
@@ -869,85 +821,41 @@ export default function MontageTimeline() {
                         setDropListPlacement('before')
                         setDropListKind(null)
                       }}
-                      className={`rounded-xl border bg-white/90 p-2.5 shadow-[0_4px_12px_rgba(15,23,42,0.04)] transition-all ${isDropTarget ? 'border-cyan-400 ring-2 ring-cyan-100' : 'border-zinc-200/80'} ${draggedListId === clip.id ? 'opacity-70' : 'opacity-100'} ${isResetFlash ? 'border-amber-300 bg-amber-50/80 ring-2 ring-amber-200 shadow-[0_0_0_2px_rgba(245,158,11,0.18)]' : ''}`}
+                      className={`group relative rounded-xl border bg-white p-3 shadow-sm transition-all hover:shadow-md ${isDropTarget ? 'border-cyan-400 ring-2 ring-cyan-100 shadow-cyan-100/20' : 'border-zinc-200'} ${draggedListId === clip.id ? 'opacity-60 scale-95' : 'opacity-100'} ${isResetFlash ? 'border-amber-400 bg-amber-50 ring-2 ring-amber-100' : ''}`}
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex min-w-0 items-start gap-2">
-                          <div className="mt-0.5 rounded-lg bg-cyan-50 p-1 text-cyan-600 shadow-sm">
-                            <GripVertical size={14} />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className="truncate text-sm font-semibold text-zinc-900">{clip.video.title || `Clip ${index + 1}`}</p>
-                              <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-600">#{index + 1}</span>
-                            </div>
-                            {!compactSidebar ? (
-                              <p className="mt-1 text-[11px] text-zinc-500">Order · {formatDuration(clip.timelineStart)} · {duration.toFixed(1)}s</p>
-                            ) : (
-                              <p className="mt-1 text-[10px] text-zinc-500">{formatDuration(clip.timelineStart)} · {duration.toFixed(1)}s</p>
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: `${theme.bg}20`, color: theme.border }}>
+                          <GripVertical size={14} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="truncate text-sm font-medium text-zinc-900">{clip.video.title || `Clip ${index + 1}`}</p>
+                            {hasCustomTrim && (
+                              <span className="flex-shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-emerald-700">
+                                Trimmed
+                              </span>
                             )}
                           </div>
+                          <div className="flex items-center gap-3 mt-1">
+                            <span className="text-[11px] text-zinc-500">{formatDuration(clip.timelineStart)}</span>
+                            <span className="text-zinc-300">·</span>
+                            <span className="text-[11px] font-medium text-zinc-700">{duration.toFixed(1)}s</span>
+                          </div>
                         </div>
-                        <div className="min-w-[88px] text-right text-[11px] font-medium text-zinc-500">
-                          <div>Pos {formatDuration(clip.timelineStart)}</div>
-                          <div>Dur {duration.toFixed(1)}s</div>
-                          {hasCustomTrim && (
-                            <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-emerald-700">
-                              <CheckCircle2 size={10} />
-                              Trim applied
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {isResetFlash && (
-                        <div className="mt-2.5 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-700 animate-pulse">
-                          <RotateCcw size={10} />
-                          Restored
-                        </div>
-                      )}
-
-                      <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setActiveTrimEditor(current => current?.kind === 'video' && current.id === clip.id ? null : { kind: 'video', id: clip.id })}
-                          className="inline-flex items-center gap-1 rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-700 transition-colors hover:bg-cyan-100"
-                        >
-                          <Scissors size={12} />
-                          {isTrimOpen ? 'Hide trim' : 'Trim slider'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedId(clip.id)}
-                          className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-600 transition-colors hover:border-cyan-200 hover:text-cyan-700"
-                        >
-                          Select
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            applyVideoLayout(clip.id, clip.timelineStart, 0, clip.video.duration)
-                            setResetFlashClip({ kind: 'video', id: clip.id })
-                          }}
-                          className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-600 transition-colors hover:border-amber-200 hover:text-amber-700"
-                        >
-                          <RotateCcw size={12} />
-                          Reset trim
-                        </button>
                       </div>
 
                       {isTrimOpen && (
-                        <div className="mt-2 rounded-xl border border-cyan-100 bg-cyan-50/70 p-2">
-                          <div className="flex items-center justify-between text-[11px] font-semibold text-cyan-700">
-                            <span>Trim range</span>
-                            <span>{clip.trimStart.toFixed(1)}s → {clip.trimEnd.toFixed(1)}s</span>
+                        <div className="mt-3 rounded-lg bg-gradient-to-r from-cyan-50 to-cyan-100/50 border border-cyan-200 p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-700">Trim range</span>
+                            <span className="text-[10px] font-mono font-medium text-cyan-800">{clip.trimStart.toFixed(1)}s → {clip.trimEnd.toFixed(1)}s</span>
                           </div>
-                          <div className="mt-2 space-y-2">
-                            <label className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
-                              <span className="mb-1 flex items-center justify-between">
+                          <div className="space-y-2">
+                            <div>
+                              <div className="flex justify-between text-[9px] text-zinc-500 mb-1">
                                 <span>Start</span>
-                                <span className="font-mono text-zinc-700">{clip.trimStart.toFixed(1)}s</span>
-                              </span>
+                                <span className="font-mono">{clip.trimStart.toFixed(1)}s</span>
+                              </div>
                               <input
                                 type="range"
                                 min={0}
@@ -959,14 +867,14 @@ export default function MontageTimeline() {
                                   const safeStart = Math.max(0, Math.min(nextValue, clip.trimEnd - MIN_CLIP_SECONDS))
                                   applyVideoLayout(clip.id, clip.timelineStart, safeStart, clip.trimEnd)
                                 }}
-                                className="mt-1 h-2 w-full accent-cyan-600"
+                                className="h-1.5 w-full accent-cyan-600 rounded-full appearance-none cursor-pointer"
                               />
-                            </label>
-                            <label className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
-                              <span className="mb-1 flex items-center justify-between">
+                            </div>
+                            <div>
+                              <div className="flex justify-between text-[9px] text-zinc-500 mb-1">
                                 <span>End</span>
-                                <span className="font-mono text-zinc-700">{clip.trimEnd.toFixed(1)}s</span>
-                              </span>
+                                <span className="font-mono">{clip.trimEnd.toFixed(1)}s</span>
+                              </div>
                               <input
                                 type="range"
                                 min={Math.max(MIN_CLIP_SECONDS, clip.trimStart + MIN_CLIP_SECONDS)}
@@ -978,96 +886,50 @@ export default function MontageTimeline() {
                                   const safeEnd = Math.max(clip.trimStart + MIN_CLIP_SECONDS, Math.min(trimMax, nextValue))
                                   applyVideoLayout(clip.id, clip.timelineStart, clip.trimStart, safeEnd)
                                 }}
-                                className="mt-1 h-2 w-full accent-cyan-600"
+                                className="h-1.5 w-full accent-cyan-600 rounded-full appearance-none cursor-pointer"
                               />
-                            </label>
+                            </div>
                             <button
                               type="button"
                               onClick={() => {
                                 setSelectedId(clip.id)
                                 setActiveTrimEditor(null)
                               }}
-                              className="inline-flex items-center gap-1 rounded-full bg-cyan-600 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white transition-colors hover:bg-cyan-500"
+                              className="w-full mt-2 rounded-lg bg-cyan-600 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-white transition-colors hover:bg-cyan-500"
                             >
-                              <Sparkles size={12} />
                               Apply trim
                             </button>
                           </div>
                         </div>
                       )}
 
-                      {(!compactSidebar && !isMiniCard) && (
-                        <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-                          <label className="rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1.5">
-                            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">Start</span>
-                            <input
-                              type="number"
-                              step="0.1"
-                              min={0}
-                              max={clip.video.duration}
-                              value={clip.trimStart.toFixed(1)}
-                              onChange={(event) => {
-                                const nextValue = Number(event.target.value)
-                                const safeStart = Math.max(0, Math.min(nextValue, clip.video.duration))
-                                applyVideoLayout(clip.id, clip.timelineStart, safeStart, clip.trimEnd)
-                              }}
-                              className="w-full bg-transparent text-sm font-medium text-zinc-700 outline-none"
-                            />
-                          </label>
-                          <label className="rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1.5">
-                            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">End</span>
-                            <input
-                              type="number"
-                              step="0.1"
-                              min={MIN_CLIP_SECONDS}
-                              max={clip.video.duration}
-                              value={clip.trimEnd.toFixed(1)}
-                              onChange={(event) => {
-                                const nextValue = Number(event.target.value)
-                                const safeEnd = Math.max(clip.trimStart + MIN_CLIP_SECONDS, Math.min(clip.video.duration, nextValue))
-                                applyVideoLayout(clip.id, clip.timelineStart, clip.trimStart, safeEnd)
-                              }}
-                              className="w-full bg-transparent text-sm font-medium text-zinc-700 outline-none"
-                            />
-                          </label>
-                          <label className="rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1.5">
-                            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">Position</span>
-                            <input
-                              type="number"
-                              step="0.1"
-                              min={0}
-                              value={clip.timelineStart.toFixed(1)}
-                              onChange={(event) => {
-                                const nextValue = Number(event.target.value)
-                                applyVideoLayout(clip.id, Math.max(0, nextValue), clip.trimStart, clip.trimEnd)
-                              }}
-                              className="w-full bg-transparent text-sm font-medium text-zinc-700 outline-none"
-                            />
-                          </label>
-                          <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1.5">
-                            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">Duration</span>
-                            <p className="text-sm font-medium text-zinc-700">{duration.toFixed(1)}s</p>
-                          </div>
-                        </div>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => setActiveTrimEditor(current => current?.kind === 'video' && current.id === clip.id ? null : { kind: 'video', id: clip.id })}
+                        className={`mt-2 w-full rounded-lg px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] transition-colors ${isTrimOpen ? 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200' : 'bg-cyan-50 text-cyan-700 hover:bg-cyan-100'}`}
+                      >
+                        <Scissors size={12} className="inline mr-1.5" />
+                        {isTrimOpen ? 'Hide trim' : 'Edit trim'}
+                      </button>
                     </div>
                   )
                 })}
               </div>
 
               <div>
-                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Audio</p>
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400">Audio</p>
                 {audioClips.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-zinc-200 bg-white px-3 py-3 text-xs text-zinc-500">
-                    Audio tracks will appear here when added to the montage.
+                  <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-6 text-center">
+                    <Music size={24} className="mx-auto text-zinc-300 mb-2" />
+                    <p className="text-xs text-zinc-500">Add audio tracks to enhance your montage</p>
                   </div>
                 ) : audioClips.map((clip, index) => {
                   const duration = clipDuration(clip)
                   const isDropTarget = dropListTargetId === clip.id && dropListKind === 'audio'
                   const isTrimOpen = activeTrimEditor?.kind === 'audio' && activeTrimEditor.id === clip.id
-                  const isMiniCard = miniCardView || compactSidebar
                   const hasCustomTrim = clip.trimStart > 0 || clip.trimEnd < clip.duration
                   const isResetFlash = resetFlashClip?.kind === 'audio' && resetFlashClip.id === clip.id
+                  const theme = getTheme(AUDIO_CLIP_THEMES, index)
                   return (
                     <div
                       key={clip.id}
@@ -1101,85 +963,41 @@ export default function MontageTimeline() {
                         setDropListPlacement('before')
                         setDropListKind(null)
                       }}
-                      className={`rounded-xl border bg-white/90 p-2.5 shadow-[0_4px_12px_rgba(15,23,42,0.04)] transition-all ${isDropTarget ? 'border-cyan-400 ring-2 ring-cyan-100' : 'border-zinc-200/80'} ${draggedListId === clip.id ? 'opacity-70' : 'opacity-100'} ${isResetFlash ? 'border-amber-300 bg-amber-50/80 ring-2 ring-amber-200 shadow-[0_0_0_2px_rgba(245,158,11,0.18)]' : ''}`}
+                      className={`group relative rounded-xl border bg-white p-3 shadow-sm transition-all hover:shadow-md ${isDropTarget ? 'border-teal-400 ring-2 ring-teal-100 shadow-teal-100/20' : 'border-zinc-200'} ${draggedListId === clip.id ? 'opacity-60 scale-95' : 'opacity-100'} ${isResetFlash ? 'border-amber-400 bg-amber-50 ring-2 ring-amber-100' : ''}`}
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex min-w-0 items-start gap-2">
-                          <div className="mt-0.5 rounded-lg bg-teal-50 p-1 text-teal-600 shadow-sm">
-                            <GripVertical size={14} />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className="truncate text-sm font-semibold text-zinc-900">{clip.audio.filename.replace(/\.[^/.]+$/, '') || `Audio ${index + 1}`}</p>
-                              <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-600">#{index + 1}</span>
-                            </div>
-                            {!compactSidebar ? (
-                              <p className="mt-1 text-[11px] text-zinc-500">Order · {formatDuration(clip.offset)} · {duration.toFixed(1)}s</p>
-                            ) : (
-                              <p className="mt-1 text-[10px] text-zinc-500">{formatDuration(clip.offset)} · {duration.toFixed(1)}s</p>
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: `${theme.bg}20`, color: theme.border }}>
+                          <GripVertical size={14} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="truncate text-sm font-medium text-zinc-900">{clip.audio.filename.replace(/\.[^/.]+$/, '') || `Audio ${index + 1}`}</p>
+                            {hasCustomTrim && (
+                              <span className="flex-shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-emerald-700">
+                                Trimmed
+                              </span>
                             )}
                           </div>
+                          <div className="flex items-center gap-3 mt-1">
+                            <span className="text-[11px] text-zinc-500">{formatDuration(clip.offset)}</span>
+                            <span className="text-zinc-300">·</span>
+                            <span className="text-[11px] font-medium text-zinc-700">{duration.toFixed(1)}s</span>
+                          </div>
                         </div>
-                        <div className="min-w-[88px] text-right text-[11px] font-medium text-zinc-500">
-                          <div>Pos {formatDuration(clip.offset)}</div>
-                          <div>Dur {duration.toFixed(1)}s</div>
-                          {hasCustomTrim && (
-                            <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-emerald-700">
-                              <CheckCircle2 size={10} />
-                              Trim applied
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {isResetFlash && (
-                        <div className="mt-2.5 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-700 animate-pulse">
-                          <RotateCcw size={10} />
-                          Restored
-                        </div>
-                      )}
-
-                      <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setActiveTrimEditor(current => current?.kind === 'audio' && current.id === clip.id ? null : { kind: 'audio', id: clip.id })}
-                          className="inline-flex items-center gap-1 rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-teal-700 transition-colors hover:bg-teal-100"
-                        >
-                          <Scissors size={12} />
-                          {isTrimOpen ? 'Hide trim' : 'Trim slider'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedId(clip.id)}
-                          className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-600 transition-colors hover:border-cyan-200 hover:text-cyan-700"
-                        >
-                          Select
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            applyAudioLayout(clip.id, clip.offset, 0, clip.duration)
-                            setResetFlashClip({ kind: 'audio', id: clip.id })
-                          }}
-                          className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-600 transition-colors hover:border-amber-200 hover:text-amber-700"
-                        >
-                          <RotateCcw size={12} />
-                          Reset trim
-                        </button>
                       </div>
 
                       {isTrimOpen && (
-                        <div className="mt-2 rounded-xl border border-teal-100 bg-teal-50/70 p-2">
-                          <div className="flex items-center justify-between text-[11px] font-semibold text-teal-700">
-                            <span>Trim range</span>
-                            <span>{clip.trimStart.toFixed(1)}s → {clip.trimEnd.toFixed(1)}s</span>
+                        <div className="mt-3 rounded-lg bg-gradient-to-r from-teal-50 to-teal-100/50 border border-teal-200 p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-teal-700">Trim range</span>
+                            <span className="text-[10px] font-mono font-medium text-teal-800">{clip.trimStart.toFixed(1)}s → {clip.trimEnd.toFixed(1)}s</span>
                           </div>
-                          <div className="mt-2 space-y-2">
-                            <label className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
-                              <span className="mb-1 flex items-center justify-between">
+                          <div className="space-y-2">
+                            <div>
+                              <div className="flex justify-between text-[9px] text-zinc-500 mb-1">
                                 <span>Start</span>
-                                <span className="font-mono text-zinc-700">{clip.trimStart.toFixed(1)}s</span>
-                              </span>
+                                <span className="font-mono">{clip.trimStart.toFixed(1)}s</span>
+                              </div>
                               <input
                                 type="range"
                                 min={0}
@@ -1191,14 +1009,14 @@ export default function MontageTimeline() {
                                   const safeStart = Math.max(0, Math.min(nextValue, clip.trimEnd - MIN_CLIP_SECONDS))
                                   applyAudioLayout(clip.id, clip.offset, safeStart, clip.trimEnd)
                                 }}
-                                className="mt-1 h-2 w-full accent-teal-600"
+                                className="h-1.5 w-full accent-teal-600 rounded-full appearance-none cursor-pointer"
                               />
-                            </label>
-                            <label className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
-                              <span className="mb-1 flex items-center justify-between">
+                            </div>
+                            <div>
+                              <div className="flex justify-between text-[9px] text-zinc-500 mb-1">
                                 <span>End</span>
-                                <span className="font-mono text-zinc-700">{clip.trimEnd.toFixed(1)}s</span>
-                              </span>
+                                <span className="font-mono">{clip.trimEnd.toFixed(1)}s</span>
+                              </div>
                               <input
                                 type="range"
                                 min={Math.max(MIN_CLIP_SECONDS, clip.trimStart + MIN_CLIP_SECONDS)}
@@ -1210,78 +1028,31 @@ export default function MontageTimeline() {
                                   const safeEnd = Math.max(clip.trimStart + MIN_CLIP_SECONDS, Math.min(clip.duration, nextValue))
                                   applyAudioLayout(clip.id, clip.offset, clip.trimStart, safeEnd)
                                 }}
-                                className="mt-1 h-2 w-full accent-teal-600"
+                                className="h-1.5 w-full accent-teal-600 rounded-full appearance-none cursor-pointer"
                               />
-                            </label>
+                            </div>
                             <button
                               type="button"
                               onClick={() => {
                                 setSelectedId(clip.id)
                                 setActiveTrimEditor(null)
                               }}
-                              className="inline-flex items-center gap-1 rounded-full bg-teal-600 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white transition-colors hover:bg-teal-500"
+                              className="w-full mt-2 rounded-lg bg-teal-600 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-white transition-colors hover:bg-teal-500"
                             >
-                              <Sparkles size={12} />
                               Apply trim
                             </button>
                           </div>
                         </div>
                       )}
 
-                      {(!compactSidebar && !isMiniCard) && (
-                        <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-                          <label className="rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1.5">
-                            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">Start</span>
-                            <input
-                              type="number"
-                              step="0.1"
-                              min={0}
-                              max={clip.duration}
-                              value={clip.trimStart.toFixed(1)}
-                              onChange={(event) => {
-                                const nextValue = Number(event.target.value)
-                                const safeStart = Math.max(0, Math.min(nextValue, clip.duration))
-                                applyAudioLayout(clip.id, clip.offset, safeStart, clip.trimEnd)
-                              }}
-                              className="w-full bg-transparent text-sm font-medium text-zinc-700 outline-none"
-                            />
-                          </label>
-                          <label className="rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1.5">
-                            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">End</span>
-                            <input
-                              type="number"
-                              step="0.1"
-                              min={MIN_CLIP_SECONDS}
-                              max={clip.duration}
-                              value={clip.trimEnd.toFixed(1)}
-                              onChange={(event) => {
-                                const nextValue = Number(event.target.value)
-                                const safeEnd = Math.max(clip.trimStart + MIN_CLIP_SECONDS, Math.min(clip.duration, nextValue))
-                                applyAudioLayout(clip.id, clip.offset, clip.trimStart, safeEnd)
-                              }}
-                              className="w-full bg-transparent text-sm font-medium text-zinc-700 outline-none"
-                            />
-                          </label>
-                          <label className="rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1.5">
-                            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">Position</span>
-                            <input
-                              type="number"
-                              step="0.1"
-                              min={0}
-                              value={clip.offset.toFixed(1)}
-                              onChange={(event) => {
-                                const nextValue = Number(event.target.value)
-                                applyAudioLayout(clip.id, Math.max(0, nextValue), clip.trimStart, clip.trimEnd)
-                              }}
-                              className="w-full bg-transparent text-sm font-medium text-zinc-700 outline-none"
-                            />
-                          </label>
-                          <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1.5">
-                            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">Duration</span>
-                            <p className="text-sm font-medium text-zinc-700">{duration.toFixed(1)}s</p>
-                          </div>
-                        </div>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => setActiveTrimEditor(current => current?.kind === 'audio' && current.id === clip.id ? null : { kind: 'audio', id: clip.id })}
+                        className={`mt-2 w-full rounded-lg px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] transition-colors ${isTrimOpen ? 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200' : 'bg-teal-50 text-teal-700 hover:bg-teal-100'}`}
+                      >
+                        <Scissors size={12} className="inline mr-1.5" />
+                        {isTrimOpen ? 'Hide trim' : 'Edit trim'}
+                      </button>
                     </div>
                   )
                 })}
