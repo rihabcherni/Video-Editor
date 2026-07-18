@@ -111,6 +111,7 @@ export default function App() {
 
   const [previewError, setPreviewError] = useState<string | null>(null)
   const [actionsOpen, setActionsOpen] = useState(false)
+  const [lastSeenActionCount, setLastSeenActionCount] = useState(0)
   const debounceRef = useRef<number | null>(null)
   const lastPreviewSig = useRef<string>('')
   const pendingSig = useRef<string>('')
@@ -467,6 +468,8 @@ export default function App() {
   const appName = import.meta.env.VITE_APP_NAME || 'Video Editor'
   const recentActions = actionHistory.slice(-6).reverse()
   const showActionHistoryCard = recentActions.length > 0
+  const newActionCount = Math.max(0, actionHistory.length - lastSeenActionCount)
+  const hasNewActions = newActionCount > 0
   const hasTrim = !!video && (trimStart > 0 || trimEnd < video.duration)
   const hasCrop = cropEnabled && (crop.top > 0 || crop.bottom > 0 || crop.left > 0 || crop.right > 0)
   const hasAppliedSubtitles = !!subtitleFilename && !!appliedSubtitleStyle
@@ -522,12 +525,20 @@ export default function App() {
               <div className="relative">
                 <button
                   type="button"
-                  onClick={() => setActionsOpen(open => !open)}
-                  className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white/90 px-3 py-2 text-xs font-semibold text-zinc-600 shadow-sm transition-all hover:border-zinc-300 hover:bg-white hover:text-zinc-900"
+                  onClick={() => {
+                    setActionsOpen(open => !open)
+                    if (!actionsOpen) setLastSeenActionCount(actionHistory.length)
+                  }}
+                  className={`inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white/90 px-3 py-2 text-xs font-semibold text-zinc-600 shadow-sm transition-all hover:border-zinc-300 hover:bg-white hover:text-zinc-900 ${hasNewActions ? 'animate-pulse' : ''}`}
                   aria-label="Toggle recent actions"
                 >
-                  <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600">
-                    <History size={13} />
+                  <span className="relative flex h-6 w-6 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600">
+                    <History size={13} className={hasNewActions ? 'animate-spin' : ''} />
+                    {hasNewActions && (
+                      <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm">
+                        {newActionCount}
+                      </span>
+                    )}
                   </span>
                   <span className="hidden sm:inline">Recent actions</span>
                   <ChevronDown size={13} className={`transition-transform ${actionsOpen ? 'rotate-180' : ''}`} />
@@ -662,17 +673,17 @@ export default function App() {
                     <VideoPlayer />
                   </div>
                   {actionToasts.length > 0 && (
-                    <div className="pointer-events-none fixed bottom-4 right-4 z-[70] flex w-[min(22rem,calc(100vw-2rem))] flex-col gap-2">
+                    <div className="pointer-events-none fixed top-4 right-4 z-[70] flex w-[min(22rem,calc(100vw-2rem))] flex-col gap-2">
                       {actionToasts.map(toast => (
                         <div
                           key={toast.id}
-                          className="pointer-events-auto flex items-start gap-3 rounded-2xl border border-emerald-200 bg-white/95 px-4 py-3 shadow-[0_16px_40px_rgba(5,150,105,0.16)] backdrop-blur-sm"
+                          className="pointer-events-auto flex items-start gap-3 rounded-2xl border border-emerald-200 bg-white/95 px-4 py-3 shadow-[0_16px_40px_rgba(5,150,105,0.16)] backdrop-blur-sm animate-in slide-in-from-top-2 fade-in-0 duration-300"
                         >
                           <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
                             <CheckCircle2 size={16} />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">Preview</p>
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">Success</p>
                             <p className="mt-1 text-sm text-zinc-700">{toast.message}</p>
                           </div>
                           <button
@@ -688,13 +699,13 @@ export default function App() {
                     </div>
                   )}
                   {previewError && (
-                    <div className="pointer-events-none fixed bottom-4 left-4 z-[70] flex w-[min(22rem,calc(100vw-2rem))] flex-col gap-2">
-                      <div className="pointer-events-auto flex items-start gap-3 rounded-2xl border border-red-200 bg-white/95 px-4 py-3 shadow-[0_16px_40px_rgba(220,38,38,0.14)] backdrop-blur-sm">
+                    <div className="pointer-events-none fixed top-4 right-4 z-[70] flex w-[min(22rem,calc(100vw-2rem))] flex-col gap-2">
+                      <div className="pointer-events-auto flex items-start gap-3 rounded-2xl border border-red-200 bg-white/95 px-4 py-3 shadow-[0_16px_40px_rgba(220,38,38,0.14)] backdrop-blur-sm animate-in slide-in-from-top-2 fade-in-0 duration-300">
                         <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-red-100 text-red-600">
                           <AlertCircle size={16} />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-red-600">Preview error</p>
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-red-600">Error</p>
                           <p className="mt-1 text-sm text-zinc-700">{previewError}</p>
                         </div>
                         <button

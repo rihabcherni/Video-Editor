@@ -189,7 +189,7 @@ export default function ImportPanel() {
     if (files.length > 0) handleFiles(files)
   }
 
-  const addToTimeline = (asset: typeof mediaAssets[0]) => {
+  const addToTimeline = (asset: typeof mediaAssets[0], switchTab = false) => {
     if (asset.type === 'video') {
       addMontageClip({
         id: createId(),
@@ -208,7 +208,33 @@ export default function ImportPanel() {
       }, asset.duration)
       pushActionToast(`Added "${asset.title}" to audio timeline`)
     }
-    setActiveTab('montage')
+    if (switchTab) setActiveTab('montage')
+  }
+
+  const addAllToTimeline = () => {
+    let videoCount = 0
+    let audioCount = 0
+    mediaAssets.forEach(asset => {
+      if (asset.type === 'video') {
+        addMontageClip({
+          id: createId(),
+          title: asset.title,
+          filename: asset.filename,
+          url: asset.url,
+          duration: asset.duration,
+          thumbnail: asset.thumbnail
+        }, asset.duration)
+        videoCount++
+      } else {
+        addMontageAudioClip({
+          id: createId(),
+          filename: asset.filename,
+          url: asset.url
+        }, asset.duration)
+        audioCount++
+      }
+    })
+    pushActionToast(`Added ${videoCount} video${videoCount > 1 ? 's' : ''} and ${audioCount} audio${audioCount > 1 ? 's' : ''} to timeline`)
   }
 
   const handleDeleteAsset = async (asset: typeof mediaAssets[0]) => {
@@ -377,13 +403,22 @@ export default function ImportPanel() {
               <p className="mt-1 text-xs text-zinc-500">Your imported audio and video files are stored here for easy reuse.</p>
             </div>
             {mediaAssets.length > 0 && (
-              <button
-                type="button"
-                onClick={handleClearLibrary}
-                className="rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold text-zinc-600 transition hover:border-red-300 hover:text-red-600"
-              >
-                Clear library
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={addAllToTimeline}
+                  className="rounded-2xl border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-700 transition hover:bg-cyan-100"
+                >
+                  Add all to timeline
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClearLibrary}
+                  className="rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-semibold text-zinc-600 transition hover:border-red-300 hover:text-red-600"
+                >
+                  Clear library
+                </button>
+              </div>
             )}
           </div>
 

@@ -736,10 +736,10 @@ export default function MontageTimeline() {
   const rulerMarks = Array.from({ length: Math.ceil(timelineDuration / rulerStep) + 1 }, (_, i) => i * rulerStep)
 
   return (
-    <div className="space-y-2">
-      <div className="grid gap-3 xl:grid-cols-[minmax(450px,1fr)_minmax(300px,0.32fr)] items-stretch">
-        <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm flex flex-col">
-          <div className="flex items-center justify-between border-b border-zinc-200 px-3 py-2">
+    <div className="h-[calc(100vh)] flex flex-col gap-2">
+      <div className="flex-1 grid gap-3 xl:grid-cols-[minmax(450px,1fr)_minmax(400px,0.32fr)] items-stretch min-h-0">
+        <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm flex flex-col min-h-0">
+          <div className="flex items-center justify-between border-b border-zinc-200 px-3 py-2 flex-shrink-0">
             <div className="flex min-w-0 items-center gap-2">
               <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-cyan-50 text-cyan-600">
                 <Film size={15} />
@@ -748,7 +748,7 @@ export default function MontageTimeline() {
             </div>
             <span className="rounded-lg bg-zinc-100 px-2 py-1 font-mono text-xs text-zinc-600">{frameLabel(playhead)} / {formatClock(timelineDuration)}</span>
           </div>
-          <div className="relative flex flex-1 min-h-[280px] items-center justify-center bg-[linear-gradient(135deg,#f8fafc_0%,#eef2f7_100%)]">
+          <div className="relative flex-1 min-h-0 items-center justify-center bg-[linear-gradient(135deg,#f8fafc_0%,#eef2f7_100%)]">
             {activeVideoClip ? (
               <video
                 ref={videoRef}
@@ -775,8 +775,8 @@ export default function MontageTimeline() {
             )}
           </div>
         </div>
-        <div className="rounded-2xl border border-zinc-200 bg-gradient-to-br from-white to-zinc-50 p-4 shadow-[0_8px_30px_rgba(15,23,42,0.08)] flex flex-col">
-            <div className="flex items-center gap-3">
+        <div className="rounded-2xl border border-zinc-200 bg-gradient-to-br from-white to-zinc-50 p-4 shadow-[0_8px_30px_rgba(15,23,42,0.08)] flex flex-col min-h-0">
+            <div className="flex items-center gap-3 flex-shrink-0">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-600 text-white shadow-lg shadow-cyan-500/25">
                 <Layers size={18} />
               </div>
@@ -785,10 +785,10 @@ export default function MontageTimeline() {
                 <p className="text-xs text-zinc-500">{videoClips.length} video · {audioClips.length} audio</p>
               </div>
             </div>
-          <div className="mt-4 flex-1 overflow-hidden flex flex-col">
-            <div className="flex-1 space-y-2 overflow-y-auto pr-1.5 scrollbar-thin scrollbar-thumb-zinc-300 scrollbar-track-transparent">
+          <div className="mt-4 flex-1 overflow-hidden flex flex-col min-h-0">
+            <div className="flex-1 space-y-2 overflow-y-auto pr-1.5 scrollbar-thin scrollbar-thumb-zinc-300 scrollbar-track-transparent min-h-0">
               <div>
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400">Videos</p>
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400">Videos</p>
                 {videoClips.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-6 text-center">
                     <Film size={24} className="mx-auto text-zinc-300 mb-2" />
@@ -836,16 +836,31 @@ export default function MontageTimeline() {
                         setDropListKind(null)
                       }}
                       onClick={() => setSelectedId(clip.id)}
-                      className={`group relative flex items-center gap-2 px-2 py-2.5 rounded-xl border-2 transition-all duration-300 cursor-pointer ${isSelected
-                        ? 'bg-gradient-to-br from-cyan-400 to-cyan-300 border-cyan-600 shadow-[0_0_0_3px_rgba(8,145,178,0.3),0_12px_32px_rgba(8,145,178,0.4)] ring-2 ring-cyan-500 ring-offset-2'
+                      className={`group relative flex flex-col gap-2 p-3 rounded-xl border-2 transition-all duration-300 cursor-pointer ${isSelected
+                        ? 'bg-gradient-to-br from-cyan-50 to-cyan-100 border-cyan-300 shadow-[0_0_0_2px_rgba(8,145,178,0.15),0_4px_12px_rgba(8,145,178,0.2)] ring-2 ring-cyan-200 ring-offset-2'
                         : 'bg-white border-zinc-200 hover:border-zinc-300 hover:shadow-md hover:bg-zinc-50/50'
                         } ${isDropTarget ? 'border-t-4 border-t-cyan-500' : ''}`}
                     >
-                      <div className={`cursor-grab active:cursor-grabbing p-1 -ml-1 rounded-lg transition-colors flex-shrink-0 ${isSelected ? 'bg-cyan-600 hover:bg-cyan-700' : 'hover:bg-zinc-200/50'}`}>
-                        <GripVertical size={14} className={isSelected ? 'text-white' : 'text-zinc-300 group-hover:text-zinc-400'} />
+                      <div className="flex items-center justify-between mb-2">
+                        <div className={`cursor-grab active:cursor-grabbing p-1 -ml-1 rounded-lg transition-colors flex-shrink-0 ${isSelected ? 'bg-cyan-200 hover:bg-cyan-300' : 'hover:bg-zinc-200/50'}`}>
+                          <GripVertical size={14} className={isSelected ? 'text-white' : 'text-zinc-300 group-hover:text-zinc-400'} />
+                        </div>
+
+                        <button type="button"
+                          onClick={e => {
+                            e.stopPropagation()
+                            removeMontageClip(clip.id)
+                          }}
+                          className={`p-1.5 rounded-lg border bg-white/90 backdrop-blur-sm transition-all duration-200 shadow-sm flex-shrink-0 ${isSelected
+                            ? 'border-red-200 text-red-500 hover:bg-red-50'
+                            : 'border-zinc-100 text-zinc-400 hover:text-red-500 hover:border-red-200'
+                            }`}
+                        >
+                          <Trash2 size={13} />
+                        </button>
                       </div>
 
-                      <div className={`w-32 aspect-video rounded-xl overflow-hidden relative group/preview flex-shrink-0 border shadow-sm ring-2 ${isSelected ? 'bg-black border-cyan-500 ring-cyan-400 shadow-[0_0_12px_rgba(8,145,178,0.5)]' : 'bg-black border-zinc-200 ring-zinc-950/5'}`}>
+                      <div className={`w-full aspect-video rounded-xl overflow-hidden relative group/preview flex-shrink-0 border shadow-sm ring-2 ${isSelected ? 'bg-black border-cyan-500 ring-cyan-400 shadow-[0_0_12px_rgba(8,145,178,0.5)]' : 'bg-black border-zinc-200 ring-zinc-950/5'}`}>
                         <video
                           src={`${withMediaBase(clip.video.url)}#t=${clip.trimStart},${clip.trimEnd}`}
                           className="w-full h-full object-cover transition-transform duration-700 group-hover/preview:scale-110"
@@ -863,7 +878,7 @@ export default function MontageTimeline() {
                         </div>
                       </div>
 
-                      <div className="flex-1 min-w-0 flex flex-col gap-1.5 pr-10">
+                      <div className="flex-1 min-w-0 flex flex-col gap-1.5">
                         <p className={`text-[13px] font-bold truncate transition-colors tracking-tight leading-none ${isSelected ? 'text-cyan-900' : 'text-zinc-800'
                           }`}>
                           {clip.video.title || `Clip ${index + 1}`}
@@ -883,21 +898,6 @@ export default function MontageTimeline() {
                             </div>
                           )}
                         </div>
-                      </div>
-
-                      <div className="absolute top-2 right-2 flex items-center gap-1 transition-opacity">
-                        <button type="button"
-                          onClick={e => {
-                            e.stopPropagation()
-                            removeMontageClip(clip.id)
-                          }}
-                          className={`p-1.5 rounded-lg border bg-white/90 backdrop-blur-sm transition-all duration-200 shadow-sm ${isSelected
-                            ? 'border-red-200 text-red-500 hover:bg-red-50'
-                            : 'border-zinc-100 text-zinc-400 hover:text-red-500 hover:border-red-200'
-                            }`}
-                        >
-                          <Trash2 size={13} />
-                        </button>
                       </div>
 
                       {isTrimOpen && (
@@ -973,7 +973,7 @@ export default function MontageTimeline() {
               </div>
 
               <div>
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400">Audio</p>
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400">Audio</p>
                 {audioClips.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-6 text-center">
                     <Music size={24} className="mx-auto text-zinc-300 mb-2" />
@@ -1020,23 +1020,38 @@ export default function MontageTimeline() {
                         setDropListKind(null)
                       }}
                       onClick={() => setSelectedId(clip.id)}
-                      className={`group relative flex items-center gap-2 px-2 py-2.5 rounded-xl border-2 transition-all duration-300 cursor-pointer ${isSelected
-                        ? 'bg-gradient-to-br from-teal-400 to-teal-300 border-teal-600 shadow-[0_0_0_3px_rgba(13,148,136,0.3),0_12px_32px_rgba(13,148,136,0.4)] ring-2 ring-teal-500 ring-offset-2'
+                      className={`group relative flex flex-col gap-2 p-3 rounded-xl border-2 transition-all duration-300 cursor-pointer ${isSelected
+                        ? 'bg-gradient-to-br from-teal-50 to-teal-100 border-teal-300 shadow-[0_0_0_2px_rgba(13,148,136,0.15),0_4px_12px_rgba(13,148,136,0.2)] ring-2 ring-teal-200 ring-offset-2'
                         : 'bg-white border-zinc-100 hover:border-zinc-200 hover:shadow-md hover:bg-zinc-50/50'
                         } ${isDropTarget ? 'border-t-4 border-t-teal-500' : ''}`}
                     >
-                      <div className={`cursor-grab active:cursor-grabbing p-1 -ml-1 rounded-lg transition-colors flex-shrink-0 ${isSelected ? 'bg-teal-600 hover:bg-teal-700' : 'hover:bg-zinc-200/50'}`}>
-                        <GripVertical size={14} className={isSelected ? 'text-white' : 'text-zinc-300 group-hover:text-zinc-400'} />
+                      <div className="flex items-center justify-between mb-2">
+                        <div className={`cursor-grab active:cursor-grabbing p-1 -ml-1 rounded-lg transition-colors flex-shrink-0 ${isSelected ? 'bg-teal-200 hover:bg-teal-300' : 'hover:bg-zinc-200/50'}`}>
+                          <GripVertical size={14} className={isSelected ? 'text-white' : 'text-zinc-300 group-hover:text-zinc-400'} />
+                        </div>
+
+                        <button type="button"
+                          onClick={e => {
+                            e.stopPropagation()
+                            removeMontageAudioClip(clip.id)
+                          }}
+                          className={`p-1.5 rounded-lg border bg-white/90 backdrop-blur-sm transition-all duration-200 shadow-sm flex-shrink-0 ${isSelected
+                            ? 'border-red-200 text-red-500 hover:bg-red-50'
+                            : 'border-zinc-100 text-zinc-400 hover:text-red-500 hover:border-red-200'
+                            }`}
+                        >
+                          <Trash2 size={13} />
+                        </button>
                       </div>
 
-                      <div className={`w-32 aspect-video bg-gradient-to-br from-zinc-800 to-zinc-900 rounded-xl overflow-hidden relative group/preview flex-shrink-0 border shadow-sm ring-2 flex items-center justify-center ${isSelected ? 'border-teal-500 ring-teal-400 shadow-[0_0_12px_rgba(13,148,136,0.5)]' : 'border-zinc-200 ring-zinc-950/5'}`}>
+                      <div className={`w-full aspect-video bg-gradient-to-br from-zinc-800 to-zinc-900 rounded-xl overflow-hidden relative group/preview flex-shrink-0 border shadow-sm ring-2 flex items-center justify-center ${isSelected ? 'border-teal-500 ring-teal-400 shadow-[0_0_12px_rgba(13,148,136,0.5)]' : 'border-zinc-200 ring-zinc-950/5'}`}>
                         <Music size={32} className="text-zinc-600" />
                         <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-lg bg-black/70 backdrop-blur-md text-[10px] font-bold text-white uppercase tracking-wider">
                           {duration.toFixed(1)}s
                         </div>
                       </div>
 
-                      <div className="flex-1 min-w-0 flex flex-col gap-1.5 pr-10">
+                      <div className="flex-1 min-w-0 flex flex-col gap-1.5">
                         <p className={`text-[13px] font-bold truncate transition-colors tracking-tight leading-none ${isSelected ? 'text-teal-900' : 'text-zinc-800'
                           }`}>
                           {clip.audio.filename.replace(/\.[^/.]+$/, '') || `Audio ${index + 1}`}
@@ -1056,21 +1071,6 @@ export default function MontageTimeline() {
                             </div>
                           )}
                         </div>
-                      </div>
-
-                      <div className="absolute top-2 right-2 flex items-center gap-1 transition-opacity">
-                        <button type="button"
-                          onClick={e => {
-                            e.stopPropagation()
-                            removeMontageAudioClip(clip.id)
-                          }}
-                          className={`p-1.5 rounded-lg border bg-white/90 backdrop-blur-sm transition-all duration-200 shadow-sm ${isSelected
-                            ? 'border-red-200 text-red-500 hover:bg-red-50'
-                            : 'border-zinc-100 text-zinc-400 hover:text-red-500 hover:border-red-200'
-                            }`}
-                        >
-                          <Trash2 size={13} />
-                        </button>
                       </div>
 
                       {isTrimOpen && (
@@ -1146,17 +1146,17 @@ export default function MontageTimeline() {
               </div>
             </div>
           </div>
-          <div className="flex justify-between gap-2 flex-items">
+          {videoClips.length > 0 && (     
+            <div className="flex justify-between gap-2 flex-items">
              <button
               type="button"
               onClick={handleMerge}
               disabled={mergeLoading || videoClips.length === 0}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-600 px-4 py-2.5 text-xs font-semibold text-white shadow-lg shadow-cyan-500/20 transition-all hover:from-cyan-400 hover:to-cyan-500 hover:shadow-cyan-500/30 disabled:cursor-not-allowed disabled:from-zinc-200 disabled:to-zinc-200 disabled:shadow-none disabled:text-zinc-400"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-600 px-3 py-2 text-xs font-semibold text-white shadow-lg shadow-cyan-500/20 transition-all hover:from-cyan-400 hover:to-cyan-500 hover:shadow-cyan-500/30 disabled:cursor-not-allowed disabled:from-zinc-200 disabled:to-zinc-200 disabled:shadow-none disabled:text-zinc-400"
             >
               {mergeLoading ? <Loader2 size={14} className="animate-spin" /> : <GitMerge size={14} />}
               Generate Final Video
-            </button>
-            {videoClips.length > 0 && (
+              </button>
               <button
                 type="button"
                 onClick={() => { clearMontageClips(); clearMontageAudioClips(); setPlayhead(0); setSelectedId(null) }}
@@ -1164,9 +1164,9 @@ export default function MontageTimeline() {
               >
                 <Trash2 size={13} />
                 Clear timeline
-              </button>
-            )}
-          </div>
+              </button>    
+             </div>
+          )}
           {mergeStatus && (
             <div className={`mt-3 flex items-center gap-2 rounded-xl border px-3 py-2 text-xs ${mergeStatus.startsWith('Error') ? 'border-red-200 bg-red-50 text-red-700' : 'border-cyan-200 bg-cyan-50 text-cyan-700'}`}>
               {mergeStatus.startsWith('Error') ? <AlertCircle size={14} /> : <Loader2 size={14} className="animate-spin" />}
@@ -1176,7 +1176,7 @@ export default function MontageTimeline() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+      <div className="flex-shrink-0 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 bg-zinc-50/80 px-3 py-2">
           <div className="flex items-center gap-2">
             {hasTimelineMedia ? (
@@ -1222,7 +1222,7 @@ export default function MontageTimeline() {
           </div>
         </div>
 
-        <div ref={timelineViewportRef} className="overflow-x-auto overflow-y-hidden">
+        <div className="overflow-x-auto overflow-y-hidden">
           <div className="relative min-w-full p-2 sm:p-3" style={{ width: `${timelineContentWidth}px` }}>
             <div className="sticky left-0 z-20 mb-1 flex h-10 items-end bg-white" style={{ paddingLeft: `${TRACK_LEFT}px` }}>
               <div
