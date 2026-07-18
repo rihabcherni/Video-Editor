@@ -23,10 +23,6 @@ export default function BorderEditor() {
     borderWidth, setBorderWidth,
     borderHeight, setBorderHeight,
     borderColor, setBorderColor,
-    borderDraftEnabled, setBorderDraftEnabled,
-    borderDraftWidth, setBorderDraftWidth,
-    borderDraftHeight, setBorderDraftHeight,
-    borderDraftColor, setBorderDraftColor,
     setPendingPreviewAction,
   } = useStore()
 
@@ -40,12 +36,7 @@ export default function BorderEditor() {
     setDraftWidth(borderWidth)
     setDraftHeight(borderHeight)
     setDraftColor(borderColor)
-
-    setBorderDraftEnabled(borderEnabled)
-    setBorderDraftWidth(borderWidth)
-    setBorderDraftHeight(borderHeight)
-    setBorderDraftColor(borderColor)
-  }, [borderEnabled, borderWidth, borderHeight, borderColor, setBorderDraftEnabled, setBorderDraftWidth, setBorderDraftHeight, setBorderDraftColor])
+  }, [borderEnabled, borderWidth, borderHeight, borderColor])
 
   const hasChanges =
     draftEnabled !== borderEnabled ||
@@ -66,11 +57,6 @@ export default function BorderEditor() {
     setDraftWidth(borderWidth)
     setDraftHeight(borderHeight)
     setDraftColor(borderColor)
-
-    setBorderDraftEnabled(borderEnabled)
-    setBorderDraftWidth(borderWidth)
-    setBorderDraftHeight(borderHeight)
-    setBorderDraftColor(borderColor)
   }
 
   return (
@@ -88,7 +74,6 @@ export default function BorderEditor() {
             checked={draftEnabled}
             onChange={e => {
               setDraftEnabled(e.target.checked)
-              setBorderDraftEnabled(e.target.checked)
             }}
             className="accent-cyan-600"
           />
@@ -113,7 +98,6 @@ export default function BorderEditor() {
             onChange={e => {
               const val = Number(e.target.value)
               setDraftWidth(val)
-              setBorderDraftWidth(val)
             }}
             disabled={!draftEnabled}
             className="w-full accent-cyan-600 h-1 disabled:opacity-50"
@@ -135,7 +119,6 @@ export default function BorderEditor() {
             onChange={e => {
               const val = Number(e.target.value)
               setDraftHeight(val)
-              setBorderDraftHeight(val)
             }}
             disabled={!draftEnabled}
             className="w-full accent-cyan-600 h-1 disabled:opacity-50"
@@ -160,7 +143,6 @@ export default function BorderEditor() {
                   onClick={() => {
                     if (draftEnabled) {
                       setDraftColor(color.hex)
-                      setBorderDraftColor(color.hex)
                     }
                   }}
                   disabled={!draftEnabled}

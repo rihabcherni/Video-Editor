@@ -244,6 +244,7 @@ export default function MontageTimeline() {
   const [autoFit, setAutoFit] = useState(true)
   const [timelineViewportWidth, setTimelineViewportWidth] = useState(0)
   const [activeTrimEditor, setActiveTrimEditor] = useState<{ kind: 'video' | 'audio'; id: string } | null>(null)
+  const [mergeProgress, setMergeProgress] = useState(0)
 
   const videoClips = useMemo(
     () => [...montageClips].sort((a, b) => clipStart(a) - clipStart(b) || a.order - b.order),
@@ -618,10 +619,12 @@ export default function MontageTimeline() {
     
     setMergeLoading(true)
     setMergeStatus('Preparing timeline clips...')
+    setMergeProgress(0)
     
     const MAX_RETRIES = 2
     let retryCount = 0
     let lastError: Error | null = null
+    let progressInterval: NodeJS.Timeout | null = null
     
     while (retryCount <= MAX_RETRIES) {
       try {
@@ -646,7 +649,24 @@ export default function MontageTimeline() {
           setMergeStatus('Rendering final montage on server... (this may take several minutes for long videos)')
         }
         
+        // Start progress simulation
+        setMergeProgress(10)
+        progressInterval = setInterval(() => {
+          setMergeProgress(prev => {
+            if (prev >= 90) return prev
+            return prev + Math.random() * 5
+          })
+        }, 2000)
+        
         const result = await mergeClips({ clips, audioTracks })
+        
+        // Clear progress interval
+        if (progressInterval) {
+          clearInterval(progressInterval)
+          progressInterval = null
+        }
+        setMergeProgress(100)
+        
         setMergedVideo({
           id: createId(),
           title: `Montage (${videoClips.length} clips)`,
@@ -657,9 +677,17 @@ export default function MontageTimeline() {
         clearMontageClips()
         clearMontageAudioClips()
         setMergeStatus(null)
+        setMergeProgress(0)
         pushActionToast(`Video generated! You can now add borders, titles, crop, and more.`)
         return // Success, exit the retry loop
       } catch (err: unknown) {
+        // Clear progress interval on error
+        if (progressInterval) {
+          clearInterval(progressInterval)
+          progressInterval = null
+        }
+        setMergeProgress(0)
+        
         lastError = err instanceof Error ? err : new Error('Merge failed')
         const errorMessage = lastError.message
         
@@ -1212,9 +1240,25 @@ export default function MontageTimeline() {
              </div>
           )}
           {mergeStatus && (
-            <div className={`mt-3 flex items-center gap-2 rounded-xl border px-3 py-2 text-xs ${mergeStatus.startsWith('Error') ? 'border-red-200 bg-red-50 text-red-700' : 'border-cyan-200 bg-cyan-50 text-cyan-700'}`}>
-              {mergeStatus.startsWith('Error') ? <AlertCircle size={14} /> : <Loader2 size={14} className="animate-spin" />}
-              {mergeStatus}
+            <div className={`mt-3 flex flex-col gap-2 rounded-xl border px-3 py-2 text-xs ${mergeStatus.startsWith('Error') ? 'border-red-200 bg-red-50 text-red-700' : 'border-cyan-200 bg-cyan-50 text-cyan-700'}`}>
+              <div className="flex items-center gap-2">
+                {mergeStatus.startsWith('Error') ? <AlertCircle size={14} /> : <Loader2 size={14} className="animate-spin" />}
+                {mergeStatus}
+              </div>
+              {mergeProgress > 0 && !mergeStatus.startsWith('Error') && (
+                <div className="w-full">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-medium">Progress</span>
+                    <span className="text-[10px] font-mono">{Math.round(mergeProgress)}%</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-cyan-200 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-cyan-600 rounded-full transition-all duration-300 ease-out"
+                      style={{ width: `${mergeProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
