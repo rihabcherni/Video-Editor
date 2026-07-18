@@ -1,8 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import {
-  AlertCircle, CheckCircle2, Download, Film, GitMerge, GripVertical, Layers, Loader2, Maximize2, Music,
-  Pause, Play, Plus, RotateCcw, Scissors, Sparkles, Trash2, Volume2, ZoomIn, ZoomOut
-} from 'lucide-react'
+import { AlertCircle, CheckCircle2, Film, GitMerge, GripVertical, Layers, Loader2, Maximize2, Music, Pause, Play, Scissors, Trash2, Volume2, ZoomIn, ZoomOut} from 'lucide-react'
 import { mergeClips } from '../../api/client'
 import { useStore } from '../../store/useStore'
 import type { MontageAudioClip, MontageClip } from '../../store/useStore'
@@ -14,16 +11,11 @@ const SNAP_SECONDS = 0.35
 const TRACK_LEFT = 86
 const TRACK_HEIGHT = 48
 const AUDIO_HEIGHT = 38
-const TRACK_GAP = 8
 const TRACK_PADDING_TOP = 2
-const VIDEO_PREVIEW_HEIGHT = 280
 const ABSOLUTE_MIN_ZOOM = 0.05
 const MAX_ZOOM = 96
 const TARGET_RULER_MARK_PX = 86
-const RULER_STEPS = [
-  0.5, 1, 2, 5, 10, 15, 30,
-  60, 120, 300, 600, 900, 1800, 3600,
-]
+const RULER_STEPS = [0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600]
 
 const VIDEO_CLIP_THEMES = [
   { bg: '#d946ef', border: '#a21caf', soft: 'rgba(217,70,239,0.16)' },
@@ -65,16 +57,15 @@ function formatDuration(s: number) {
   return `${minutes}:${seconds.toString().padStart(2, '0')}.${tenths}`
 }
 
-function formatClock(s: number) {
-  const total = Math.max(0, Math.floor(s))
-  const minutes = Math.floor(total / 60)
-  const seconds = total % 60
+function formatDurationHMS(s: number) {
+  const total = Math.max(0, s)
+  const hours = Math.floor(total / 3600)
+  const minutes = Math.floor((total % 3600) / 60)
+  const seconds = Math.floor(total % 60)
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+  }
   return `${minutes}:${seconds.toString().padStart(2, '0')}`
-}
-
-function frameLabel(s: number) {
-  const frames = Math.round((s % 1) * 30)
-  return `${formatClock(s)}:${frames.toString().padStart(2, '0')}`
 }
 
 function getRulerStep(pxPerSecond: number) {
@@ -304,11 +295,6 @@ export default function MontageTimeline() {
     [playhead, videoClips],
   )
 
-  const selectedClip = useMemo(
-    () => videoClips.find(clip => clip.id === selectedId) || audioClips.find(clip => clip.id === selectedId) || null,
-    [audioClips, selectedId, videoClips],
-  )
-
   const snapEdges = useMemo(() => {
     const edges = [0, playhead]
     videoClips.forEach(clip => {
@@ -407,6 +393,21 @@ export default function MontageTimeline() {
   }, [playing, timelineDuration])
 
   useEffect(() => {
+    const videoEl = videoRef.current
+    if (!videoEl) return
+
+    const syncVideoState = () => {
+      if (playing && videoEl.paused) {
+        void videoEl.play().catch(() => undefined)
+      } else if (!playing && !videoEl.paused) {
+        videoEl.pause()
+      }
+    }
+
+    syncVideoState()
+  }, [playing])
+
+  useEffect(() => {
     seekPreview(playhead, playing)
   }, [playhead, playing, seekPreview])
 
@@ -423,7 +424,6 @@ export default function MontageTimeline() {
     const activeClip = videoClips.find(clip => clip.id === clipId)
     if (!activeClip) return
 
-    const maxDuration = Math.max(MIN_CLIP_SECONDS, activeClip.video.duration)
     const safeTrimEnd = Math.max(Math.min(activeClip.video.duration, trimEnd), safeTrimStart + MIN_CLIP_SECONDS)
     const layout = getInsertedVideoLayout(videoClips, clipId, nextStart, safeTrimStart, safeTrimEnd)
     layout.forEach(item => {
@@ -608,42 +608,84 @@ export default function MontageTimeline() {
 
   const handleMerge = useCallback(async () => {
     if (videoClips.length === 0) return
+    
+    // Calculate total duration and show warning if very long
+    const totalDuration = videoClips.reduce((sum, clip) => sum + clipDuration(clip), 0)
+    if (totalDuration > 300) { // 5 minutes
+      const proceed = confirm(`This montage is ${formatDurationHMS(totalDuration)} long. Merging may take several minutes and could timeout. Continue anyway?`)
+      if (!proceed) return
+    }
+    
     setMergeLoading(true)
     setMergeStatus('Preparing timeline clips...')
-    try {
-      const clips = videoClips.map(c => ({
-        filename: c.video.filename,
-        startTime: c.trimStart,
-        endTime: c.trimEnd,
-      }))
-
-      const audioTracks = audioClips.length > 0
-        ? audioClips.map(a => ({
-          filename: a.audio.filename,
-          startTime: a.trimStart > 0 ? a.trimStart : undefined,
-          endTime: a.trimEnd < a.duration ? a.trimEnd : undefined,
-          offset: a.offset > 0 ? a.offset : undefined,
+    
+    const MAX_RETRIES = 2
+    let retryCount = 0
+    let lastError: Error | null = null
+    
+    while (retryCount <= MAX_RETRIES) {
+      try {
+        const clips = videoClips.map(c => ({
+          filename: c.video.filename,
+          startTime: c.trimStart,
+          endTime: c.trimEnd,
         }))
-        : undefined
 
-      setMergeStatus('Rendering final montage on server...')
-      const result = await mergeClips({ clips, audioTracks })
-      setMergedVideo({
-        id: createId(),
-        title: `Montage (${videoClips.length} clips)`,
-        duration: videoClips.reduce((sum, clip) => sum + clipDuration(clip), 0),
-        url: result.url,
-        filename: result.filename,
-      })
-      clearMontageClips()
-      clearMontageAudioClips()
-      setMergeStatus(null)
-      pushActionToast(`Video generated! You can now add borders, titles, crop, and more.`)
-    } catch (err: unknown) {
-      setMergeStatus(`Error: ${err instanceof Error ? err.message : 'Merge failed'}`)
-    } finally {
-      setMergeLoading(false)
+        const audioTracks = audioClips.length > 0
+          ? audioClips.map(a => ({
+            filename: a.audio.filename,
+            startTime: a.trimStart > 0 ? a.trimStart : undefined,
+            endTime: a.trimEnd < a.duration ? a.trimEnd : undefined,
+            offset: a.offset > 0 ? a.offset : undefined,
+          }))
+          : undefined
+
+        if (retryCount > 0) {
+          setMergeStatus(`Retrying merge attempt ${retryCount + 1}/${MAX_RETRIES + 1}...`)
+        } else {
+          setMergeStatus('Rendering final montage on server... (this may take several minutes for long videos)')
+        }
+        
+        const result = await mergeClips({ clips, audioTracks })
+        setMergedVideo({
+          id: createId(),
+          title: `Montage (${videoClips.length} clips)`,
+          duration: videoClips.reduce((sum, clip) => sum + clipDuration(clip), 0),
+          url: result.url,
+          filename: result.filename,
+        })
+        clearMontageClips()
+        clearMontageAudioClips()
+        setMergeStatus(null)
+        pushActionToast(`Video generated! You can now add borders, titles, crop, and more.`)
+        return // Success, exit the retry loop
+      } catch (err: unknown) {
+        lastError = err instanceof Error ? err : new Error('Merge failed')
+        const errorMessage = lastError.message
+        
+        // Detect timeout errors - these are worth retrying
+        const isTimeoutError = errorMessage.includes('timeout') || errorMessage.includes('504') || errorMessage.includes('Gateway')
+        
+        if (isTimeoutError && retryCount < MAX_RETRIES) {
+          retryCount++
+          setMergeStatus(`Timeout detected. Retrying in 3 seconds... (attempt ${retryCount}/${MAX_RETRIES})`)
+          await new Promise(resolve => setTimeout(resolve, 3000))
+          continue // Retry
+        } else {
+          // Final error after retries or non-timeout error
+          if (isTimeoutError) {
+            setMergeStatus('Error: Server timeout after multiple retries. The merge operation took too long. Try reducing the video length or contact support.')
+            pushActionToast('Merge timed out after retries. Try with shorter clips or check server configuration.')
+          } else {
+            setMergeStatus(`Error: ${errorMessage}`)
+            pushActionToast(`Merge failed: ${errorMessage}`)
+          }
+          break // Exit retry loop
+        }
+      }
     }
+    
+    setMergeLoading(false)
   }, [audioClips, clearMontageAudioClips, clearMontageClips, pushActionToast, setMergeLoading, setMergeStatus, setMergedVideo, videoClips])
 
   const handleCutSelection = useCallback(() => {
@@ -737,7 +779,7 @@ export default function MontageTimeline() {
 
   return (
     <div className="h-[calc(100vh)] flex flex-col gap-2">
-      <div className="flex-1 grid gap-3 xl:grid-cols-[minmax(450px,1fr)_minmax(400px,0.32fr)] items-stretch min-h-0">
+      <div className="flex-1 grid gap-3 xl:grid-cols-[minmax(450px,1fr)_minmax(400px,0.32fr)] items-stretch min-h-0 w-full">
         <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm flex flex-col min-h-0">
           <div className="flex items-center justify-between border-b border-zinc-200 px-3 py-2 flex-shrink-0">
             <div className="flex min-w-0 items-center gap-2">
@@ -746,7 +788,7 @@ export default function MontageTimeline() {
               </span>
               <span className="truncate text-sm font-semibold text-zinc-900">Montage preview</span>
             </div>
-            <span className="rounded-lg bg-zinc-100 px-2 py-1 font-mono text-xs text-zinc-600">{frameLabel(playhead)} / {formatClock(timelineDuration)}</span>
+            <span className="rounded-lg bg-zinc-100 px-2 py-1 font-mono text-xs text-zinc-600">{formatDurationHMS(playhead)} - {formatDurationHMS(timelineDuration)}</span>
           </div>
           <div className="relative flex-1 min-h-0 items-center justify-center bg-[linear-gradient(135deg,#f8fafc_0%,#eef2f7_100%)]">
             {activeVideoClip ? (
@@ -756,6 +798,10 @@ export default function MontageTimeline() {
                 className="h-full w-full object-contain"
                 muted={false}
                 onEnded={() => setPlaying(false)}
+                onClick={(e) => {
+                  e.preventDefault()
+                  togglePlay()
+                }}
               />
             ) : (
               <div className="flex flex-col items-center gap-2 text-zinc-400">
@@ -785,10 +831,10 @@ export default function MontageTimeline() {
                 <p className="text-xs text-zinc-500">{videoClips.length} video · {audioClips.length} audio</p>
               </div>
             </div>
-          <div className="mt-4 flex-1 overflow-hidden flex flex-col min-h-0">
+          <div className="mt-2 flex-1 overflow-hidden flex flex-col min-h-0">
             <div className="flex-1 space-y-2 overflow-y-auto pr-1.5 scrollbar-thin scrollbar-thumb-zinc-300 scrollbar-track-transparent min-h-0">
               <div>
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400">Videos</p>
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400">Videos</p>
                 {videoClips.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-6 text-center">
                     <Film size={24} className="mx-auto text-zinc-300 mb-2" />
@@ -800,7 +846,6 @@ export default function MontageTimeline() {
                   const isTrimOpen = activeTrimEditor?.kind === 'video' && activeTrimEditor.id === clip.id
                   const trimMax = clip.video.duration
                   const hasCustomTrim = clip.trimStart > 0 || clip.trimEnd < clip.video.duration
-                  const theme = getTheme(VIDEO_CLIP_THEMES, index)
                   const isSelected = selectedId === clip.id
                   return (
                     <div
@@ -836,14 +881,14 @@ export default function MontageTimeline() {
                         setDropListKind(null)
                       }}
                       onClick={() => setSelectedId(clip.id)}
-                      className={`group relative flex flex-col gap-2 p-3 rounded-xl border-2 transition-all duration-300 cursor-pointer ${isSelected
+                      className={`group relative flex flex-col gap-2 p-2 rounded-xl border-2 transition-all duration-300 cursor-pointer ${isSelected
                         ? 'bg-gradient-to-br from-cyan-50 to-cyan-100 border-cyan-300 shadow-[0_0_0_2px_rgba(8,145,178,0.15),0_4px_12px_rgba(8,145,178,0.2)] ring-2 ring-cyan-200 ring-offset-2'
                         : 'bg-white border-zinc-200 hover:border-zinc-300 hover:shadow-md hover:bg-zinc-50/50'
                         } ${isDropTarget ? 'border-t-4 border-t-cyan-500' : ''}`}
                     >
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center justify-between mb-1">
                         <div className={`cursor-grab active:cursor-grabbing p-1 -ml-1 rounded-lg transition-colors flex-shrink-0 ${isSelected ? 'bg-cyan-200 hover:bg-cyan-300' : 'hover:bg-zinc-200/50'}`}>
-                          <GripVertical size={14} className={isSelected ? 'text-white' : 'text-zinc-300 group-hover:text-zinc-400'} />
+                          <GripVertical size={14} className={isSelected ? 'text-cyan-700' : 'text-zinc-300 group-hover:text-zinc-400'} />
                         </div>
 
                         <button type="button"
@@ -856,7 +901,7 @@ export default function MontageTimeline() {
                             : 'border-zinc-100 text-zinc-400 hover:text-red-500 hover:border-red-200'
                             }`}
                         >
-                          <Trash2 size={13} />
+                          <Trash2 size={14} />
                         </button>
                       </div>
 
@@ -874,12 +919,12 @@ export default function MontageTimeline() {
                           playsInline
                         />
                         <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-lg bg-black/70 backdrop-blur-md text-[10px] font-bold text-white uppercase tracking-wider">
-                          {duration.toFixed(1)}s
+                          {formatDurationHMS(duration)}
                         </div>
                       </div>
 
                       <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-                        <p className={`text-[13px] font-bold truncate transition-colors tracking-tight leading-none ${isSelected ? 'text-cyan-900' : 'text-zinc-800'
+                        <p className={`text-[12px] font-bold truncate transition-colors tracking-tight leading-none ${isSelected ? 'text-cyan-900' : 'text-zinc-800'
                           }`}>
                           {clip.video.title || `Clip ${index + 1}`}
                         </p>
@@ -901,16 +946,16 @@ export default function MontageTimeline() {
                       </div>
 
                       {isTrimOpen && (
-                        <div className="mt-3 rounded-lg bg-gradient-to-r from-cyan-50 to-cyan-100/50 border border-cyan-200 p-2.5">
+                        <div className="mt-1 rounded-lg bg-gradient-to-r from-cyan-50 to-cyan-100/50 border border-cyan-200 p-2.5">
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-cyan-700">Trim</span>
-                            <span className="text-[9px] font-mono font-medium text-cyan-800">{clip.trimStart.toFixed(1)}s - {clip.trimEnd.toFixed(1)}s</span>
+                            <span className="text-[9px] font-mono font-medium text-cyan-800">{formatDurationHMS(clip.trimStart)} - {formatDurationHMS(clip.trimEnd)}</span>
                           </div>
-                          <div className="space-y-1.5">
+                          <div className="space-y-1">
                             <div>
-                              <div className="flex justify-between text-[8px] text-zinc-500 mb-0.5">
+                              <div className="flex justify-between text-[8px] text-zinc-500">
                                 <span>Start</span>
-                                <span className="font-mono">{clip.trimStart.toFixed(1)}s</span>
+                                <span className="font-mono">{formatDurationHMS(clip.trimStart)}</span>
                               </div>
                               <input
                                 type="range"
@@ -927,9 +972,9 @@ export default function MontageTimeline() {
                               />
                             </div>
                             <div>
-                              <div className="flex justify-between text-[8px] text-zinc-500 mb-0.5">
+                              <div className="flex justify-between text-[8px] text-zinc-500">
                                 <span>End</span>
-                                <span className="font-mono">{clip.trimEnd.toFixed(1)}s</span>
+                                <span className="font-mono">{formatDurationHMS(clip.trimEnd)}</span>
                               </div>
                               <input
                                 type="range"
@@ -951,7 +996,7 @@ export default function MontageTimeline() {
                                 setSelectedId(clip.id)
                                 setActiveTrimEditor(null)
                               }}
-                              className="w-full mt-1.5 rounded-lg bg-cyan-600 px-2 py-1.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-white transition-colors hover:bg-cyan-500"
+                              className="w-full mt-1 rounded-lg bg-cyan-600 px-2 py-1.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-white transition-colors hover:bg-cyan-500"
                             >
                               Apply
                             </button>
@@ -962,7 +1007,7 @@ export default function MontageTimeline() {
                       <button
                         type="button"
                         onClick={() => setActiveTrimEditor(current => current?.kind === 'video' && current.id === clip.id ? null : { kind: 'video', id: clip.id })}
-                        className={`mt-2 w-full rounded-lg px-2 py-1.5 text-[9px] font-semibold uppercase tracking-[0.16em] transition-colors ${isTrimOpen ? 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200' : 'bg-cyan-50 text-cyan-700 hover:bg-cyan-100'}`}
+                        className={`w-full rounded-lg px-2 py-1.5 text-[9px] font-semibold uppercase tracking-[0.16em] transition-colors ${isTrimOpen ? 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200' : 'bg-cyan-50 text-cyan-700 hover:bg-cyan-100'}`}
                       >
                         <Scissors size={11} className="inline mr-1" />
                         {isTrimOpen ? 'Hide' : 'Trim'}
@@ -984,7 +1029,6 @@ export default function MontageTimeline() {
                   const isDropTarget = dropListTargetId === clip.id && dropListKind === 'audio'
                   const isTrimOpen = activeTrimEditor?.kind === 'audio' && activeTrimEditor.id === clip.id
                   const hasCustomTrim = clip.trimStart > 0 || clip.trimEnd < clip.duration
-                  const theme = getTheme(AUDIO_CLIP_THEMES, index)
                   const isSelected = selectedId === clip.id
                   return (
                     <div
@@ -1027,7 +1071,7 @@ export default function MontageTimeline() {
                     >
                       <div className="flex items-center justify-between mb-2">
                         <div className={`cursor-grab active:cursor-grabbing p-1 -ml-1 rounded-lg transition-colors flex-shrink-0 ${isSelected ? 'bg-teal-200 hover:bg-teal-300' : 'hover:bg-zinc-200/50'}`}>
-                          <GripVertical size={14} className={isSelected ? 'text-white' : 'text-zinc-300 group-hover:text-zinc-400'} />
+                          <GripVertical size={14} className={isSelected ? 'text-teal-700' : 'text-zinc-300 group-hover:text-zinc-400'} />
                         </div>
 
                         <button type="button"
@@ -1047,7 +1091,7 @@ export default function MontageTimeline() {
                       <div className={`w-full aspect-video bg-gradient-to-br from-zinc-800 to-zinc-900 rounded-xl overflow-hidden relative group/preview flex-shrink-0 border shadow-sm ring-2 flex items-center justify-center ${isSelected ? 'border-teal-500 ring-teal-400 shadow-[0_0_12px_rgba(13,148,136,0.5)]' : 'border-zinc-200 ring-zinc-950/5'}`}>
                         <Music size={32} className="text-zinc-600" />
                         <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-lg bg-black/70 backdrop-blur-md text-[10px] font-bold text-white uppercase tracking-wider">
-                          {duration.toFixed(1)}s
+                          {formatDurationHMS(duration)}
                         </div>
                       </div>
 
@@ -1074,16 +1118,16 @@ export default function MontageTimeline() {
                       </div>
 
                       {isTrimOpen && (
-                        <div className="mt-3 rounded-lg bg-gradient-to-r from-teal-50 to-teal-100/50 border border-teal-200 p-2.5">
+                        <div className="mt-1 rounded-lg bg-gradient-to-r from-teal-50 to-teal-100/50 border border-teal-200 p-2.5">
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-teal-700">Trim</span>
-                            <span className="text-[9px] font-mono font-medium text-teal-800">{clip.trimStart.toFixed(1)}s - {clip.trimEnd.toFixed(1)}s</span>
+                            <span className="text-[9px] font-mono font-medium text-teal-800">{formatDurationHMS(clip.trimStart)} - {formatDurationHMS(clip.trimEnd)}</span>
                           </div>
                           <div className="space-y-1.5">
                             <div>
-                              <div className="flex justify-between text-[8px] text-zinc-500 mb-0.5">
+                              <div className="flex justify-between text-[8px] text-zinc-500">
                                 <span>Start</span>
-                                <span className="font-mono">{clip.trimStart.toFixed(1)}s</span>
+                                <span className="font-mono">{formatDurationHMS(clip.trimStart)}</span>
                               </div>
                               <input
                                 type="range"
@@ -1100,9 +1144,9 @@ export default function MontageTimeline() {
                               />
                             </div>
                             <div>
-                              <div className="flex justify-between text-[8px] text-zinc-500 mb-0.5">
+                              <div className="flex justify-between text-[8px] text-zinc-500">
                                 <span>End</span>
-                                <span className="font-mono">{clip.trimEnd.toFixed(1)}s</span>
+                                <span className="font-mono">{formatDurationHMS(clip.trimEnd)}</span>
                               </div>
                               <input
                                 type="range"
@@ -1124,7 +1168,7 @@ export default function MontageTimeline() {
                                 setSelectedId(clip.id)
                                 setActiveTrimEditor(null)
                               }}
-                              className="w-full mt-1.5 rounded-lg bg-teal-600 px-2 py-1.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-white transition-colors hover:bg-teal-500"
+                              className="w-full mt-1 rounded-lg bg-teal-600 px-2 py-1.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-white transition-colors hover:bg-teal-500"
                             >
                               Apply
                             </button>
@@ -1135,7 +1179,7 @@ export default function MontageTimeline() {
                       <button
                         type="button"
                         onClick={() => setActiveTrimEditor(current => current?.kind === 'audio' && current.id === clip.id ? null : { kind: 'audio', id: clip.id })}
-                        className={`mt-2 w-full rounded-lg px-2 py-1.5 text-[9px] font-semibold uppercase tracking-[0.16em] transition-colors ${isTrimOpen ? 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200' : 'bg-teal-50 text-teal-700 hover:bg-teal-100'}`}
+                        className={`w-full rounded-lg px-2 py-1.5 text-[9px] font-semibold uppercase tracking-[0.16em] transition-colors ${isTrimOpen ? 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200' : 'bg-teal-50 text-teal-700 hover:bg-teal-100'}`}
                       >
                         <Scissors size={11} className="inline mr-1" />
                         {isTrimOpen ? 'Hide' : 'Trim'}
@@ -1176,7 +1220,7 @@ export default function MontageTimeline() {
         </div>
       </div>
 
-      <div className="flex-shrink-0 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+      <div className="flex-shrink-0 w-full overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 bg-zinc-50/80 px-3 py-2">
           <div className="flex items-center gap-2">
             {hasTimelineMedia ? (
@@ -1184,7 +1228,7 @@ export default function MontageTimeline() {
                 <button type="button" onClick={togglePlay} className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-600 text-white hover:bg-cyan-500" aria-label="Play timeline">
                   {playing ? <Pause size={15} /> : <Play size={15} />}
                 </button>
-                <span className="font-mono text-xs font-semibold text-zinc-700">{frameLabel(playhead)}</span>
+                <span className="font-mono text-xs font-semibold text-zinc-700">{formatDurationHMS(playhead)}</span>
               </>
             ) : (
               <span className="text-xs font-medium text-zinc-500">Add video or audio to enable playback</span>
@@ -1222,7 +1266,7 @@ export default function MontageTimeline() {
           </div>
         </div>
 
-        <div className="overflow-x-auto overflow-y-hidden">
+        <div ref={timelineViewportRef} className="overflow-x-auto overflow-y-hidden">
           <div className="relative min-w-full p-2 sm:p-3" style={{ width: `${timelineContentWidth}px` }}>
             <div className="sticky left-0 z-20 mb-1 flex h-10 items-end bg-white" style={{ paddingLeft: `${TRACK_LEFT}px` }}>
               <div
@@ -1396,7 +1440,7 @@ export default function MontageTimeline() {
                               <div className="flex items-center gap-2">
                                 <p className="truncate text-[11px] font-medium text-white">{clip.video.title || `Clip ${index + 1}`}</p>
                               </div>
-                              <p className="font-mono text-[10px] text-white/75">{formatDuration(start)} · {duration.toFixed(1)}s</p>
+                              <p className="font-mono text-[10px] text-white/75">{formatDurationHMS(start)} · {formatDurationHMS(start + duration)}</p>
                             </div>
                           )}
                         </div>
@@ -1515,7 +1559,7 @@ export default function MontageTimeline() {
                                 <div className="flex items-center gap-2">
                                   <p className="truncate text-[11px] font-semibold text-white">{clip.audio.filename.replace(/\.[^/.]+$/, '') || `Audio ${index + 1}`}</p>
                                 </div>
-                                <p className="font-mono text-[10px] text-white/75">{formatDuration(clip.offset)} · {duration.toFixed(1)}s</p>
+                                <p className="font-mono text-[10px] text-white/75">{formatDurationHMS(clip.offset)} · {formatDurationHMS(clip.offset + duration)}</p>
                               </div>
                             )}
                           </div>

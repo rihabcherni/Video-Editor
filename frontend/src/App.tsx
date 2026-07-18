@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import axios from 'axios'
-import { Upload, Scissors, FileText, Download, Film, RotateCcw, Image as ImageIcon, Type, Square, ChevronLeft, ChevronRight, Volume2, Crop as CropIcon, CheckCircle2, X, History, ChevronDown, AlertCircle, Layers } from 'lucide-react'
+import { Upload, FileText, Download, Film, RotateCcw, Image as ImageIcon, Type, Square, ChevronLeft, ChevronRight, Volume2, Crop as CropIcon, CheckCircle2, X, History, ChevronDown, AlertCircle, Layers } from 'lucide-react'
 import { useStore } from './store/useStore'
 import ImportPanel from './components/ImportPanel/ImportPanel'
 import VideoPlayer from './components/VideoPlayer/VideoPlayer'
@@ -86,29 +86,7 @@ async function doesLocalResourceExist(url: string) {
 }
 
 export default function App() {
-  const {
-    video, activeTab, setActiveTab, reset,
-    trimStart, trimEnd,
-    segments, segmentHistory,
-    audioTrack, audioDuration, audioApplied, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd, appliedAudioOffset, subtitles,
-    subtitleFilename,
-    appliedSubtitleStyle,
-    logoImage, logoSize, logoX, logoY,
-    titleText, titleFont, titleSize, titleColor, titleBgColor, titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleLineSpacing, titleAlign, titleX, titleY, titleRenderLayout,
-    borderEnabled, borderWidth, borderHeight, borderColor,
-    cropEnabled,
-    crop,
-    exportQuality,
-    exportAspectRatio,
-    videoSourceWidth,
-    videoSourceHeight,
-    processedUrl, setProcessedUrl,
-    previewLoading, setPreviewLoading,
-    pendingPreviewAction, setPendingPreviewAction,
-    actionToasts, actionHistory, pushActionToast, removeActionToast,
-    montageClips, montageAudioClips, setMergedVideo,
-  } = useStore()
-
+  const { video, activeTab, setActiveTab, reset, trimStart, trimEnd, segments, audioTrack, audioDuration, audioApplied, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd, appliedAudioOffset, subtitles, subtitleFilename, appliedSubtitleStyle, logoImage, logoSize, logoX, logoY, titleText, titleFont, titleSize, titleColor, titleBgColor, titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleLineSpacing, titleAlign, titleX, titleY, titleRenderLayout, borderEnabled, borderWidth, borderHeight, borderColor, cropEnabled, crop, exportQuality, exportAspectRatio, videoSourceWidth, videoSourceHeight, processedUrl, setProcessedUrl, previewLoading, setPreviewLoading, pendingPreviewAction, setPendingPreviewAction, actionToasts, actionHistory, pushActionToast, removeActionToast, montageClips, montageAudioClips} = useStore()
   const [previewError, setPreviewError] = useState<string | null>(null)
   const [actionsOpen, setActionsOpen] = useState(false)
   const [lastSeenActionCount, setLastSeenActionCount] = useState(0)
@@ -288,6 +266,7 @@ export default function App() {
     }
   }, [
     video,
+    reset,
     trimStart,
     trimEnd,
     audioTrack,
@@ -322,10 +301,6 @@ export default function App() {
     crop,
     exportQuality,
     exportAspectRatio,
-    logoImage,
-    logoSize,
-    logoX,
-    logoY,
     pendingPreviewAction,
     pushActionToast,
     setPreviewLoading,
@@ -470,13 +445,11 @@ export default function App() {
   const showActionHistoryCard = recentActions.length > 0
   const newActionCount = Math.max(0, actionHistory.length - lastSeenActionCount)
   const hasNewActions = newActionCount > 0
-  const hasTrim = !!video && (trimStart > 0 || trimEnd < video.duration)
   const hasCrop = cropEnabled && (crop.top > 0 || crop.bottom > 0 || crop.left > 0 || crop.right > 0)
   const hasAppliedSubtitles = !!subtitleFilename && !!appliedSubtitleStyle
   const hasLogo = !!logoImage
   const hasTitle = titleText.trim().length > 0
   const hasBorder = borderEnabled && (borderWidth > 0 || borderHeight > 0)
-  const hasAppliedAudio = !!audioTrack && audioApplied
   const hasExportChanges = exportQuality !== '720p' || exportAspectRatio !== 'original'
   const completedTabs: Partial<Record<Tab, boolean>> = {
     import: !!video,
@@ -618,7 +591,7 @@ export default function App() {
           {activeTab !== 'import' && (
             <div className="flex-1 min-w-0 w-full overflow-hidden">
               {activeTab === 'montage' ? (
-                <div className="rounded-2xl border border-zinc-200 bg-white p-2">
+                <div className="rounded-2xl border border-zinc-200 bg-white p-2 w-full">
                   <MontageTimeline />
                 </div>
               ) : video ? (

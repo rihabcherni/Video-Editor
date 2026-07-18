@@ -22,7 +22,8 @@ export async function ensureTitleFontLoaded(fontSize: number, fontFamily: string
   try {
     await fontFaceSet.load(fontSpec)
     await fontFaceSet.ready
-  } catch {
+  } catch (error) {
+    console.warn('Failed to load font:', error)
   }
 }
 

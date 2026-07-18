@@ -997,7 +997,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
 
   // Montage clip actions
   montageClips: [],
-  addMontageClip: (video, _duration) => set(state => {
+  addMontageClip: (video) => set(state => {
     const order = state.montageClips.length
     const timelineStart = state.montageClips.reduce(
       (max, clip) => Math.max(max, (clip.timelineStart ?? clip.order ?? 0) + Math.max(0, clip.trimEnd - clip.trimStart)),
