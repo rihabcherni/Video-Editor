@@ -218,7 +218,9 @@ function buildScaleFilter(quality: NonNullable<ExportOptions['quality']>, aspect
     targetWidth = makeEven(baseLong * ratio)
   }
 
-  return `scale=${targetWidth}:${targetHeight}:force_original_aspect_ratio=increase,crop=${targetWidth}:${targetHeight}`
+  // Scale video to fit inside target dimensions (letterbox/pillarbox) without cropping any content.
+  // Then pad with black bars to reach the exact target canvas size.
+  return `scale=${targetWidth}:${targetHeight}:force_original_aspect_ratio=decrease,pad=${targetWidth}:${targetHeight}:(ow-iw)/2:(oh-ih)/2:color=black`
 }
 
 function toAssColor(hex?: string) {
