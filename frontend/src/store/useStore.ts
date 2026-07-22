@@ -359,8 +359,8 @@ interface EditorState {
   exportFilename: string
   setExportFilename: (name: string) => void
 
-  activeTab: 'import' | 'montage' | 'edit' | 'crop' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
-  setActiveTab: (t: 'import' | 'montage' | 'edit' | 'crop' | 'subtitles' | 'logo' | 'title' | 'border' | 'export') => void
+  activeTab: 'import' | 'montage' | 'crop' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
+  setActiveTab: (t: 'import' | 'montage' | 'crop' | 'subtitles' | 'logo' | 'title' | 'border' | 'export') => void
   isProcessing: boolean
   setIsProcessing: (p: boolean) => void
   processedUrl: string | null

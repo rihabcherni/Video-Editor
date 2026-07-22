@@ -1,26 +1,18 @@
-import React, { useRef, useState } from 'react'
-import { Upload, Loader2, Download, Trash2, Plus, Film, Music, Image as ImageIcon } from 'lucide-react'
+import React, { useState } from 'react'
+import { Trash2, Plus, Film, Music, Image as ImageIcon } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import {
-  uploadVideo, uploadAudio, downloadFromUrl, downloadAudioFromUrl, getApiErrorMessage,
-  deleteUploadedFile, deleteUploadedFiles
+  deleteUploadedFile, deleteUploadedFiles, getApiErrorMessage
 } from '../../api/client'
 import { createId } from '../../utils/id'
+import VideoUploadSection from './VideoUploadSection'
+import AudioUploadSection from './AudioUploadSection'
 
 function formatDuration(s: number) {
   if (!s || !Number.isFinite(s)) return '0:00'
   const m = Math.floor(s / 60)
   const sec = Math.floor(s % 60)
   return `${m}:${sec.toString().padStart(2, '0')}`
-}
-
-function isValidUrl(url: string) {
-  try {
-    const parsed = new URL(url)
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
-  } catch {
-    return false
-  }
 }
 
 export default function ImportPanel() {
@@ -30,164 +22,7 @@ export default function ImportPanel() {
     pushActionToast
   } = useStore()
 
-  const [uploadTab, setUploadTab] = useState<'file' | 'link'>('file')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [urlInput, setUrlInput] = useState('')
-  const [uploadProgress, setUploadProgress] = useState(0)
-  const [dragOver, setDragOver] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const handleFiles = async (files: File[]) => {
-    if (files.length === 0) return
-
-    setLoading(true)
-    setError(null)
-    setUploadProgress(0)
-
-    const importedCount: string[] = []
-    const invalidFiles: string[] = []
-    const failedFiles: string[] = []
-
-    for (let index = 0; index < files.length; index += 1) {
-      const file = files[index]
-      const isVideo = file.type.startsWith('video/')
-      const isAudio = file.type.startsWith('audio/')
-
-      const progressOffset = (index / files.length) * 100
-      const progressScale = 100 / files.length
-
-      if (!isVideo && !isAudio) {
-        invalidFiles.push(file.name)
-        setUploadProgress(Math.round(progressOffset))
-        continue
-      }
-
-      try {
-        if (isVideo) {
-          const info = await uploadVideo(file, value => setUploadProgress(Math.round(progressOffset + value * progressScale / 100)))
-          addMediaAsset({
-            id: createId(),
-            type: 'video',
-            title: file.name.replace(/\.[^/.]+$/, ''),
-            filename: info.filename,
-            url: info.url,
-            duration: info.duration,
-            thumbnail: info.thumbnail
-          })
-        } else {
-          const result = await uploadAudio(file)
-          const duration = await getAudioDuration(result.url)
-          addMediaAsset({
-            id: createId(),
-            type: 'audio',
-            title: file.name.replace(/\.[^/.]+$/, ''),
-            filename: result.filename,
-            url: result.url,
-            duration
-          })
-        }
-        importedCount.push(file.name)
-      } catch (err: unknown) {
-        failedFiles.push(`${file.name}: ${getApiErrorMessage(err, 'Upload failed')}`)
-      }
-    }
-
-    setUploadProgress(100)
-    setLoading(false)
-
-    if (importedCount.length > 0) {
-      pushActionToast(`${importedCount.length} asset${importedCount.length > 1 ? 's' : ''} imported successfully!`)
-    }
-
-    if (invalidFiles.length > 0) {
-      setError(`Invalid files: ${invalidFiles.join(', ')}.`)
-    } else if (failedFiles.length > 0) {
-      setError(failedFiles.join(' '))
-    }
-  }
-
-  const handleUrlDownload = async () => {
-    const urls = urlInput
-      .split(/\s+/)
-      .map(url => url.trim())
-      .filter(Boolean)
-
-    if (urls.length === 0) return
-
-    const urlEntries = urls.map(url => ({
-      url,
-      valid: isValidUrl(url)
-    }))
-
-    const validUrls = urlEntries.filter(entry => entry.valid).map(entry => entry.url)
-    const invalidUrls = urlEntries.filter(entry => !entry.valid).map(entry => entry.url)
-
-    if (validUrls.length === 0) {
-      setError('No valid links found. Please paste valid http or https URLs.')
-      return
-    }
-
-    setLoading(true)
-    setError(null)
-
-    const importedCount: string[] = []
-    const failedUrls: string[] = []
-
-    for (let index = 0; index < validUrls.length; index += 1) {
-      const url = validUrls[index]
-      const isAudioLink = url.includes('.mp3') || url.includes('.wav') || url.includes('.ogg')
-
-      try {
-        if (isAudioLink) {
-          const result = await downloadAudioFromUrl(url)
-          const duration = await getAudioDuration(result.url)
-          addMediaAsset({
-            id: createId(),
-            type: 'audio',
-            title: result.filename.replace(/\.[^/.]+$/, ''),
-            filename: result.filename,
-            url: result.url,
-            duration
-          })
-        } else {
-          const info = await downloadFromUrl(url)
-          addMediaAsset({
-            id: createId(),
-            type: 'video',
-            title: info.title,
-            filename: info.filename,
-            url: info.url,
-            duration: info.duration,
-            thumbnail: info.thumbnail
-          })
-        }
-        importedCount.push(url)
-      } catch (err: unknown) {
-        failedUrls.push(`${url}: ${getApiErrorMessage(err, 'Download failed')}`)
-      }
-    }
-
-    setLoading(false)
-
-    if (importedCount.length > 0) {
-      pushActionToast(`${importedCount.length} link${importedCount.length > 1 ? 's' : ''} imported successfully!`)
-      setUrlInput('')
-    }
-
-    if (invalidUrls.length > 0) {
-      setError(`Invalid link${invalidUrls.length > 1 ? 's' : ''}: ${invalidUrls.join(', ')}.`)
-    } else if (failedUrls.length > 0) {
-      setError(failedUrls.join(' '))
-    }
-  }
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    setDragOver(false)
-    const files = e.dataTransfer.files ? Array.from(e.dataTransfer.files) : []
-    if (files.length > 0) handleFiles(files)
-  }
+  const [uploadTab, setUploadTab] = useState<'video' | 'audio'>('video')
 
   const addToTimeline = (asset: typeof mediaAssets[0], switchTab = false) => {
     if (asset.type === 'video') {
@@ -244,7 +79,7 @@ export default function ImportPanel() {
       pushActionToast(`Deleted "${asset.title}" from the library and uploads folder`)
     } catch (err: unknown) {
       const message = getApiErrorMessage(err, 'Failed to delete asset')
-      setError(message)
+      pushActionToast(message)
     }
   }
 
@@ -259,7 +94,7 @@ export default function ImportPanel() {
       pushActionToast(`Deleted ${filenames.length} asset${filenames.length > 1 ? 's' : ''} from the library and uploads folder`)
     } catch (err: unknown) {
       const message = getApiErrorMessage(err, 'Failed to clear library')
-      setError(message)
+      pushActionToast(message)
     }
   }
 
@@ -269,130 +104,31 @@ export default function ImportPanel() {
         <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <p className="text-base font-semibold text-slate-900">Importer un média (audio et vidéo)</p>
+              <p className="text-base font-semibold text-slate-900">Import Media</p>
               <p className="mt-1 text-sm text-slate-500">
-                Glisser-déposer un fichier local ou coller des liens publics pour importer rapidement du contenu dans votre projet.
+                Upload files or paste URLs from any platform to import content.
               </p>
             </div>
             <div className="inline-flex rounded-full bg-slate-100 p-1 shadow-sm">
               <button
                 type="button"
-                onClick={() => setUploadTab('file')}
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${uploadTab === 'file' ? 'bg-cyan-600 text-white shadow' : 'bg-transparent text-slate-700 hover:text-slate-900 hover:bg-slate-50'} ${uploadTab === 'file' ? '' : 'border border-slate-200'}`}
+                onClick={() => setUploadTab('video')}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${uploadTab === 'video' ? 'bg-cyan-600 text-white shadow' : 'bg-transparent text-slate-700 hover:text-slate-900 hover:bg-slate-50'} ${uploadTab === 'video' ? '' : 'border border-slate-200'}`}
               >
-                Fichier local
+                Video
               </button>
               <button
                 type="button"
-                onClick={() => setUploadTab('link')}
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${uploadTab === 'link' ? 'bg-cyan-600 text-white shadow' : 'bg-transparent text-slate-700 hover:text-slate-900 hover:bg-slate-50'} ${uploadTab === 'link' ? '' : 'border border-slate-200'}`}
+                onClick={() => setUploadTab('audio')}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${uploadTab === 'audio' ? 'bg-blue-600 text-white shadow' : 'bg-transparent text-slate-700 hover:text-slate-900 hover:bg-slate-50'} ${uploadTab === 'audio' ? '' : 'border border-slate-200'}`}
               >
-                URL publique
+                Audio
               </button>
             </div>
           </div>
 
           <div className="mt-5">
-            {uploadTab === 'file' ? (
-              <div
-                onDrop={handleDrop}
-                onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-                onDragLeave={() => setDragOver(false)}
-                onClick={() => fileInputRef.current?.click()}
-                className={`group rounded-[1.75rem] border border-dashed p-8 text-center transition ${dragOver ? 'border-cyan-500 bg-cyan-50' : 'border-slate-300 bg-slate-50 hover:border-slate-400 hover:bg-slate-100'}`}
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="video/*,audio/*"
-                  multiple
-                  className="hidden"
-                  onChange={e => {
-                    const files = e.target.files ? Array.from(e.target.files) : []
-                    if (files.length > 0) handleFiles(files)
-                  }}
-                />
-                {loading ? (
-                  <div className="space-y-3">
-                    <Loader2 className="mx-auto text-cyan-600 animate-spin" size={32} />
-                    <p className="text-base font-semibold text-slate-900">Import en cours...</p>
-                    {uploadProgress > 0 && (
-                      <div className="mx-auto mt-4 w-full max-w-xl overflow-hidden rounded-full bg-slate-200 h-2">
-                        <div className="h-full bg-cyan-600 transition-all" style={{ width: `${uploadProgress}%` }} />
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <>
-                    <Upload size={32} className="mx-auto mb-2 text-slate-400 transition group-hover:text-cyan-600" />
-                    <p className="text-base font-semibold text-slate-900">Déposez vos fichiers ici</p>
-                    <p className="mt-2 text-xs text-slate-500">
-                      MP4, MOV, MKV, MP3, WAV, AAC
-                    </p>
-                    <p className="mt-2 text-[12px] tracking-[0.2em] text-slate-400">Cliquez ou glissez pour importer</p>
-                  </>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4 shadow-sm">
-                  <div className="flex items-center justify-between gap-3">
-                    <label htmlFor="import-url" className="block text-xs font-semibold text-slate-600 mb-2">Collez un ou plusieurs liens publics. Séparez les liens par un saut de ligne ou un espace.</label>
-                    <button
-                      type="button"
-                      onClick={handleUrlDownload}
-                      disabled={loading || !urlInput.trim()}
-                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-cyan-600 p-3 text-xs font-semibold text-white transition hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400"
-                    >
-                      {loading ? <><Loader2 size={14} className="animate-spin" /> Fetching media...</> : <><Download size={14} /> Fetch media</>}
-                    </button>
-                  </div>
-                  <textarea
-                    id="import-url"
-                    value={urlInput}
-                    onChange={e => setUrlInput(e.target.value)}
-                    placeholder="YouTube, Instagram, Facebook, TikTok ou URL directe audio/vidéo"
-                    rows={3}
-                    disabled={loading}
-                    className="w-full resize-none rounded-3xl border border-slate-200 bg-white py-4 px-4 text-sm text-slate-700 focus:outline-none focus:border-cyan-500 placeholder:text-slate-400"
-                  />
-                </div>
-                <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4 shadow-sm">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-xs font-semibold text-slate-500">Aperçu des liens</p>
-                    <span className="text-xs text-slate-400">Valide / invalide</span>
-                  </div>
-                  <div className="mt-1 space-y-2 max-h-40 overflow-y-auto pr-1">
-                    {urlInput.trim() ? (
-                      urlInput
-                        .split(/\s+/)
-                        .map(url => url.trim())
-                        .filter(Boolean)
-                        .map((url, index) => {
-                          const valid = isValidUrl(url)
-                          return (
-                            <div
-                              key={index}
-                              className={`flex items-center justify-between rounded-2xl px-4 py-3 ring-1 ${valid ? 'bg-cyan-50 ring-cyan-100' : 'bg-white ring-slate-200'}`}
-                            >
-                              <span className={`truncate text-sm ${valid ? 'text-slate-900' : 'text-slate-700'}`}>{url}</span>
-                              {!valid && (
-                                <span className="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-red-600">
-                                  Invalide
-                                </span>
-                              )}
-                            </div>
-                          )
-                        })
-                    ) : (
-                      <p className="text-sm text-slate-500">Collez des liens pour voir l'aperçu avant import.</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {error && <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+            {uploadTab === 'video' ? <VideoUploadSection /> : <AudioUploadSection />}
           </div>
         </div>
 
@@ -482,16 +218,4 @@ export default function ImportPanel() {
       </div >
     </div >
   )
-}
-
-function getAudioDuration(url: string): Promise<number> {
-  return new Promise(resolve => {
-    const audio = new Audio(url)
-    audio.preload = 'metadata'
-    audio.onloadedmetadata = () => {
-      resolve(audio.duration || 30)
-      audio.src = ''
-    }
-    audio.onerror = () => resolve(30)
-  })
 }

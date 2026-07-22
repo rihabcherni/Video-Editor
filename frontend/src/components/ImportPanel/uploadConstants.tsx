@@ -1,32 +1,36 @@
-import React from 'react'
-import { SocialIcon } from 'react-social-icons'
-
-export const PLATFORM_ICONS: Record<string, React.ReactNode> = {
-    tiktok: <SocialIcon network="tiktok" style={{ height: 18, width: 18 }} />,
-    facebook: <SocialIcon network="facebook" style={{ height: 18, width: 18 }} />,
-    instagram: <SocialIcon network="instagram" style={{ height: 18, width: 18 }} />,
-    youtube: <SocialIcon network="youtube" style={{ height: 18, width: 18 }} />,
+export const PLATFORM_ICONS = {
+  youtube: { name: 'YouTube', color: '#FF0000', icon: 'youtube' },
+  facebook: { name: 'Facebook', color: '#1877F2', icon: 'facebook' },
+  instagram: { name: 'Instagram', color: '#E4405F', icon: 'instagram' },
+  tiktok: { name: 'TikTok', color: '#000000', icon: 'tiktok' },
+  twitter: { name: 'Twitter/X', color: '#1DA1F2', icon: 'twitter' },
+  vimeo: { name: 'Vimeo', color: '#1AB7EA', icon: 'vimeo' },
+  dailymotion: { name: 'Dailymotion', color: '#00AAFF', icon: 'dailymotion' },
+  twitch: { name: 'Twitch', color: '#9146FF', icon: 'twitch' },
+  soundcloud: { name: 'SoundCloud', color: '#FF5500', icon: 'soundcloud' },
+  spotify: { name: 'Spotify', color: '#1DB954', icon: 'spotify' },
+  generic: { name: 'Video', color: '#6B7280', icon: 'video' },
 }
 
-export function detectPlatform(url: string) {
-    if (url.includes('youtube') || url.includes('youtu.be')) return 'youtube'
-    if (url.includes('instagram')) return 'instagram'
-    if (url.includes('facebook') || url.includes('fb.com')) return 'facebook'
-    if (url.includes('tiktok')) return 'tiktok'
-    return null
+export function detectPlatform(url: string): keyof typeof PLATFORM_ICONS {
+  const lowerUrl = url.toLowerCase()
+  
+  if (lowerUrl.includes('youtube.com') || lowerUrl.includes('youtu.be')) return 'youtube'
+  if (lowerUrl.includes('facebook.com') || lowerUrl.includes('fb.watch')) return 'facebook'
+  if (lowerUrl.includes('instagram.com')) return 'instagram'
+  if (lowerUrl.includes('tiktok.com')) return 'tiktok'
+  if (lowerUrl.includes('twitter.com') || lowerUrl.includes('x.com')) return 'twitter'
+  if (lowerUrl.includes('vimeo.com')) return 'vimeo'
+  if (lowerUrl.includes('dailymotion.com')) return 'dailymotion'
+  if (lowerUrl.includes('twitch.tv')) return 'twitch'
+  if (lowerUrl.includes('soundcloud.com')) return 'soundcloud'
+  if (lowerUrl.includes('spotify.com')) return 'spotify'
+  
+  return 'generic'
 }
 
-export function isLikelyPublicFacebookVideo(rawUrl: string) {
-    try {
-        const u = new URL(rawUrl)
-        const host = u.hostname.replace(/^www\./, '')
-        if (host === 'fb.watch') return true
-        const path = u.pathname
-        if (/\/reel\/\d+/.test(path)) return true
-        if (/\/videos\/\d+/.test(path)) return true
-        if (path === '/watch/' && u.searchParams.get('v')) return true
-        return false
-    } catch {
-        return false
-    }
+export function isLikelyPublicFacebookVideo(url: string): boolean {
+  const lowerUrl = url.toLowerCase()
+  return lowerUrl.includes('facebook.com') && 
+         (lowerUrl.includes('/videos/') || lowerUrl.includes('/watch/'))
 }

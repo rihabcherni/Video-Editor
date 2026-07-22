@@ -5,7 +5,6 @@ import { useStore } from '../../store/useStore'
 import { withMediaBase } from '../../utils/media'
 import { applyTitleCanvasTextStyle, clampNormalizedCenter, getRenderedTitleFontSize, getTitleRenderLayout } from '../../utils/titleLayout'
 import { getContainRect, getCroppedSourceDimensions, getRenderedVideoDimensions } from '../../utils/videoLayout'
-import VideoTimeline from '../VideoTimeline/VideoTimeline'
 
 function formatTime(s: number) {
   const totalSeconds = Math.max(0, Math.floor(s))
@@ -634,10 +633,6 @@ export default function VideoPlayer() {
           </span>
         </div>
       </div>
-
-      {activeTab === 'edit' && (
-        <VideoTimeline currentTime={currentTime} onSeek={handleTimelineSeek} />
-      )}
 
       {audioTrack && audioApplied && (
         <audio
