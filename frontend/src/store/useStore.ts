@@ -1006,7 +1006,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
   addMontageClip: (video) => set(state => {
     const order = state.montageClips.length
     const timelineStart = state.montageClips.reduce(
-      (max, clip) => Math.max(max, (clip.timelineStart ?? clip.order ?? 0) + Math.max(0, clip.trimEnd - clip.trimStart)),
+      (max, clip) => Math.max(max, (clip.timelineStart ?? clip.order ?? 0) + Math.max(0, clip.trimEnd - clip.trimStart) / (clip.speed || 1)),
       0,
     )
     return {
@@ -1032,7 +1032,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
 
     let cursor = 0
     const reordered = clips.map((clip, index) => {
-      const duration = Math.max(0, clip.trimEnd - clip.trimStart)
+      const duration = Math.max(0, clip.trimEnd - clip.trimStart) / (clip.speed || 1)
       const timelineStart = cursor
       cursor += duration
       return { ...clip, order: index, timelineStart }
@@ -1045,34 +1045,47 @@ export const useStore = create<EditorState>()(persist((set) => ({
       c.id === id ? { ...c, trimStart, trimEnd } : c
     ),
   })),
-  updateMontageClip: (id, updates) => set(state => ({
-    montageClips: state.montageClips.map(c =>
+  updateMontageClip: (id, updates) => set(state => {
+    const updatedClips = state.montageClips.map(c =>
       c.id === id ? { ...c, ...updates } : c
-    ),
-  })),
+    )
+    if ('speed' in updates || 'trimStart' in updates || 'trimEnd' in updates) {
+      const sortedClips = [...updatedClips].sort((a, b) => a.order - b.order)
+      let cursor = 0
+      const reordered = sortedClips.map((clip, index) => {
+        const duration = Math.max(0, clip.trimEnd - clip.trimStart) / (clip.speed || 1)
+        const timelineStart = cursor
+        cursor += duration
+        return { ...clip, order: index, timelineStart }
+      })
+      return { montageClips: reordered }
+    }
+    return { montageClips: updatedClips }
+  }),
   splitMontageClip: (id, splitTime) => set(state => {
     const clipIndex = state.montageClips.findIndex(c => c.id === id)
     if (clipIndex === -1) return {}
     const clip = state.montageClips[clipIndex]
     const clipStart = clip.timelineStart || clip.order || 0
-    const clipDuration = clip.trimEnd - clip.trimStart
+    const clipDuration = (clip.trimEnd - clip.trimStart) / (clip.speed || 1)
     const splitPointWithinClip = splitTime - clipStart
     
     if (splitPointWithinClip <= 0.1 || splitPointWithinClip >= clipDuration - 0.1) {
       return {}
     }
     
+    const mediaSplitOffset = splitPointWithinClip * (clip.speed || 1)
     const firstPart = {
       ...clip,
       id: createId(),
-      trimEnd: clip.trimStart + splitPointWithinClip,
+      trimEnd: clip.trimStart + mediaSplitOffset,
       order: clip.order,
     }
     
     const secondPart = {
       ...clip,
       id: createId(),
-      trimStart: clip.trimStart + splitPointWithinClip,
+      trimStart: clip.trimStart + mediaSplitOffset,
       timelineStart: clipStart + splitPointWithinClip,
       order: clip.order + 0.5,
     }
@@ -1090,7 +1103,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
   addMontageAudioClip: (audio, duration) => set(state => {
     const order = state.montageAudioClips.length
     const offset = state.montageAudioClips.reduce((max, clip) => {
-      const clipDuration = Math.max(0, clip.trimEnd - clip.trimStart)
+      const clipDuration = Math.max(0, clip.trimEnd - clip.trimStart) / (clip.speed || 1)
       return Math.max(max, clip.offset + clipDuration)
     }, 0)
 
@@ -1115,7 +1128,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
 
     let cursor = 0
     const reordered = clips.map((clip, index) => {
-      const duration = Math.max(0, clip.trimEnd - clip.trimStart)
+      const duration = Math.max(0, clip.trimEnd - clip.trimStart) / (clip.speed || 1)
       const offset = cursor
       cursor += duration
       return { ...clip, order: index, offset }
@@ -1123,11 +1136,23 @@ export const useStore = create<EditorState>()(persist((set) => ({
 
     return { montageAudioClips: reordered }
   }),
-  updateMontageAudioClip: (id, updates) => set(state => ({
-    montageAudioClips: state.montageAudioClips.map(c =>
+  updateMontageAudioClip: (id, updates) => set(state => {
+    const updatedClips = state.montageAudioClips.map(c =>
       c.id === id ? { ...c, ...updates } : c
-    ),
-  })),
+    )
+    if ('speed' in updates || 'trimStart' in updates || 'trimEnd' in updates) {
+      const sortedClips = [...updatedClips].sort((a, b) => a.order - b.order)
+      let cursor = 0
+      const reordered = sortedClips.map((clip, index) => {
+        const duration = Math.max(0, clip.trimEnd - clip.trimStart) / (clip.speed || 1)
+        const offset = cursor
+        cursor += duration
+        return { ...clip, order: index, offset }
+      })
+      return { montageAudioClips: reordered }
+    }
+    return { montageAudioClips: updatedClips }
+  }),
   splitMontageAudioClip: (id, splitTime) => set(state => {
     const clipIndex = state.montageAudioClips.findIndex(c => c.id === id)
     if (clipIndex === -1) return {}

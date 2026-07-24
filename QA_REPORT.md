@@ -1,7 +1,6 @@
-- problem of crop  when use Aspect Ratios: Original, 16:9, 9:16, 1:1, 4:5, 5:4, 4:3, 3:2 a lieu de faire real aspect ratios sans remove any part if videp final
-
-- Missing: Speed adjustment videos et audios, Volume controls, mute option of video et audio in montage tab before merge pour can edit chaque file separtly before merge 
-
++++++ problem of crop  when use Aspect Ratios: Original, 16:9, 9:16, 1:1, 4:5, 5:4, 4:3, 3:2 a lieu de faire real aspect ratios sans remove any part if videp final
++++++ Missing: Speed adjustment videos et audios, Volume controls, mute option of video et audio in montage tab before merge pour can edit chaque file separtly before merge 
+------------------------------------------
 
 - Missing Replace Original: Option to replace video audio par audio finded in audio track
 - problem of merge il n'est pas reste les place in final video after megre of white place vide of video or audio par exemple inside video il existe espace vide of 1 minute between 2 video or 2 audio il pose comme pas existe et concatenier les part directmnt sans espace vide 

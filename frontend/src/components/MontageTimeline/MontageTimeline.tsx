@@ -83,8 +83,10 @@ function formatRulerTime(s: number) {
   return remainingMinutes > 0 ? `${hours}h${remainingMinutes.toString().padStart(2, '0')}` : `${hours}h`
 }
 
-function clipDuration(clip: { trimStart: number; trimEnd: number }) {
-  return Math.max(MIN_CLIP_SECONDS, clip.trimEnd - clip.trimStart)
+function clipDuration(clip: { trimStart: number; trimEnd: number; speed?: number }) {
+  const raw = Math.max(MIN_CLIP_SECONDS, clip.trimEnd - clip.trimStart)
+  const speed = clip.speed && clip.speed > 0 ? clip.speed : 1
+  return raw / speed
 }
 
 function clipStart(clip: MontageClip) {
@@ -318,10 +320,14 @@ export default function MontageTimeline() {
     const videoEl = videoRef.current
     if (videoEl && clip) {
       const nextSrc = withMediaBase(clip.video.url)
-      const mediaTime = clip.trimStart + (next - clipStart(clip))
+      const clipSpeed = clip.speed && clip.speed > 0 ? clip.speed : 1
+      const mediaTime = clip.trimStart + (next - clipStart(clip)) * clipSpeed
       if (videoEl.getAttribute('src') !== nextSrc) {
         videoEl.src = nextSrc
       }
+      videoEl.playbackRate = clipSpeed
+      videoEl.muted = !!clip.muted
+      videoEl.volume = clip.muted ? 0 : Math.min(1, Math.max(0, clip.volume ?? 1))
       if (Math.abs(videoEl.currentTime - mediaTime) > 0.15) {
         videoEl.currentTime = Math.min(mediaTime, clip.trimEnd)
       }
@@ -339,12 +345,37 @@ export default function MontageTimeline() {
         audioEl.currentTime = clip.trimStart
         return
       }
-      const mediaTime = clip.trimStart + (next - clip.offset)
+      const clipSpeed = clip.speed && clip.speed > 0 ? clip.speed : 1
+      const mediaTime = clip.trimStart + (next - clip.offset) * clipSpeed
+      audioEl.playbackRate = clipSpeed
+      audioEl.muted = !!clip.muted
+      audioEl.volume = clip.muted ? 0 : Math.min(1, Math.max(0, clip.volume ?? 1))
       if (Math.abs(audioEl.currentTime - mediaTime) > 0.25) audioEl.currentTime = mediaTime
       if (shouldPlay) void audioEl.play().catch(() => undefined)
       else audioEl.pause()
     })
   }, [audioClips, playing, timelineDuration, videoClips])
+
+  // Real-time DOM element sync for speed, volume, and mute controls
+  useEffect(() => {
+    const videoEl = videoRef.current
+    if (videoEl && activeVideoClip) {
+      const clipSpeed = activeVideoClip.speed && activeVideoClip.speed > 0 ? activeVideoClip.speed : 1
+      videoEl.playbackRate = clipSpeed
+      videoEl.muted = !!activeVideoClip.muted
+      videoEl.volume = activeVideoClip.muted ? 0 : Math.min(1, Math.max(0, activeVideoClip.volume ?? 1))
+    }
+
+    audioClips.forEach(clip => {
+      const audioEl = audioRefs.current[clip.id]
+      if (audioEl) {
+        const clipSpeed = clip.speed && clip.speed > 0 ? clip.speed : 1
+        audioEl.playbackRate = clipSpeed
+        audioEl.muted = !!clip.muted
+        audioEl.volume = clip.muted ? 0 : Math.min(1, Math.max(0, clip.volume ?? 1))
+      }
+    })
+  }, [activeVideoClip, audioClips])
 
   useEffect(() => {
     if (videoClips.length && !selectedId) setSelectedId(videoClips[0].id)
@@ -767,7 +798,8 @@ export default function MontageTimeline() {
     const canvas = scrubCanvasRef.current
     if (!video || !canvas || scrubPreviewTime === null || !previewClip) return
 
-    const mediaTime = previewClip.trimStart + (scrubPreviewTime - clipStart(previewClip))
+    const clipSpeed = previewClip.speed && previewClip.speed > 0 ? previewClip.speed : 1
+    const mediaTime = previewClip.trimStart + (scrubPreviewTime - clipStart(previewClip)) * clipSpeed
     const nextSrc = withMediaBase(previewClip.video.url)
 
     if (video.getAttribute('src') !== nextSrc) {
