@@ -1060,7 +1060,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
     const clipIndex = state.montageClips.findIndex(c => c.id === id)
     if (clipIndex === -1) return {}
     const clip = state.montageClips[clipIndex]
-    const clipStart = clip.timelineStart || clip.order || 0
+    const clipStart = clip.timelineStart ?? clip.order ?? 0
     const clipDuration = (clip.trimEnd - clip.trimStart) / (clip.speed || 1)
     const splitPointWithinClip = splitTime - clipStart
     
@@ -1073,6 +1073,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
       ...clip,
       id: createId(),
       trimEnd: clip.trimStart + mediaSplitOffset,
+      timelineStart: clipStart,
       order: clip.order,
     }
     
@@ -1088,7 +1089,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
     newClips.splice(clipIndex, 1, firstPart, secondPart)
     
     return {
-      montageClips: newClips.map((c, i) => ({ ...c, order: i, timelineStart: c.timelineStart || i })),
+      montageClips: newClips.map((c, i) => ({ ...c, order: i, timelineStart: c.timelineStart ?? 0 })),
     }
   }),
   clearMontageClips: () => set({ montageClips: [] }),

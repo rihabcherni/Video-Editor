@@ -53,15 +53,6 @@ Speed controls (0.5x, 1x, 1.5x, 2x, etc.)
 - **Actual Behavior:** Varying error handling approaches
 - **Root Cause:** No centralized error handling strategy
 - **Suggested Fix:** Implement global error boundary and consistent error UI
-
-#### **Issue #15: No Undo/Redo in Timeline**
-- **Location:** `MontageTimeline.tsx`
-- **Steps to Reproduce:** Make mistake, try to undo
-- **Expected Behavior:** Undo/redo functionality
-- **Actual Behavior:** No undo history for timeline operations
-- **Root Cause:** Timeline state changes not tracked
-- **Suggested Fix:** Implement command pattern for undo/redo
-
 ---
 
 ## 4. UI/UX Issues

@@ -782,30 +782,41 @@ export default function MontageTimeline() {
     const audioClip = audioClips.find(clip => clip.id === selectedId)
     
     if (videoClip) {
-      const clipStart = videoClip.timelineStart || videoClip.order || 0
-      const clipDuration = videoClip.trimEnd - videoClip.trimStart
-      const splitPoint = clipStart + (clipDuration / 2)
+      const start = clipStart(videoClip)
+      const duration = clipDuration(videoClip)
+      const end = start + duration
       
-      if (clipDuration < 0.2) {
+      const targetCutTime = (playhead > start + 0.1 && playhead < end - 0.1)
+        ? playhead
+        : start + (duration / 2)
+      
+      if (duration < 0.2) {
         pushActionToast('Clip is too short to split.')
         return
       }
       
-      splitMontageClip(selectedId, splitPoint)
-      pushActionToast('Video clip split into 2 parts!')
+      splitMontageClip(selectedId, targetCutTime)
+      seekPreview(targetCutTime, false)
+      pushActionToast('Video clip split at cursor position!')
     } else if (audioClip) {
-      const clipDuration = audioClip.trimEnd - audioClip.trimStart
-      const splitPoint = audioClip.offset + (clipDuration / 2)
+      const start = audioClip.offset
+      const duration = clipDuration(audioClip)
+      const end = start + duration
       
-      if (clipDuration < 0.2) {
+      const targetCutTime = (playhead > start + 0.1 && playhead < end - 0.1)
+        ? playhead
+        : start + (duration / 2)
+      
+      if (duration < 0.2) {
         pushActionToast('Clip is too short to split.')
         return
       }
       
-      splitMontageAudioClip(selectedId, splitPoint)
-      pushActionToast('Audio clip split into 2 parts!')
+      splitMontageAudioClip(selectedId, targetCutTime)
+      seekPreview(targetCutTime, false)
+      pushActionToast('Audio clip split at cursor position!')
     }
-  }, [selectedId, videoClips, audioClips, splitMontageClip, splitMontageAudioClip, pushActionToast])
+  }, [selectedId, videoClips, audioClips, playhead, splitMontageClip, splitMontageAudioClip, pushActionToast, seekPreview])
 
   const previewClip = useMemo(() => {
     if (scrubPreviewTime === null) return null
