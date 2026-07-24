@@ -399,6 +399,13 @@ interface EditorState {
   updateMontageAudioClip: (id: string, updates: Partial<Omit<MontageAudioClip, 'id'>>) => void
   splitMontageAudioClip: (id: string, splitTime: number) => void
   clearMontageAudioClips: () => void
+  timelinePast: Array<{ montageClips: MontageClip[]; montageAudioClips: MontageAudioClip[] }>
+  timelineFuture: Array<{ montageClips: MontageClip[]; montageAudioClips: MontageAudioClip[] }>
+  canUndoTimeline: boolean
+  canRedoTimeline: boolean
+  pushTimelineSnapshot: () => void
+  undoTimeline: () => void
+  redoTimeline: () => void
   mergeLoading: boolean
   setMergeLoading: (v: boolean) => void
   mergeStatus: string | null
@@ -997,25 +1004,97 @@ export const useStore = create<EditorState>()(persist((set) => ({
 
   // Montage clip actions
   montageClips: [],
+  timelinePast: [],
+  timelineFuture: [],
+  canUndoTimeline: false,
+  canRedoTimeline: false,
+  pushTimelineSnapshot: () => set(state => ({
+    timelinePast: [
+      ...state.timelinePast.slice(-30),
+      {
+        montageClips: JSON.parse(JSON.stringify(state.montageClips)),
+        montageAudioClips: JSON.parse(JSON.stringify(state.montageAudioClips)),
+      },
+    ],
+    timelineFuture: [],
+    canUndoTimeline: true,
+    canRedoTimeline: false,
+  })),
+  undoTimeline: () => set(state => {
+    if (state.timelinePast.length === 0) return {}
+    const previous = state.timelinePast[state.timelinePast.length - 1]
+    const newPast = state.timelinePast.slice(0, state.timelinePast.length - 1)
+    const currentSnapshot = {
+      montageClips: JSON.parse(JSON.stringify(state.montageClips)),
+      montageAudioClips: JSON.parse(JSON.stringify(state.montageAudioClips)),
+    }
+    return {
+      montageClips: previous.montageClips,
+      montageAudioClips: previous.montageAudioClips,
+      timelinePast: newPast,
+      timelineFuture: [currentSnapshot, ...state.timelineFuture],
+      canUndoTimeline: newPast.length > 0,
+      canRedoTimeline: true,
+    }
+  }),
+  redoTimeline: () => set(state => {
+    if (state.timelineFuture.length === 0) return {}
+    const next = state.timelineFuture[0]
+    const newFuture = state.timelineFuture.slice(1)
+    const currentSnapshot = {
+      montageClips: JSON.parse(JSON.stringify(state.montageClips)),
+      montageAudioClips: JSON.parse(JSON.stringify(state.montageAudioClips)),
+    }
+    return {
+      montageClips: next.montageClips,
+      montageAudioClips: next.montageAudioClips,
+      timelinePast: [...state.timelinePast, currentSnapshot],
+      timelineFuture: newFuture,
+      canUndoTimeline: true,
+      canRedoTimeline: newFuture.length > 0,
+    }
+  }),
   addMontageClip: (video) => set(state => {
+    const snapshot = {
+      montageClips: JSON.parse(JSON.stringify(state.montageClips)),
+      montageAudioClips: JSON.parse(JSON.stringify(state.montageAudioClips)),
+    }
     const order = state.montageClips.length
     const timelineStart = state.montageClips.reduce(
       (max, clip) => Math.max(max, (clip.timelineStart ?? clip.order ?? 0) + Math.max(0, clip.trimEnd - clip.trimStart) / (clip.speed || 1)),
       0,
     )
     return {
+      timelinePast: [...state.timelinePast.slice(-30), snapshot],
+      timelineFuture: [],
+      canUndoTimeline: true,
+      canRedoTimeline: false,
       montageClips: [
         ...state.montageClips,
         { id: createId(), video, trimStart: 0, trimEnd: video.duration, timelineStart, order, speed: 1, volume: 1, muted: false },
       ],
     }
   }),
-  removeMontageClip: id => set(state => ({
-    montageClips: state.montageClips
-      .filter(c => c.id !== id)
-      .map((c, i) => ({ ...c, order: i })),
-  })),
+  removeMontageClip: id => set(state => {
+    const snapshot = {
+      montageClips: JSON.parse(JSON.stringify(state.montageClips)),
+      montageAudioClips: JSON.parse(JSON.stringify(state.montageAudioClips)),
+    }
+    return {
+      timelinePast: [...state.timelinePast.slice(-30), snapshot],
+      timelineFuture: [],
+      canUndoTimeline: true,
+      canRedoTimeline: false,
+      montageClips: state.montageClips
+        .filter(c => c.id !== id)
+        .map((c, i) => ({ ...c, order: i })),
+    }
+  }),
   reorderMontageClips: (activeId, overId, placement = 'before') => set(state => {
+    const snapshot = {
+      montageClips: JSON.parse(JSON.stringify(state.montageClips)),
+      montageAudioClips: JSON.parse(JSON.stringify(state.montageAudioClips)),
+    }
     const clips = [...state.montageClips].sort((a, b) => a.order - b.order)
     const activeIndex = clips.findIndex(c => c.id === activeId)
     const overIndex = clips.findIndex(c => c.id === overId)
@@ -1032,7 +1111,13 @@ export const useStore = create<EditorState>()(persist((set) => ({
       return { ...clip, order: index, timelineStart }
     })
 
-    return { montageClips: reordered }
+    return {
+      timelinePast: [...state.timelinePast.slice(-30), snapshot],
+      timelineFuture: [],
+      canUndoTimeline: true,
+      canRedoTimeline: false,
+      montageClips: reordered,
+    }
   }),
   updateMontageClipTrim: (id, trimStart, trimEnd) => set(state => ({
     montageClips: state.montageClips.map(c =>
@@ -1057,6 +1142,10 @@ export const useStore = create<EditorState>()(persist((set) => ({
     return { montageClips: updatedClips }
   }),
   splitMontageClip: (id, splitTime) => set(state => {
+    const snapshot = {
+      montageClips: JSON.parse(JSON.stringify(state.montageClips)),
+      montageAudioClips: JSON.parse(JSON.stringify(state.montageAudioClips)),
+    }
     const clipIndex = state.montageClips.findIndex(c => c.id === id)
     if (clipIndex === -1) return {}
     const clip = state.montageClips[clipIndex]
@@ -1089,13 +1178,34 @@ export const useStore = create<EditorState>()(persist((set) => ({
     newClips.splice(clipIndex, 1, firstPart, secondPart)
     
     return {
+      timelinePast: [...state.timelinePast.slice(-30), snapshot],
+      timelineFuture: [],
+      canUndoTimeline: true,
+      canRedoTimeline: false,
       montageClips: newClips.map((c, i) => ({ ...c, order: i, timelineStart: c.timelineStart ?? 0 })),
     }
   }),
-  clearMontageClips: () => set({ montageClips: [] }),
+  clearMontageClips: () => set(state => {
+    if (state.montageClips.length === 0) return {}
+    const snapshot = {
+      montageClips: JSON.parse(JSON.stringify(state.montageClips)),
+      montageAudioClips: JSON.parse(JSON.stringify(state.montageAudioClips)),
+    }
+    return {
+      timelinePast: [...state.timelinePast.slice(-30), snapshot],
+      timelineFuture: [],
+      canUndoTimeline: true,
+      canRedoTimeline: false,
+      montageClips: [],
+    }
+  }),
 
   montageAudioClips: [],
   addMontageAudioClip: (audio, duration) => set(state => {
+    const snapshot = {
+      montageClips: JSON.parse(JSON.stringify(state.montageClips)),
+      montageAudioClips: JSON.parse(JSON.stringify(state.montageAudioClips)),
+    }
     const order = state.montageAudioClips.length
     const offset = state.montageAudioClips.reduce((max, clip) => {
       const clipDuration = Math.max(0, clip.trimEnd - clip.trimStart) / (clip.speed || 1)
@@ -1103,16 +1213,34 @@ export const useStore = create<EditorState>()(persist((set) => ({
     }, 0)
 
     return {
+      timelinePast: [...state.timelinePast.slice(-30), snapshot],
+      timelineFuture: [],
+      canUndoTimeline: true,
+      canRedoTimeline: false,
       montageAudioClips: [
         ...state.montageAudioClips,
         { id: createId(), audio, trimStart: 0, trimEnd: duration, duration, offset, order, speed: 1, volume: 1, muted: false },
       ],
     }
   }),
-  removeMontageAudioClip: id => set(state => ({
-    montageAudioClips: state.montageAudioClips.filter(c => c.id !== id).map((c, i) => ({ ...c, order: i })),
-  })),
+  removeMontageAudioClip: id => set(state => {
+    const snapshot = {
+      montageClips: JSON.parse(JSON.stringify(state.montageClips)),
+      montageAudioClips: JSON.parse(JSON.stringify(state.montageAudioClips)),
+    }
+    return {
+      timelinePast: [...state.timelinePast.slice(-30), snapshot],
+      timelineFuture: [],
+      canUndoTimeline: true,
+      canRedoTimeline: false,
+      montageAudioClips: state.montageAudioClips.filter(c => c.id !== id).map((c, i) => ({ ...c, order: i })),
+    }
+  }),
   reorderMontageAudioClips: (activeId, overId, placement = 'before') => set(state => {
+    const snapshot = {
+      montageClips: JSON.parse(JSON.stringify(state.montageClips)),
+      montageAudioClips: JSON.parse(JSON.stringify(state.montageAudioClips)),
+    }
     const clips = [...state.montageAudioClips].sort((a, b) => a.order - b.order)
     const activeIndex = clips.findIndex(c => c.id === activeId)
     const overIndex = clips.findIndex(c => c.id === overId)
@@ -1129,7 +1257,13 @@ export const useStore = create<EditorState>()(persist((set) => ({
       return { ...clip, order: index, offset }
     })
 
-    return { montageAudioClips: reordered }
+    return {
+      timelinePast: [...state.timelinePast.slice(-30), snapshot],
+      timelineFuture: [],
+      canUndoTimeline: true,
+      canRedoTimeline: false,
+      montageAudioClips: reordered,
+    }
   }),
   updateMontageAudioClip: (id, updates) => set(state => {
     const updatedClips = state.montageAudioClips.map(c =>
@@ -1149,6 +1283,10 @@ export const useStore = create<EditorState>()(persist((set) => ({
     return { montageAudioClips: updatedClips }
   }),
   splitMontageAudioClip: (id, splitTime) => set(state => {
+    const snapshot = {
+      montageClips: JSON.parse(JSON.stringify(state.montageClips)),
+      montageAudioClips: JSON.parse(JSON.stringify(state.montageAudioClips)),
+    }
     const clipIndex = state.montageAudioClips.findIndex(c => c.id === id)
     if (clipIndex === -1) return {}
     const clip = state.montageAudioClips[clipIndex]
@@ -1180,10 +1318,27 @@ export const useStore = create<EditorState>()(persist((set) => ({
     newClips.splice(clipIndex, 1, firstPart, secondPart)
     
     return {
+      timelinePast: [...state.timelinePast.slice(-30), snapshot],
+      timelineFuture: [],
+      canUndoTimeline: true,
+      canRedoTimeline: false,
       montageAudioClips: newClips.map((c, i) => ({ ...c, order: i })),
     }
   }),
-  clearMontageAudioClips: () => set({ montageAudioClips: [] }),
+  clearMontageAudioClips: () => set(state => {
+    if (state.montageAudioClips.length === 0) return {}
+    const snapshot = {
+      montageClips: JSON.parse(JSON.stringify(state.montageClips)),
+      montageAudioClips: JSON.parse(JSON.stringify(state.montageAudioClips)),
+    }
+    return {
+      timelinePast: [...state.timelinePast.slice(-30), snapshot],
+      timelineFuture: [],
+      canUndoTimeline: true,
+      canRedoTimeline: false,
+      montageAudioClips: [],
+    }
+  }),
 
   mergeLoading: false,
   setMergeLoading: v => set({ mergeLoading: v }),

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AlertCircle, CheckCircle2, Film, GitMerge, GripVertical, Layers, Loader2, Maximize2, Music, Pause, Play, Scissors, Trash2, Volume2, ZoomIn, ZoomOut} from 'lucide-react'
+import { AlertCircle, CheckCircle2, Film, GitMerge, GripVertical, Layers, Loader2, Maximize2, Music, Pause, Play, RotateCcw, RotateCw, Scissors, Trash2, Volume2, ZoomIn, ZoomOut} from 'lucide-react'
 import { mergeClips } from '../../api/client'
 import { useStore } from '../../store/useStore'
 import type { MontageAudioClip, MontageClip } from '../../store/useStore'
@@ -218,6 +218,7 @@ export default function MontageTimeline() {
     mergeLoading, setMergeLoading, mergeStatus, setMergeStatus,
     setMergedVideo, pushActionToast,
     splitMontageClip, splitMontageAudioClip,
+    undoTimeline, redoTimeline, canUndoTimeline, canRedoTimeline, pushTimelineSnapshot,
   } = useStore()
 
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -631,6 +632,7 @@ export default function MontageTimeline() {
 
     event.preventDefault()
     event.stopPropagation()
+    pushTimelineSnapshot()
     setSelectedId(clip.id)
     const originalStart = target === 'video' ? clipStart(clip as MontageClip) : (clip as MontageAudioClip).offset
     dragRef.current = {
@@ -1454,6 +1456,26 @@ export default function MontageTimeline() {
             )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={undoTimeline}
+              disabled={!canUndoTimeline}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1.5 text-xs font-semibold text-zinc-700 ring-1 ring-zinc-200 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-40"
+              title="Undo last timeline change"
+            >
+              <RotateCcw size={13} />
+              Undo
+            </button>
+            <button
+              type="button"
+              onClick={redoTimeline}
+              disabled={!canRedoTimeline}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1.5 text-xs font-semibold text-zinc-700 ring-1 ring-zinc-200 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-40"
+              title="Redo timeline change"
+            >
+              <RotateCw size={13} />
+              Redo
+            </button>
             <button
               type="button"
               onClick={handleCutSelection}
