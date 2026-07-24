@@ -971,81 +971,86 @@ export default function MontageTimeline() {
                         setDropListPlacement('before')
                         setDropListKind(null)
                       }}
-                      onDragEnd={() => {
-                        setDraggedListId(null)
-                        setDropListTargetId(null)
-                        setDropListPlacement('before')
-                        setDropListKind(null)
-                      }}
                       onClick={() => setSelectedId(clip.id)}
-                      className={`group relative flex flex-col gap-2 p-2 rounded-xl border-2 transition-all duration-300 cursor-pointer ${isSelected
-                        ? 'bg-gradient-to-br from-cyan-50 to-cyan-100 border-cyan-300 shadow-[0_0_0_2px_rgba(8,145,178,0.15),0_4px_12px_rgba(8,145,178,0.2)] ring-2 ring-cyan-200 ring-offset-2'
-                        : 'bg-white border-zinc-200 hover:border-zinc-300 hover:shadow-md hover:bg-zinc-50/50'
+                      className={`group relative flex flex-col gap-1.5 p-2 rounded-xl border transition-all duration-200 cursor-pointer ${isSelected
+                        ? 'bg-gradient-to-r from-cyan-50/90 via-cyan-50/40 to-white border-cyan-400 ring-2 ring-cyan-400/30 shadow-md shadow-cyan-500/10'
+                        : 'bg-white border-zinc-200 hover:border-zinc-300 hover:shadow-sm hover:bg-zinc-50/60'
                         } ${isDropTarget ? 'border-t-4 border-t-cyan-500' : ''}`}
                     >
-                      <div className="flex items-center justify-between mb-1">
-                        <div className={`cursor-grab active:cursor-grabbing p-1 -ml-1 rounded-lg transition-colors flex-shrink-0 ${isSelected ? 'bg-cyan-200 hover:bg-cyan-300' : 'hover:bg-zinc-200/50'}`}>
-                          <GripVertical size={14} className={isSelected ? 'text-cyan-700' : 'text-zinc-300 group-hover:text-zinc-400'} />
+                      <div className="flex items-center gap-2">
+                        {/* Drag Handle */}
+                        <div className={`cursor-grab active:cursor-grabbing p-1 rounded-lg transition-colors flex-shrink-0 ${isSelected ? 'bg-cyan-100/80 text-cyan-700' : 'text-zinc-300 group-hover:text-zinc-500 hover:bg-zinc-100'}`}>
+                          <GripVertical size={13} />
                         </div>
 
-                        <button type="button"
-                          onClick={e => {
-                            e.stopPropagation()
-                            removeMontageClip(clip.id)
-                          }}
-                          className={`p-1.5 rounded-lg border bg-white/90 backdrop-blur-sm transition-all duration-200 shadow-sm flex-shrink-0 ${isSelected
-                            ? 'border-red-200 text-red-500 hover:bg-red-50'
-                            : 'border-zinc-100 text-zinc-400 hover:text-red-500 hover:border-red-200'
-                            }`}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-
-                      <div className={`w-full aspect-video rounded-xl overflow-hidden relative group/preview flex-shrink-0 border shadow-sm ring-2 ${isSelected ? 'bg-black border-cyan-500 ring-cyan-400 shadow-[0_0_12px_rgba(8,145,178,0.5)]' : 'bg-black border-zinc-200 ring-zinc-950/5'}`}>
-                        <video
-                          src={`${withMediaBase(clip.video.url)}#t=${clip.trimStart},${clip.trimEnd}`}
-                          className="w-full h-full object-cover transition-transform duration-700 group-hover/preview:scale-110"
-                          muted
-                          onMouseEnter={e => e.currentTarget.play().catch(() => {})}
-                          onMouseLeave={e => {
-                            e.currentTarget.pause()
-                            e.currentTarget.currentTime = clip.trimStart
-                          }}
-                          preload="metadata"
-                          playsInline
-                        />
-                        <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-lg bg-black/70 backdrop-blur-md text-[10px] font-bold text-white uppercase tracking-wider">
-                          {formatDurationHMS(duration)}
-                        </div>
-                      </div>
-
-                      <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-                        <p className={`text-[12px] font-bold truncate transition-colors tracking-tight leading-none ${isSelected ? 'text-cyan-900' : 'text-zinc-800'
-                          }`}>
-                          {clip.video.title || `Clip ${index + 1}`}
-                        </p>
-
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <div className={`px-2 py-0.5 rounded-lg text-[10px] font-bold flex items-center gap-1.5 border transition-colors ${isSelected ? 'bg-cyan-600 border-cyan-700 text-white' : 'bg-zinc-50 border-zinc-100 text-zinc-500'
-                            }`}>
-                            <Play size={9} className="fill-current" />
-                            {formatDuration(clip.timelineStart)} <span className="opacity-30">—</span> {formatDuration(clip.timelineStart + duration)}
+                        {/* Compact Video Thumbnail */}
+                        <div className={`w-20 h-12 rounded-lg overflow-hidden relative group/preview flex-shrink-0 border shadow-xs ${isSelected ? 'border-cyan-400 ring-1 ring-cyan-400/50' : 'border-zinc-200'}`}>
+                          <video
+                            src={`${withMediaBase(clip.video.url)}#t=${clip.trimStart},${clip.trimEnd}`}
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover/preview:scale-105"
+                            muted
+                            onMouseEnter={e => e.currentTarget.play().catch(() => {})}
+                            onMouseLeave={e => {
+                              e.currentTarget.pause()
+                              e.currentTarget.currentTime = clip.trimStart
+                            }}
+                            preload="metadata"
+                            playsInline
+                          />
+                          <div className="absolute bottom-0.5 right-0.5 px-1 py-0.2 rounded bg-black/75 backdrop-blur-md text-[8px] font-bold text-white tracking-tight">
+                            {formatDurationHMS(duration)}
                           </div>
+                        </div>
 
-                          {hasCustomTrim && (
-                            <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-600">
-                              <CheckCircle2 size={10} />
-                              <span className="text-[9px] font-bold uppercase tracking-wide">Trimmed</span>
-                            </div>
-                          )}
+                        {/* Title & Timing Info */}
+                        <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
+                          <p className={`text-[11px] font-bold truncate tracking-tight leading-tight ${isSelected ? 'text-cyan-950' : 'text-zinc-800'}`}>
+                            {clip.video.title || `Clip ${index + 1}`}
+                          </p>
+                          <div className="flex items-center gap-1 flex-wrap">
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold flex items-center gap-1 border transition-colors ${isSelected ? 'bg-cyan-600 border-cyan-700 text-white' : 'bg-zinc-100 border-zinc-200 text-zinc-600'}`}>
+                              <Play size={8} className="fill-current" />
+                              {formatDuration(clip.timelineStart)} - {formatDuration(clip.timelineStart + duration)}
+                            </span>
+                            {hasCustomTrim && (
+                              <span className="inline-flex items-center gap-0.5 text-[8px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-1 py-0.2 rounded">
+                                <CheckCircle2 size={8} /> Trimmed
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setActiveTrimEditor(current => current?.kind === 'video' && current.id === clip.id ? null : { kind: 'video', id: clip.id })
+                            }}
+                            className={`p-1.5 rounded-lg border text-[10px] font-semibold transition-colors ${isTrimOpen ? 'bg-cyan-600 text-white border-cyan-600' : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-100'}`}
+                            title="Trim video clip"
+                          >
+                            <Scissors size={11} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={e => {
+                              e.stopPropagation()
+                              removeMontageClip(clip.id)
+                            }}
+                            className="p-1.5 rounded-lg border border-zinc-200 bg-white text-zinc-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-colors"
+                            title="Remove video clip"
+                          >
+                            <Trash2 size={11} />
+                          </button>
                         </div>
                       </div>
 
                       {isTrimOpen && (
-                        <div className="mt-1 rounded-lg bg-gradient-to-r from-cyan-50 to-cyan-100/50 border border-cyan-200 p-2.5">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-cyan-700">Trim</span>
+                        <div className="mt-1 rounded-lg bg-gradient-to-r from-cyan-50 to-cyan-100/50 border border-cyan-200 p-2">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-cyan-700">Trim Video</span>
                             <span className="text-[9px] font-mono font-medium text-cyan-800">{formatDurationHMS(clip.trimStart)} - {formatDurationHMS(clip.trimEnd)}</span>
                           </div>
                           <div className="space-y-1">
@@ -1093,7 +1098,7 @@ export default function MontageTimeline() {
                                 setSelectedId(clip.id)
                                 setActiveTrimEditor(null)
                               }}
-                              className="w-full mt-1 rounded-lg bg-cyan-600 px-2 py-1.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-white transition-colors hover:bg-cyan-500"
+                              className="w-full mt-1 rounded-lg bg-cyan-600 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-white transition-colors hover:bg-cyan-500"
                             >
                               Apply
                             </button>
@@ -1102,7 +1107,7 @@ export default function MontageTimeline() {
                       )}
 
                       {/* Speed / Volume / Mute controls */}
-                      <div className={`rounded-lg border p-2 space-y-1.5 ${isSelected ? 'bg-cyan-50/60 border-cyan-200' : 'bg-zinc-50 border-zinc-100'}`}>
+                      <div className={`rounded-lg border p-2 space-y-1.5 ${isSelected ? 'bg-white/80 border-cyan-200 shadow-xs' : 'bg-zinc-50/80 border-zinc-100'}`}>
                         {/* Speed */}
                         <div>
                           <div className="flex justify-between text-[8px] text-zinc-500 mb-0.5">
@@ -1119,9 +1124,6 @@ export default function MontageTimeline() {
                             onChange={e => updateMontageClip(clip.id, { speed: Number(e.target.value) })}
                             className="h-1 w-full accent-cyan-600 rounded-full appearance-none cursor-pointer"
                           />
-                          <div className="flex justify-between text-[7px] text-zinc-400 mt-0.5">
-                            <span>0.25×</span><span>1×</span><span>4×</span>
-                          </div>
                         </div>
                         {/* Volume + Mute */}
                         <div>
@@ -1149,20 +1151,8 @@ export default function MontageTimeline() {
                             onChange={e => updateMontageClip(clip.id, { volume: Number(e.target.value) })}
                             className="h-1 w-full accent-cyan-600 rounded-full appearance-none cursor-pointer disabled:opacity-40"
                           />
-                          <div className="flex justify-between text-[7px] text-zinc-400 mt-0.5">
-                            <span>0%</span><span>100%</span><span>200%</span>
-                          </div>
                         </div>
                       </div>
-
-                      <button
-                        type="button"
-                        onClick={() => setActiveTrimEditor(current => current?.kind === 'video' && current.id === clip.id ? null : { kind: 'video', id: clip.id })}
-                        className={`w-full rounded-lg px-2 py-1.5 text-[9px] font-semibold uppercase tracking-[0.16em] transition-colors ${isTrimOpen ? 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200' : 'bg-cyan-50 text-cyan-700 hover:bg-cyan-100'}`}
-                      >
-                        <Scissors size={11} className="inline mr-1" />
-                        {isTrimOpen ? 'Hide' : 'Trim'}
-                      </button>
                     </div>
                   )
                 })}
@@ -1208,73 +1198,78 @@ export default function MontageTimeline() {
                         setDropListPlacement('before')
                         setDropListKind(null)
                       }}
-                      onDragEnd={() => {
-                        setDraggedListId(null)
-                        setDropListTargetId(null)
-                        setDropListPlacement('before')
-                        setDropListKind(null)
-                      }}
                       onClick={() => setSelectedId(clip.id)}
-                      className={`group relative flex flex-col gap-2 p-3 rounded-xl border-2 transition-all duration-300 cursor-pointer ${isSelected
-                        ? 'bg-gradient-to-br from-teal-50 to-teal-100 border-teal-300 shadow-[0_0_0_2px_rgba(13,148,136,0.15),0_4px_12px_rgba(13,148,136,0.2)] ring-2 ring-teal-200 ring-offset-2'
-                        : 'bg-white border-zinc-100 hover:border-zinc-200 hover:shadow-md hover:bg-zinc-50/50'
+                      className={`group relative flex flex-col gap-1.5 p-2 rounded-xl border transition-all duration-200 cursor-pointer ${isSelected
+                        ? 'bg-gradient-to-r from-teal-50/90 via-teal-50/40 to-white border-teal-400 ring-2 ring-teal-400/30 shadow-md shadow-teal-500/10'
+                        : 'bg-white border-zinc-200 hover:border-zinc-300 hover:shadow-sm hover:bg-zinc-50/60'
                         } ${isDropTarget ? 'border-t-4 border-t-teal-500' : ''}`}
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className={`cursor-grab active:cursor-grabbing p-1 -ml-1 rounded-lg transition-colors flex-shrink-0 ${isSelected ? 'bg-teal-200 hover:bg-teal-300' : 'hover:bg-zinc-200/50'}`}>
-                          <GripVertical size={14} className={isSelected ? 'text-teal-700' : 'text-zinc-300 group-hover:text-zinc-400'} />
+                      <div className="flex items-center gap-2">
+                        {/* Drag Handle */}
+                        <div className={`cursor-grab active:cursor-grabbing p-1 rounded-lg transition-colors flex-shrink-0 ${isSelected ? 'bg-teal-100/80 text-teal-700' : 'text-zinc-300 group-hover:text-zinc-500 hover:bg-zinc-100'}`}>
+                          <GripVertical size={13} />
                         </div>
 
-                        <button type="button"
-                          onClick={e => {
-                            e.stopPropagation()
-                            removeMontageAudioClip(clip.id)
-                          }}
-                          className={`p-1.5 rounded-lg border bg-white/90 backdrop-blur-sm transition-all duration-200 shadow-sm flex-shrink-0 ${isSelected
-                            ? 'border-red-200 text-red-500 hover:bg-red-50'
-                            : 'border-zinc-100 text-zinc-400 hover:text-red-500 hover:border-red-200'
-                            }`}
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-
-                      <div className={`w-full aspect-video bg-gradient-to-br from-zinc-800 to-zinc-900 rounded-xl overflow-hidden relative group/preview flex-shrink-0 border shadow-sm ring-2 flex items-center justify-center ${isSelected ? 'border-teal-500 ring-teal-400 shadow-[0_0_12px_rgba(13,148,136,0.5)]' : 'border-zinc-200 ring-zinc-950/5'}`}>
-                        <Music size={32} className="text-zinc-600" />
-                        <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-lg bg-black/70 backdrop-blur-md text-[10px] font-bold text-white uppercase tracking-wider">
-                          {formatDurationHMS(duration)}
+                        {/* Compact Audio Icon Badge */}
+                        <div className={`w-10 h-10 rounded-lg flex-shrink-0 border flex items-center justify-center shadow-xs ${isSelected ? 'bg-gradient-to-br from-teal-500 to-teal-600 border-teal-600 text-white' : 'bg-gradient-to-br from-teal-50 to-cyan-50 border-teal-200 text-teal-700'}`}>
+                          <Music size={16} />
                         </div>
-                      </div>
 
-                      <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-                        <p className={`text-[13px] font-bold truncate transition-colors tracking-tight leading-none ${isSelected ? 'text-teal-900' : 'text-zinc-800'
-                          }`}>
-                          {clip.audio.filename.replace(/\.[^/.]+$/, '') || `Audio ${index + 1}`}
-                        </p>
-
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <div className={`px-2 py-0.5 rounded-lg text-[10px] font-bold flex items-center gap-1.5 border transition-colors ${isSelected ? 'bg-teal-600 border-teal-700 text-white' : 'bg-zinc-50 border-zinc-100 text-zinc-500'
-                            }`}>
-                            <Volume2 size={9} />
-                            {formatDuration(clip.offset)} <span className="opacity-30">—</span> {formatDuration(clip.offset + duration)}
+                        {/* Title & Timing Info */}
+                        <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
+                          <div className="flex items-center justify-between gap-1">
+                            <p className={`text-[11px] font-bold truncate tracking-tight leading-tight ${isSelected ? 'text-teal-950' : 'text-zinc-800'}`}>
+                              {clip.audio.filename.replace(/\.[^/.]+$/, '') || `Audio ${index + 1}`}
+                            </p>
+                            <span className="text-[9px] font-mono text-zinc-500 flex-shrink-0">{formatDurationHMS(duration)}</span>
                           </div>
+                          <div className="flex items-center gap-1 flex-wrap">
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold flex items-center gap-1 border transition-colors ${isSelected ? 'bg-teal-600 border-teal-700 text-white' : 'bg-zinc-100 border-zinc-200 text-zinc-600'}`}>
+                              <Volume2 size={8} />
+                              {formatDuration(clip.offset)} - {formatDuration(clip.offset + duration)}
+                            </span>
+                            {hasCustomTrim && (
+                              <span className="inline-flex items-center gap-0.5 text-[8px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-1 py-0.2 rounded">
+                                <CheckCircle2 size={8} /> Trimmed
+                              </span>
+                            )}
+                          </div>
+                        </div>
 
-                          {hasCustomTrim && (
-                            <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-600">
-                              <CheckCircle2 size={10} />
-                              <span className="text-[9px] font-bold uppercase tracking-wide">Trimmed</span>
-                            </div>
-                          )}
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setActiveTrimEditor(current => current?.kind === 'audio' && current.id === clip.id ? null : { kind: 'audio', id: clip.id })
+                            }}
+                            className={`p-1.5 rounded-lg border text-[10px] font-semibold transition-colors ${isTrimOpen ? 'bg-teal-600 text-white border-teal-600' : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-100'}`}
+                            title="Trim audio clip"
+                          >
+                            <Scissors size={11} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={e => {
+                              e.stopPropagation()
+                              removeMontageAudioClip(clip.id)
+                            }}
+                            className="p-1.5 rounded-lg border border-zinc-200 bg-white text-zinc-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-colors"
+                            title="Remove audio clip"
+                          >
+                            <Trash2 size={11} />
+                          </button>
                         </div>
                       </div>
 
                       {isTrimOpen && (
-                        <div className="mt-1 rounded-lg bg-gradient-to-r from-teal-50 to-teal-100/50 border border-teal-200 p-2.5">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-teal-700">Trim</span>
+                        <div className="mt-1 rounded-lg bg-gradient-to-r from-teal-50 to-teal-100/50 border border-teal-200 p-2">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-teal-700">Trim Audio</span>
                             <span className="text-[9px] font-mono font-medium text-teal-800">{formatDurationHMS(clip.trimStart)} - {formatDurationHMS(clip.trimEnd)}</span>
                           </div>
-                          <div className="space-y-1.5">
+                          <div className="space-y-1">
                             <div>
                               <div className="flex justify-between text-[8px] text-zinc-500">
                                 <span>Start</span>
@@ -1319,7 +1314,7 @@ export default function MontageTimeline() {
                                 setSelectedId(clip.id)
                                 setActiveTrimEditor(null)
                               }}
-                              className="w-full mt-1 rounded-lg bg-teal-600 px-2 py-1.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-white transition-colors hover:bg-teal-500"
+                              className="w-full mt-1 rounded-lg bg-teal-600 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-white transition-colors hover:bg-teal-500"
                             >
                               Apply
                             </button>
@@ -1328,7 +1323,7 @@ export default function MontageTimeline() {
                       )}
 
                       {/* Speed / Volume / Mute controls */}
-                      <div className={`rounded-lg border p-2 space-y-1.5 ${isSelected ? 'bg-teal-50/60 border-teal-200' : 'bg-zinc-50 border-zinc-100'}`}>
+                      <div className={`rounded-lg border p-2 space-y-1.5 ${isSelected ? 'bg-white/80 border-teal-200 shadow-xs' : 'bg-zinc-50/80 border-zinc-100'}`}>
                         {/* Speed */}
                         <div>
                           <div className="flex justify-between text-[8px] text-zinc-500 mb-0.5">
@@ -1345,9 +1340,6 @@ export default function MontageTimeline() {
                             onChange={e => updateMontageAudioClip(clip.id, { speed: Number(e.target.value) })}
                             className="h-1 w-full accent-teal-600 rounded-full appearance-none cursor-pointer"
                           />
-                          <div className="flex justify-between text-[7px] text-zinc-400 mt-0.5">
-                            <span>0.25×</span><span>1×</span><span>4×</span>
-                          </div>
                         </div>
                         {/* Volume + Mute */}
                         <div>
@@ -1375,20 +1367,8 @@ export default function MontageTimeline() {
                             onChange={e => updateMontageAudioClip(clip.id, { volume: Number(e.target.value) })}
                             className="h-1 w-full accent-teal-600 rounded-full appearance-none cursor-pointer disabled:opacity-40"
                           />
-                          <div className="flex justify-between text-[7px] text-zinc-400 mt-0.5">
-                            <span>0%</span><span>100%</span><span>200%</span>
-                          </div>
                         </div>
                       </div>
-
-                      <button
-                        type="button"
-                        onClick={() => setActiveTrimEditor(current => current?.kind === 'audio' && current.id === clip.id ? null : { kind: 'audio', id: clip.id })}
-                        className={`w-full rounded-lg px-2 py-1.5 text-[9px] font-semibold uppercase tracking-[0.16em] transition-colors ${isTrimOpen ? 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200' : 'bg-teal-50 text-teal-700 hover:bg-teal-100'}`}
-                      >
-                        <Scissors size={11} className="inline mr-1" />
-                        {isTrimOpen ? 'Hide' : 'Trim'}
-                      </button>
                     </div>
                   )
                 })}
@@ -1597,41 +1577,6 @@ export default function MontageTimeline() {
                     return (
                       <div
                         key={clip.id}
-                        draggable
-                        onDragStart={event => {
-                          event.dataTransfer.effectAllowed = 'move'
-                          event.dataTransfer.setData('text/plain', clip.id)
-                          setDraggedVideoId(clip.id)
-                          setDragGhost({ kind: 'video', id: clip.id, x: event.clientX, y: event.clientY })
-                        }}
-                        onDragOver={event => {
-                          event.preventDefault()
-                          const rect = event.currentTarget.getBoundingClientRect()
-                          const placement = event.clientX >= rect.left + rect.width / 2 ? 'after' : 'before'
-                          setDropTargetVideoId(clip.id)
-                          setDropPlacementVideo(placement)
-                          setDragGhost(current => current?.id === clip.id && current.kind === 'video' ? { ...current, x: event.clientX, y: event.clientY } : current)
-                        }}
-                        onDragLeave={() => {
-                          if (dropTargetVideoId === clip.id) setDropTargetVideoId(null)
-                        }}
-                        onDrop={event => {
-                          event.preventDefault()
-                          const sourceId = event.dataTransfer.getData('text/plain') || draggedVideoId
-                          if (sourceId && sourceId !== clip.id) {
-                            reorderMontageClips(sourceId, clip.id, dropPlacementVideo)
-                          }
-                          setDraggedVideoId(null)
-                          setDropTargetVideoId(null)
-                          setDropPlacementVideo('before')
-                          setDragGhost(null)
-                        }}
-                        onDragEnd={() => {
-                          setDraggedVideoId(null)
-                          setDropTargetVideoId(null)
-                          setDropPlacementVideo('before')
-                          setDragGhost(null)
-                        }}
                         onMouseDown={event => beginDrag(event, 'video', 'move', clip)}
                         onClick={() => { setSelectedId(clip.id); seekPreview(start, false) }}
                         className="group absolute h-9 cursor-grab overflow-hidden rounded-md border border-white/45 text-left shadow-[0_8px_16px_rgba(15,23,42,0.14)] ring-1 ring-inset ring-white/20 transition-all duration-150 active:cursor-grabbing"
@@ -1722,41 +1667,6 @@ export default function MontageTimeline() {
                       return (
                         <div
                           key={clip.id}
-                          draggable
-                          onDragStart={event => {
-                            event.dataTransfer.effectAllowed = 'move'
-                            event.dataTransfer.setData('text/plain', clip.id)
-                            setDraggedAudioId(clip.id)
-                            setDragGhost({ kind: 'audio', id: clip.id, x: event.clientX, y: event.clientY })
-                          }}
-                          onDragOver={event => {
-                            event.preventDefault()
-                            const rect = event.currentTarget.getBoundingClientRect()
-                            const placement = event.clientX >= rect.left + rect.width / 2 ? 'after' : 'before'
-                            setDropTargetAudioId(clip.id)
-                            setDropPlacementAudio(placement)
-                            setDragGhost(current => current?.id === clip.id && current.kind === 'audio' ? { ...current, x: event.clientX, y: event.clientY } : current)
-                          }}
-                          onDragLeave={() => {
-                            if (dropTargetAudioId === clip.id) setDropTargetAudioId(null)
-                          }}
-                          onDrop={event => {
-                            event.preventDefault()
-                            const sourceId = event.dataTransfer.getData('text/plain') || draggedAudioId
-                            if (sourceId && sourceId !== clip.id) {
-                              reorderMontageAudioClips(sourceId, clip.id, dropPlacementAudio)
-                            }
-                            setDraggedAudioId(null)
-                            setDropTargetAudioId(null)
-                            setDropPlacementAudio('before')
-                            setDragGhost(null)
-                          }}
-                          onDragEnd={() => {
-                            setDraggedAudioId(null)
-                            setDropTargetAudioId(null)
-                            setDropPlacementAudio('before')
-                            setDragGhost(null)
-                          }}
                           onMouseDown={event => beginDrag(event, 'audio', 'move', clip)}
                           onClick={() => { setSelectedId(clip.id); seekPreview(clip.offset, false) }}
                           className="group absolute h-7 cursor-grab overflow-hidden rounded-md border border-white/45 text-left shadow-[0_6px_12px_rgba(15,23,42,0.14)] ring-1 ring-inset ring-white/20 transition-all duration-150 active:cursor-grabbing"

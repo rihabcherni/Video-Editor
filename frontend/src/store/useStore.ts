@@ -1100,7 +1100,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
     const overIndex = clips.findIndex(c => c.id === overId)
     if (activeIndex === -1 || overIndex === -1) return {}
     const [removed] = clips.splice(activeIndex, 1)
-    const insertIndex = placement === 'after' ? overIndex : overIndex
+    const insertIndex = placement === 'after' ? overIndex + 1 : overIndex
     clips.splice(insertIndex, 0, removed)
 
     let cursor = 0
@@ -1176,13 +1176,13 @@ export const useStore = create<EditorState>()(persist((set) => ({
     
     const newClips = [...state.montageClips]
     newClips.splice(clipIndex, 1, firstPart, secondPart)
-    
+
     return {
       timelinePast: [...state.timelinePast.slice(-30), snapshot],
       timelineFuture: [],
       canUndoTimeline: true,
       canRedoTimeline: false,
-      montageClips: newClips.map((c, i) => ({ ...c, order: i, timelineStart: c.timelineStart ?? 0 })),
+      montageClips: newClips.map((c, i) => ({ ...c, order: i })),
     }
   }),
   clearMontageClips: () => set(state => {
@@ -1290,27 +1290,26 @@ export const useStore = create<EditorState>()(persist((set) => ({
     const clipIndex = state.montageAudioClips.findIndex(c => c.id === id)
     if (clipIndex === -1) return {}
     const clip = state.montageAudioClips[clipIndex]
-    const clipDuration = clip.trimEnd - clip.trimStart
-    const splitPointWithinClip = splitTime - clip.offset
+    const clipDurationOnTimeline = Math.max(0, clip.trimEnd - clip.trimStart) / (clip.speed || 1)
+    const splitPointOnTimeline = splitTime - clip.offset
     
-    if (splitPointWithinClip <= 0.1 || splitPointWithinClip >= clipDuration - 0.1) {
+    if (splitPointOnTimeline <= 0.1 || splitPointOnTimeline >= clipDurationOnTimeline - 0.1) {
       return {}
     }
     
+    const mediaSplitOffset = splitPointOnTimeline * (clip.speed || 1)
     const firstPart = {
       ...clip,
       id: createId(),
-      trimEnd: clip.trimStart + splitPointWithinClip,
-      duration: splitPointWithinClip,
+      trimEnd: clip.trimStart + mediaSplitOffset,
       order: clip.order,
     }
     
     const secondPart = {
       ...clip,
       id: createId(),
-      trimStart: clip.trimStart + splitPointWithinClip,
-      offset: clip.offset + splitPointWithinClip,
-      duration: clipDuration - splitPointWithinClip,
+      trimStart: clip.trimStart + mediaSplitOffset,
+      offset: clip.offset + splitPointOnTimeline,
       order: clip.order + 0.5,
     }
     
