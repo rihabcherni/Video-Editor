@@ -328,11 +328,17 @@ export default function MontageTimeline() {
       videoEl.playbackRate = clipSpeed
       videoEl.muted = !!clip.muted
       videoEl.volume = clip.muted ? 0 : Math.min(1, Math.max(0, clip.volume ?? 1))
-      if (Math.abs(videoEl.currentTime - mediaTime) > 0.15) {
+      
+      const driftThreshold = shouldPlay ? 0.75 : 0.05
+      if (Math.abs(videoEl.currentTime - mediaTime) > driftThreshold) {
         videoEl.currentTime = Math.min(mediaTime, clip.trimEnd)
       }
-      if (shouldPlay) void videoEl.play().catch(() => undefined)
-    } else if (videoEl) {
+      if (shouldPlay) {
+        if (videoEl.paused) void videoEl.play().catch(() => undefined)
+      } else if (!videoEl.paused) {
+        videoEl.pause()
+      }
+    } else if (videoEl && !videoEl.paused) {
       videoEl.pause()
     }
 
@@ -341,8 +347,9 @@ export default function MontageTimeline() {
       if (!audioEl) return
       const inside = next >= clip.offset && next < clip.offset + clipDuration(clip)
       if (!inside) {
-        audioEl.pause()
-        audioEl.currentTime = clip.trimStart
+        if (!audioEl.paused) {
+          audioEl.pause()
+        }
         return
       }
       const clipSpeed = clip.speed && clip.speed > 0 ? clip.speed : 1
@@ -350,13 +357,30 @@ export default function MontageTimeline() {
       audioEl.playbackRate = clipSpeed
       audioEl.muted = !!clip.muted
       audioEl.volume = clip.muted ? 0 : Math.min(1, Math.max(0, clip.volume ?? 1))
-      if (Math.abs(audioEl.currentTime - mediaTime) > 0.25) audioEl.currentTime = mediaTime
-      if (shouldPlay) void audioEl.play().catch(() => undefined)
-      else audioEl.pause()
+      
+      const driftThreshold = shouldPlay ? 0.75 : 0.05
+      if (Math.abs(audioEl.currentTime - mediaTime) > driftThreshold) {
+        audioEl.currentTime = mediaTime
+      }
+      if (shouldPlay) {
+        if (audioEl.paused) {
+          void audioEl.play().catch(() => undefined)
+        }
+      } else if (!audioEl.paused) {
+        audioEl.pause()
+      }
     })
   }, [audioClips, playing, timelineDuration, videoClips])
 
   // Real-time DOM element sync for speed, volume, and mute controls
+  // Track a stable fingerprint of all clip a/v properties so the effect fires
+  // any time speed, volume or muted changes on ANY clip.
+  const clipAVFingerprint = useMemo(() => {
+    const vProps = videoClips.map(c => `${c.id}:${c.speed ?? 1}:${c.volume ?? 1}:${c.muted ? 1 : 0}`).join('|')
+    const aProps = audioClips.map(c => `${c.id}:${c.speed ?? 1}:${c.volume ?? 1}:${c.muted ? 1 : 0}`).join('|')
+    return `${vProps}__${aProps}`
+  }, [videoClips, audioClips])
+
   useEffect(() => {
     const videoEl = videoRef.current
     if (videoEl && activeVideoClip) {
@@ -375,7 +399,8 @@ export default function MontageTimeline() {
         audioEl.volume = clip.muted ? 0 : Math.min(1, Math.max(0, clip.volume ?? 1))
       }
     })
-  }, [activeVideoClip, audioClips])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeVideoClip, clipAVFingerprint])
 
   useEffect(() => {
     if (videoClips.length && !selectedId) setSelectedId(videoClips[0].id)
@@ -641,12 +666,6 @@ export default function MontageTimeline() {
   const handleMerge = useCallback(async () => {
     if (videoClips.length === 0) return
     
-    // Calculate total duration and show warning if very long
-    const totalDuration = videoClips.reduce((sum, clip) => sum + clipDuration(clip), 0)
-    if (totalDuration > 300) { // 5 minutes
-      const proceed = confirm(`This montage is ${formatDurationHMS(totalDuration)} long. Merging may take several minutes and could timeout. Continue anyway?`)
-      if (!proceed) return
-    }
     
     setMergeLoading(true)
     setMergeStatus('Preparing timeline clips...')
@@ -862,7 +881,6 @@ export default function MontageTimeline() {
                 ref={videoRef}
                 src={withMediaBase(activeVideoClip.video.url)}
                 className="h-full w-full object-contain"
-                muted={false}
                 onEnded={() => setPlaying(false)}
                 onClick={(e) => {
                   e.preventDefault()
@@ -1828,6 +1846,7 @@ export default function MontageTimeline() {
             ref={node => { audioRefs.current[clip.id] = node }}
             src={withMediaBase(clip.audio.url)}
             preload="auto"
+            muted={!!clip.muted}
             className="hidden"
           />
         ))}
