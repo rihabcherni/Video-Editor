@@ -84,7 +84,7 @@ async function doesLocalResourceExist(url: string) {
 }
 
 export default function App() {
-  const { video, activeTab, setActiveTab, reset, trimStart, trimEnd, segments, audioTrack, audioDuration, audioApplied, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd, appliedAudioOffset, subtitles, subtitleFilename, appliedSubtitleStyle, logoImage, logoSize, logoX, logoY, titleText, titleFont, titleSize, titleColor, titleBgColor, titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleLineSpacing, titleAlign, titleX, titleY, titleRenderLayout, borderEnabled, borderWidth, borderHeight, borderColor, cropEnabled, crop, exportQuality, exportAspectRatio, videoSourceWidth, videoSourceHeight, processedUrl, setProcessedUrl, previewLoading, setPreviewLoading, pendingPreviewAction, setPendingPreviewAction, actionToasts, actionHistory, pushActionToast, removeActionToast, montageClips, montageAudioClips} = useStore()
+  const { video, activeTab, setActiveTab, reset, trimStart, trimEnd, segments, audioTrack, audioDuration, audioApplied, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd, appliedAudioOffset, subtitles, subtitleFilename, appliedSubtitleStyle, logoImage, logoSize, logoX, logoY, titleText, titleFont, titleSize, titleColor, titleBgColor, titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleLineSpacing, titleAlign, titleX, titleY, titleRenderLayout, borderEnabled, borderWidth, borderHeight, borderColor, cropEnabled, crop, exportAspectRatio, videoSourceWidth, videoSourceHeight, processedUrl, setProcessedUrl, previewLoading, setPreviewLoading, pendingPreviewAction, setPendingPreviewAction, actionToasts, actionHistory, pushActionToast, removeActionToast, montageClips, montageAudioClips} = useStore()
   const [previewError, setPreviewError] = useState<string | null>(null)
   const [actionsOpen, setActionsOpen] = useState(false)
   const [lastSeenActionCount, setLastSeenActionCount] = useState(0)
@@ -102,7 +102,6 @@ export default function App() {
   const titleRenderedVideoDimensions = getRenderedVideoDimensions({
     sourceWidth: effectiveTitleSourceDimensions.width,
     sourceHeight: effectiveTitleSourceDimensions.height,
-    quality: exportQuality,
     aspectRatio: exportAspectRatio,
     borderEnabled,
     borderWidth,
@@ -206,7 +205,6 @@ export default function App() {
 
       const result = await previewVideo({
         filename: video.filename,
-        quality: exportQuality,
         aspectRatio: exportAspectRatio,
         startTime: hasTrim ? trimStart : undefined,
         endTime: hasTrim ? trimEnd : undefined,
@@ -297,7 +295,6 @@ export default function App() {
     borderColor,
     cropEnabled,
     crop,
-    exportQuality,
     exportAspectRatio,
     pendingPreviewAction,
     pushActionToast,
@@ -326,7 +323,7 @@ export default function App() {
     const hasLogo = !!logoImage
     const hasTitle = titleText.trim().length > 0
     const hasBorder = borderEnabled && (borderWidth > 0 || borderHeight > 0)
-    const hasOutputTransform = exportQuality !== '720p' || exportAspectRatio !== 'original'
+    const hasOutputTransform = exportAspectRatio !== 'original'
     const hasAppliedAudio = !!audioTrack && audioApplied
     const hasAppliedAudioTrim = hasAppliedAudio && audioDuration > 0 && (appliedAudioTrimStart > 0 || appliedAudioTrimEnd < audioDuration)
     const hasChanges = hasTrim || hasCrop || hasAppliedAudio || hasAppliedAudioTrim || hasSubtitlesApplied || hasLogo || hasTitle || hasBorder || hasOutputTransform
@@ -357,7 +354,6 @@ export default function App() {
       subtitles: hasSubtitlesApplied ? ['applied'] : [],
       subtitleFilename: hasSubtitlesApplied ? subtitleFilename : null,
       subtitleStyle: hasSubtitlesApplied ? appliedSubtitleStyle : null,
-      exportQuality,
       exportAspectRatio,
       logo: logoImage ? { id: logoImage.id, size: logoSize, x: logoX, y: logoY } : null,
       title: titleText.trim() ? { text: titleText, font: titleFont, size: titleSize, color: titleColor, bg: titleBgColor, border: titleBorderColor, bw: titleBorderWidth, frame: titleFrameColor, fw: titleFrameWidth, pad: titlePadding, ls: titleLineSpacing, align: titleAlign } : null,
@@ -396,7 +392,6 @@ export default function App() {
     appliedAudioOffset,
     subtitleFilename,
     appliedSubtitleStyle,
-    exportQuality,
     exportAspectRatio,
     logoImage,
     logoSize,
@@ -448,7 +443,7 @@ export default function App() {
   const hasLogo = !!logoImage
   const hasTitle = titleText.trim().length > 0
   const hasBorder = borderEnabled && (borderWidth > 0 || borderHeight > 0)
-  const hasExportChanges = exportQuality !== '720p' || exportAspectRatio !== 'original'
+  const hasExportChanges = exportAspectRatio !== 'original'
   const completedTabs: Partial<Record<Tab, boolean>> = {
     import: !!video,
     montage: montageClips.length > 0 || montageAudioClips.length > 0,

@@ -241,7 +241,6 @@ export const exportVideo = async (
   params: {
     jobId?: string
     filename: string
-    quality: '480p' | '720p' | '1080p'
     aspectRatio?: 'original' | '16:9' | '9:16' | '1:1' | '4:5' | '5:4' | '4:3' | '3:2'
     outputName?: string
     startTime?: number
@@ -302,7 +301,6 @@ export const exportVideo = async (
 
 export const previewVideo = async (params: {
   filename: string
-  quality: '480p' | '720p' | '1080p'
   aspectRatio?: 'original' | '16:9' | '9:16' | '1:1' | '4:5' | '5:4' | '4:3' | '3:2'
   startTime?: number
   endTime?: number

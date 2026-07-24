@@ -22,7 +22,7 @@ export default function ExportPanel() {
     logoImage, logoSize, logoX, logoY, titleText, titleFont, titleSize, titleColor, titleBgColor,
     titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleLineSpacing, titleAlign, titleX,
     titleY, borderEnabled, borderWidth, borderHeight, borderColor, appliedAudioOffset,
-    cropEnabled, crop, exportQuality, exportAspectRatio, setExportAspectRatio, exportFilename,
+    cropEnabled, crop, exportAspectRatio, setExportAspectRatio, exportFilename,
     setExportFilename, setProcessedUrl, videoSourceWidth, videoSourceHeight,
   } = useStore()
 
@@ -31,7 +31,7 @@ export default function ExportPanel() {
   const [exportProgress, setExportProgress] = useState(0)
   const [done, setDone] = useState<{ url: string; downloadUrl: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [exportTab, setExportTab] = useState<'ratio' | 'quality' | 'name' | 'summary'>('name')
+  const [exportTab, setExportTab] = useState<'ratio' | 'name' | 'summary'>('name')
   const abortControllerRef = useRef<AbortController | null>(null)
 
   const hasTrim = video && (trimStart > 0 || trimEnd < video.duration)
@@ -51,7 +51,6 @@ export default function ExportPanel() {
   const renderedVideoDimensions = getRenderedVideoDimensions({
     sourceWidth: effectiveTitleSourceDimensions.width,
     sourceHeight: effectiveTitleSourceDimensions.height,
-    quality: exportQuality,
     aspectRatio: exportAspectRatio,
     borderEnabled,
     borderWidth,
@@ -94,7 +93,6 @@ export default function ExportPanel() {
       const result = await exportVideo(
         {
           filename: video.filename,
-          quality: exportQuality,
           aspectRatio: exportAspectRatio,
           outputName: exportFilename.trim() || undefined,
           startTime: hasTrim ? trimStart : undefined,

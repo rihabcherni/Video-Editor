@@ -26,7 +26,7 @@ export default function VideoPlayer() {
     logoDraftImage, logoDraftSize, logoDraftX, logoDraftY, logoX, logoY, setLogoDraftXY,
     borderEnabled, borderWidth, borderHeight, borderColor,
     borderDraftEnabled, borderDraftWidth, borderDraftHeight, borderDraftColor,
-    cropEnabled, cropDraftEnabled, crop, cropDraft, exportQuality, exportAspectRatio, seekTo,
+    cropEnabled, cropDraftEnabled, crop, cropDraft, exportAspectRatio, seekTo,
     setSeekTo, setTitleRenderLayout, videoSourceWidth, videoSourceHeight, setVideoSourceDimensions } = useStore()
   const videoRef = useRef<HTMLVideoElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
@@ -267,7 +267,6 @@ export default function VideoPlayer() {
   const renderedVideoDimensions = getRenderedVideoDimensions({
     sourceWidth: effectiveSourceDimensions.width,
     sourceHeight: effectiveSourceDimensions.height,
-    quality: exportQuality,
     aspectRatio: exportAspectRatio,
     borderEnabled: previewBorderEnabled,
     borderWidth: previewBorderWidth,

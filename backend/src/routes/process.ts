@@ -317,7 +317,6 @@ export async function processRoute(app: FastifyInstance) {
     const body = req.body as {
       jobId?: string
       filename: string
-      quality?: '480p' | '720p' | '1080p'
       aspectRatio?: 'original' | '16:9' | '9:16' | '1:1' | '4:5' | '5:4' | '4:3' | '3:2'
       outputName?: string
       startTime?: number
@@ -386,7 +385,7 @@ export async function processRoute(app: FastifyInstance) {
         {
           jobId,
           inputPath,
-          quality: body.quality || '720p',
+          quality: '720p',
           aspectRatio: body.aspectRatio,
           outputName: body.outputName,
           startTime: body.startTime,
@@ -431,7 +430,6 @@ export async function processRoute(app: FastifyInstance) {
   app.post('/preview', async (req, reply) => {
     const body = req.body as {
       filename: string
-      quality?: '480p' | '720p' | '1080p'
       aspectRatio?: 'original' | '16:9' | '9:16' | '1:1' | '4:5' | '5:4' | '4:3' | '3:2'
       outputName?: string
       startTime?: number
@@ -492,7 +490,7 @@ export async function processRoute(app: FastifyInstance) {
       cleanupTempPreviews()
       const outPath = await exportVideo({
         inputPath,
-        quality: body.quality || '720p',
+        quality: '720p',
         aspectRatio: body.aspectRatio,
         outputName: body.outputName,
         startTime: body.startTime,

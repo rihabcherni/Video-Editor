@@ -1,4 +1,3 @@
-export type ExportQuality = '480p' | '720p' | '1080p'
 export type ExportAspectRatio = 'original' | '16:9' | '9:16' | '1:1' | '4:5' | '5:4' | '4:3' | '3:2'
 
 const aspectRatioMap: Record<ExportAspectRatio, { w: number; h: number }> = {
@@ -24,17 +23,15 @@ function makeEven(n: number) {
 export function getRenderedVideoDimensions(params: {
   sourceWidth: number
   sourceHeight: number
-  quality: ExportQuality
   aspectRatio: ExportAspectRatio
   borderEnabled: boolean
   borderWidth: number
   borderHeight: number
 }) {
-  const { sourceWidth, sourceHeight, quality, aspectRatio, borderEnabled, borderWidth, borderHeight } = params
+  const { sourceWidth, sourceHeight, aspectRatio, borderEnabled, borderWidth, borderHeight } = params
   if (!sourceWidth || !sourceHeight) return { width: 0, height: 0 }
 
-  const scaleMap: Record<ExportQuality, number> = { '480p': 854, '720p': 1280, '1080p': 1920 }
-  const baseLong = scaleMap[quality]
+  const baseLong = 1280
 
   let width = sourceWidth
   let height = sourceHeight

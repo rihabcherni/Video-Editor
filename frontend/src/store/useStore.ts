@@ -358,8 +358,6 @@ interface EditorState {
   resetCropDraft: () => void
   applyCropDraft: () => void
 
-  exportQuality: '480p' | '720p' | '1080p'
-  setExportQuality: (q: '480p' | '720p' | '1080p') => void
   exportAspectRatio: 'original' | '16:9' | '9:16' | '1:1' | '4:5' | '5:4' | '4:3' | '3:2'
   setExportAspectRatio: (r: 'original' | '16:9' | '9:16' | '1:1' | '4:5' | '5:4' | '4:3' | '3:2') => void
   exportFilename: string
@@ -487,7 +485,6 @@ type PersistedEditorState = Pick<EditorState,
   | 'cropDraftEnabled'
   | 'crop'
   | 'cropDraft'
-  | 'exportQuality'
   | 'exportAspectRatio'
   | 'exportFilename'
   | 'activeTab'
@@ -891,8 +888,6 @@ export const useStore = create<EditorState>()(persist((set) => ({
     cropDraft: state.cropDraft,
   })),
 
-  exportQuality: '720p',
-  setExportQuality: q => set({ exportQuality: q }),
   exportAspectRatio: 'original',
   setExportAspectRatio: r => set({ exportAspectRatio: r }),
   exportFilename: '',
@@ -986,7 +981,6 @@ export const useStore = create<EditorState>()(persist((set) => ({
     cropDraftEnabled: false,
     crop: defaultCrop,
     cropDraft: defaultCrop,
-    exportQuality: '720p',
     exportAspectRatio: 'original',
     exportFilename: '',
     processedUrl: null, activeTab: 'import', editStatus: null,
@@ -1305,7 +1299,6 @@ export const useStore = create<EditorState>()(persist((set) => ({
     cropDraftEnabled: state.cropDraftEnabled,
     crop: state.crop,
     cropDraft: state.cropDraft,
-    exportQuality: state.exportQuality,
     exportAspectRatio: state.exportAspectRatio,
     exportFilename: state.exportFilename,
     activeTab: state.activeTab,
