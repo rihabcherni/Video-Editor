@@ -4,10 +4,12 @@
 
 
 - Missing Replace Original: Option to replace video audio par audio finded in audio track
-- problem of merge il n'est pas reste les place in final video after megre of white place vide of video or audio. 
+- problem of merge il n'est pas reste les place in final video after megre of white place vide of video or audio par exemple inside video il existe espace vide of 1 minute between 2 video or 2 audio il pose comme pas existe et concatenier les part directmnt sans espace vide 
+
 - Issues: Mixed language, inconsistent styling, missing accessibility features
 - Remove Quality Options: 480p, 720p, 1080p not nessecary 
 - Missing Export Cancellation in `ExportPanel.tsx`, `ffmpeg.ts`: User should be able to cancel ongoing export: Suggested Fix: Implement AbortController for export requests and FFmpeg process termination
+
 - No Frame-Accurate Seeking in  `VideoPlayer.tsx`, `MontageTimeline.tsx`
 - **Steps to Reproduce:** Try to seek to specific frame, observe precision
 - **Expected Behavior:** Frame-accurate seeking for precise editing
@@ -16,7 +18,6 @@
 - **Suggested Fix:** Implement frame-based seeking using video frame rate
 
 #### **Issue #3: Audio Duration Fallback Inaccuracy**
-- **Severity:** High
 - **Location:** `AudioUploadSection.tsx` line 217
 - **Steps to Reproduce:** Upload audio file that fails metadata loading
 - **Expected Behavior:** Accurate duration or proper error handling
@@ -25,51 +26,12 @@
 - **Suggested Fix:** Implement proper error handling and user notification
 
 #### **Issue #4: Missing Volume Controls**
-- **Severity:** High
 - **Location:** Audio features across application
 - **Steps to Reproduce:** Try to adjust audio volume in timeline or preview
 - **Expected Behavior:** Volume sliders and mute controls
 - **Actual Behavior:** No volume adjustment UI available
 - **Root Cause:** Feature not implemented
 - **Suggested Fix:** Add volume controls to audio clips and master volume
-
-### 3.2 High Priority Issues
-
-#### **Issue #5: Mixed Language in UI**
-- **Severity:** High
-- **Location:** `CropEditor.tsx` line 48, 62, 126
-- **Steps to Reproduce:** Navigate to Crop tab
-- **Expected Behavior:** Consistent English language throughout
-- **Actual Behavior:** French word "Rogner" used instead of "Crop"
-- **Root Cause:** Hardcoded French text in component
-- **Suggested Fix:** Replace "Rogner" with "Crop" for consistency
-
-#### **Issue #6: No Multi-Selection in Timeline**
-- **Severity:** High
-- **Location:** `MontageTimeline.tsx`
-- **Steps to Reproduce:** Try to select multiple clips at once
-- **Expected Behavior:** Shift+click or drag selection for multiple clips
-- **Actual Behavior:** Only single clip selection supported
-- **Root Cause:** Selection logic limited to single ID
-- **Suggested Fix:** Implement multi-selection with array-based state
-
-#### **Issue #7: Missing Keyboard Shortcuts**
-- **Severity:** High
-- **Location:** Global application
-- **Steps to Reproduce:** Try common shortcuts (Ctrl+Z, Space, Delete)
-- **Expected Behavior:** Standard video editing shortcuts
-- **Actual Behavior:** No keyboard shortcuts implemented
-- **Root Cause:** No keyboard event handlers
-- **Suggested Fix:** Implement keyboard shortcut system
-
-#### **Issue #8: No Export Progress Indicator**
-- **Severity:** High
-- **Location:** `ExportPanel.tsx`
-- **Steps to Reproduce:** Start export, observe progress feedback
-- **Expected Behavior:** Progress bar or percentage indicator
-- **Actual Behavior:** Only loading state with no progress details
-- **Root Cause:** FFmpeg progress not exposed to UI
-- **Suggested Fix:** Implement FFmpeg progress parsing and UI display
 
 ### 3.3 Medium Priority Issues
 

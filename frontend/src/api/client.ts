@@ -175,8 +175,8 @@ export const mergeVideos = async (filenames: string[]) => {
 }
 
 export const mergeClips = async (params: {
-  clips: { filename: string; startTime: number; endTime: number }[]
-  audioTracks?: { filename: string; startTime?: number; endTime?: number; offset?: number }[]
+  clips: { filename: string; startTime: number; endTime: number; speed?: number; volume?: number; muted?: boolean }[]
+  audioTracks?: { filename: string; startTime?: number; endTime?: number; offset?: number; speed?: number; volume?: number; muted?: boolean }[]
 }) => {
   const { data } = await api.post('/merge-clips', params)
   return { ...data, url: withMediaBase(data.url) } as { url: string; filename: string }
@@ -227,34 +227,77 @@ export const burnSubtitles = async (videoFilename: string, subtitleFilename: str
   return { ...data, url: withMediaBase(data.url) } as { url: string; filename: string }
 }
 
-export const exportVideo = async (params: {
-  filename: string
-  quality: '480p' | '720p' | '1080p'
-  aspectRatio?: 'original' | '16:9' | '9:16' | '1:1' | '4:5' | '5:4' | '4:3' | '3:2'
-  outputName?: string
-  startTime?: number
-  endTime?: number
-  crop?: CropSettings
-  audioFilename?: string
-  audioStartTime?: number
-  audioEndTime?: number
-  subtitleFilename?: string
-  subtitleStyle?: SubtitleStyle
-  titleStyle?: TitleStyle
-  borderStyle?: BorderStyle
-  logoFilename?: string
-  logoSize?: number
-  logoX?: number
-  logoY?: number
-  replaceOriginal?: boolean
-  audioOffset?: number
-}) => {
-  const { data } = await api.post('/export', params)
-  return {
-    ...data,
-    url: withMediaBase(data.url),
-    downloadUrl: withApiBase(data.downloadUrl || `/export/download/${encodeURIComponent(data.filename)}`),
-  } as { url: string; downloadUrl: string; filename: string }
+export const getExportProgress = async (jobId: string) => {
+  const { data } = await api.get(`/export-progress/${encodeURIComponent(jobId)}`)
+  return data as { percent: number; status: 'idle' | 'processing' | 'done' | 'error' | 'cancelled' }
+}
+
+export const cancelExport = async (jobId: string) => {
+  const { data } = await api.post('/export/cancel', { jobId })
+  return data as { ok: boolean; cancelled: boolean }
+}
+
+export const exportVideo = async (
+  params: {
+    jobId?: string
+    filename: string
+    quality: '480p' | '720p' | '1080p'
+    aspectRatio?: 'original' | '16:9' | '9:16' | '1:1' | '4:5' | '5:4' | '4:3' | '3:2'
+    outputName?: string
+    startTime?: number
+    endTime?: number
+    crop?: CropSettings
+    audioFilename?: string
+    audioStartTime?: number
+    audioEndTime?: number
+    subtitleFilename?: string
+    subtitleStyle?: SubtitleStyle
+    titleStyle?: TitleStyle
+    borderStyle?: BorderStyle
+    logoFilename?: string
+    logoSize?: number
+    logoX?: number
+    logoY?: number
+    replaceOriginal?: boolean
+    audioOffset?: number
+  },
+  onProgress?: (pct: number) => void,
+  signal?: AbortSignal,
+) => {
+  const jobId = params.jobId || `job_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
+  let pollInterval: NodeJS.Timeout | null = null
+
+  if (onProgress) {
+    pollInterval = setInterval(async () => {
+      try {
+        const prog = await getExportProgress(jobId)
+        if (prog && typeof prog.percent === 'number') {
+          onProgress(prog.percent)
+        }
+      } catch {
+        /* ignore polling errors */
+      }
+    }, 250)
+  }
+
+  if (signal) {
+    signal.addEventListener('abort', () => {
+      if (pollInterval) clearInterval(pollInterval)
+      void cancelExport(jobId)
+    })
+  }
+
+  try {
+    const { data } = await api.post('/export', { ...params, jobId }, { signal })
+    if (onProgress) onProgress(100)
+    return {
+      ...data,
+      url: withMediaBase(data.url),
+      downloadUrl: withApiBase(data.downloadUrl || `/export/download/${encodeURIComponent(data.filename)}`),
+    } as { url: string; downloadUrl: string; filename: string }
+  } finally {
+    if (pollInterval) clearInterval(pollInterval)
+  }
 }
 
 export const previewVideo = async (params: {

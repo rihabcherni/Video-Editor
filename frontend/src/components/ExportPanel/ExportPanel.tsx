@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import {
   Download, Loader2, CheckCircle2, Scissors, Crop as CropIcon, Music, FileText,
-  Image as ImageIcon, Type, Square, Youtube, Instagram, Facebook, Linkedin, Twitter, Music2, ArrowRight, Monitor, FileVideo
+  Image as ImageIcon, Type, Square, Youtube, Instagram, Facebook, Linkedin, Twitter, Music2, ArrowRight, Monitor, FileVideo, X
 } from 'lucide-react'
 import { exportVideo } from '../../api/client'
 import { ensureTitleFontLoaded } from '../../hooks/useTitleFontReady'
@@ -28,9 +28,11 @@ export default function ExportPanel() {
 
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState('')
+  const [exportProgress, setExportProgress] = useState(0)
   const [done, setDone] = useState<{ url: string; downloadUrl: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [exportTab, setExportTab] = useState<'ratio' | 'quality' | 'name' | 'summary'>('name')
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   const hasTrim = video && (trimStart > 0 || trimEnd < video.duration)
   const hasCrop = cropEnabled && (crop.top > 0 || crop.bottom > 0 || crop.left > 0 || crop.right > 0)
@@ -63,6 +65,10 @@ export default function ExportPanel() {
     setLoading(true)
     setError(null)
     setDone(null)
+    setExportProgress(0)
+
+    const controller = new AbortController()
+    abortControllerRef.current = controller
 
     try {
       if (titleText.trim()) {
@@ -85,60 +91,84 @@ export default function ExportPanel() {
         : null
 
       setStep('Processing and exporting...')
-      const result = await exportVideo({
-        filename: video.filename,
-        quality: exportQuality,
-        aspectRatio: exportAspectRatio,
-        outputName: exportFilename.trim() || undefined,
-        startTime: hasTrim ? trimStart : undefined,
-        endTime: hasTrim ? trimEnd : undefined,
-        crop: hasCrop ? crop : undefined,
-        audioFilename: audioTrack?.filename,
-        audioStartTime: hasAppliedAudioTrim ? appliedAudioTrimStart : undefined,
-        audioEndTime: hasAppliedAudioTrim ? appliedAudioTrimEnd : undefined,
-        audioOffset: hasAppliedAudio ? appliedAudioOffset : undefined,
-        replaceOriginal: hasAppliedAudio ? appliedReplaceOriginal : undefined,
-        subtitleFilename: subFile || undefined,
-        subtitleStyle: hasSubtitles ? appliedSubtitleStyle || undefined : undefined,
-        titleStyle: titleText.trim() ? {
-          text: titleText.trim(),
-          font: titleFont,
-          size: renderedTitleSize,
-          color: titleColor,
-          bgColor: titleBgColor,
-          borderColor: titleBorderColor,
-          borderWidth: titleBorderWidth,
-          frameColor: titleFrameColor,
-          frameWidth: titleFrameWidth,
-          padding: titlePadding,
-          lineSpacing: titleLineSpacing,
-          align: titleAlign,
-          frameMode: borderEnabled ? 'outside' : 'inside',
-          x: resolvedTitleX,
-          y: resolvedTitleY,
-          layout: currentTitleRenderLayout || undefined,
-        } : undefined,
-        borderStyle: {
-          enabled: borderEnabled,
-          sizeX: borderWidth,
-          sizeY: borderHeight,
-          color: borderColor,
-          mode: 'outside',
+      const result = await exportVideo(
+        {
+          filename: video.filename,
+          quality: exportQuality,
+          aspectRatio: exportAspectRatio,
+          outputName: exportFilename.trim() || undefined,
+          startTime: hasTrim ? trimStart : undefined,
+          endTime: hasTrim ? trimEnd : undefined,
+          crop: hasCrop ? crop : undefined,
+          audioFilename: audioTrack?.filename,
+          audioStartTime: hasAppliedAudioTrim ? appliedAudioTrimStart : undefined,
+          audioEndTime: hasAppliedAudioTrim ? appliedAudioTrimEnd : undefined,
+          audioOffset: hasAppliedAudio ? appliedAudioOffset : undefined,
+          replaceOriginal: hasAppliedAudio ? appliedReplaceOriginal : undefined,
+          subtitleFilename: subFile || undefined,
+          subtitleStyle: hasSubtitles ? appliedSubtitleStyle || undefined : undefined,
+          titleStyle: titleText.trim() ? {
+            text: titleText.trim(),
+            font: titleFont,
+            size: renderedTitleSize,
+            color: titleColor,
+            bgColor: titleBgColor,
+            borderColor: titleBorderColor,
+            borderWidth: titleBorderWidth,
+            frameColor: titleFrameColor,
+            frameWidth: titleFrameWidth,
+            padding: titlePadding,
+            lineSpacing: titleLineSpacing,
+            align: titleAlign,
+            frameMode: borderEnabled ? 'outside' : 'inside',
+            x: resolvedTitleX,
+            y: resolvedTitleY,
+            layout: currentTitleRenderLayout || undefined,
+          } : undefined,
+          borderStyle: {
+            enabled: borderEnabled,
+            sizeX: borderWidth,
+            sizeY: borderHeight,
+            color: borderColor,
+            mode: 'outside',
+          },
+          logoFilename: logoImage?.filename,
+          logoSize,
+          logoX: logoX ?? undefined,
+          logoY: logoY ?? undefined,
         },
-        logoFilename: logoImage?.filename,
-        logoSize,
-        logoX: logoX ?? undefined,
-        logoY: logoY ?? undefined,
-      })
+        (pct) => {
+          setExportProgress(pct)
+          setStep(`Rendering video... ${pct}%`)
+        },
+        controller.signal,
+      )
 
       setProcessedUrl(result.url)
       setDone({ url: result.url, downloadUrl: result.downloadUrl })
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Export failed')
+      if (controller.signal.aborted) {
+        setError('Export cancelled by user.')
+      } else {
+        setError(e instanceof Error ? e.message : 'Export failed')
+      }
     } finally {
       setLoading(false)
       setStep('')
+      setExportProgress(0)
+      abortControllerRef.current = null
     }
+  }
+
+  const handleCancelExport = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
+    setLoading(false)
+    setExportProgress(0)
+    setStep('')
+    setError('Export cancelled by user.')
   }
 
 
@@ -418,23 +448,40 @@ export default function ExportPanel() {
         </div>
       )}
       {!done ? (
-        <button type="button"
-          onClick={handleExport}
-          disabled={loading}
-          className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl font-semibold text-base transition-colors flex items-center justify-center gap-2"
-        >
-          {loading ? (
-            <>
-              <Loader2 size={18} className="animate-spin" />
-              {step || 'Processing...'}
-            </>
-          ) : (
-            <>
-              <Download size={18} />
-              Export video
-            </>
-          )}
-        </button>
+        loading ? (
+          <div className="space-y-3 p-4 rounded-xl border border-cyan-200 bg-cyan-50/50 shadow-sm">
+            <div className="flex items-center justify-between text-xs font-semibold text-cyan-900">
+              <span className="flex items-center gap-2">
+                <Loader2 size={14} className="animate-spin text-cyan-600" />
+                {step || 'Processing...'}
+              </span>
+              <span className="font-mono text-cyan-700 font-bold">{exportProgress}%</span>
+            </div>
+            <div className="h-2 w-full bg-cyan-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-cyan-600 rounded-full transition-all duration-300 ease-out"
+                style={{ width: `${exportProgress}%` }}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleCancelExport}
+              className="w-full py-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+            >
+              <X size={14} />
+              Cancel export
+            </button>
+          </div>
+        ) : (
+          <button type="button"
+            onClick={handleExport}
+            disabled={loading}
+            className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl font-semibold text-base transition-colors flex items-center justify-center gap-2"
+          >
+            <Download size={18} />
+            Export video
+          </button>
+        )
       ) : (
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-green-400 text-sm">

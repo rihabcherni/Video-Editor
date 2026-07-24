@@ -1,8 +1,10 @@
 import { FastifyInstance } from 'fastify'
-import { cutVideo, splitVideo, mergeVideos, mergeClips, mergeSegments, mergeAudio, burnSubtitles, exportVideo, getVideoMeta, cleanupTempPreviews, cleanupStaleCutOutputs, cleanupTitleTextArtifacts, deleteManagedCutOutput } from '../utils/ffmpeg'
+import { cutVideo, splitVideo, mergeVideos, mergeClips, mergeSegments, mergeAudio, burnSubtitles, exportVideo, cancelExportJob, getVideoMeta, cleanupTempPreviews, cleanupStaleCutOutputs, cleanupTitleTextArtifacts, deleteManagedCutOutput } from '../utils/ffmpeg'
 import type { TitleStyle } from '../utils/ffmpeg'
 import path from 'path'
 import fs from 'fs'
+
+const exportJobsProgressMap = new Map<string, { percent: number; status: 'processing' | 'done' | 'error' | 'cancelled' }>()
 
 export async function processRoute(app: FastifyInstance) {
   const normalizeCrop = (crop?: {
@@ -185,8 +187,8 @@ export async function processRoute(app: FastifyInstance) {
 
   app.post('/merge-clips', async (req, reply) => {
     const { clips, audioTracks } = req.body as {
-      clips: { filename: string; startTime: number; endTime: number }[]
-      audioTracks?: { filename: string; startTime?: number; endTime?: number; offset?: number }[]
+      clips: { filename: string; startTime: number; endTime: number; speed?: number; volume?: number; muted?: boolean }[]
+      audioTracks?: { filename: string; startTime?: number; endTime?: number; offset?: number; speed?: number; volume?: number; muted?: boolean }[]
     }
 
     if (!Array.isArray(clips) || clips.length === 0) {
@@ -197,6 +199,9 @@ export async function processRoute(app: FastifyInstance) {
       inputPath: resolveMediaPath(clip.filename),
       startTime: clip.startTime,
       endTime: clip.endTime,
+      speed: clip.speed,
+      volume: clip.volume,
+      muted: clip.muted,
     }))
 
     const missingClip = resolvedClips.find(clip => !clip.inputPath)
@@ -210,6 +215,9 @@ export async function processRoute(app: FastifyInstance) {
           startTime: track.startTime,
           endTime: track.endTime,
           offset: track.offset,
+          speed: track.speed,
+          volume: track.volume,
+          muted: track.muted,
         }))
       : undefined
 
@@ -222,7 +230,7 @@ export async function processRoute(app: FastifyInstance) {
 
     try {
       const outPath = await mergeClips(
-        resolvedClips as { inputPath: string; startTime: number; endTime: number }[],
+        resolvedClips as { inputPath: string; startTime: number; endTime: number; speed?: number; volume?: number; muted?: boolean }[],
         resolvedAudioTracks
       )
       return { url: `/outputs/${path.basename(outPath)}`, filename: path.basename(outPath) }
@@ -287,8 +295,27 @@ export async function processRoute(app: FastifyInstance) {
     }
   })
 
+  app.get('/export-progress/:jobId', async (req, reply) => {
+    const { jobId } = req.params as { jobId: string }
+    const info = exportJobsProgressMap.get(jobId)
+    if (!info) {
+      return { percent: 0, status: 'idle' }
+    }
+    return info
+  })
+
+  app.post('/export/cancel', async (req, reply) => {
+    const { jobId } = req.body as { jobId: string }
+    if (!jobId) return reply.code(400).send({ error: 'Job ID required' })
+
+    const cancelled = cancelExportJob(jobId)
+    exportJobsProgressMap.set(jobId, { percent: 0, status: 'cancelled' })
+    return { ok: true, cancelled }
+  })
+
   app.post('/export', async (req, reply) => {
     const body = req.body as {
+      jobId?: string
       filename: string
       quality?: '480p' | '720p' | '1080p'
       aspectRatio?: 'original' | '16:9' | '9:16' | '1:1' | '4:5' | '5:4' | '4:3' | '3:2'
@@ -326,8 +353,14 @@ export async function processRoute(app: FastifyInstance) {
       replaceOriginal?: boolean
     }
 
+    const jobId = body.jobId || `job_${Date.now()}`
+    exportJobsProgressMap.set(jobId, { percent: 0, status: 'processing' })
+
     const inputPath = resolveMediaPath(body.filename)
-    if (!inputPath) return reply.code(404).send({ error: 'File not found' })
+    if (!inputPath) {
+      exportJobsProgressMap.set(jobId, { percent: 0, status: 'error' })
+      return reply.code(404).send({ error: 'File not found' })
+    }
 
     const audioPath = body.audioFilename
       ? resolveMediaPath(body.audioFilename) || path.join(process.cwd(), 'uploads', body.audioFilename)
@@ -342,46 +375,43 @@ export async function processRoute(app: FastifyInstance) {
       : undefined
 
     if (logoPath && !fs.existsSync(logoPath)) {
+      exportJobsProgressMap.set(jobId, { percent: 0, status: 'error' })
       return reply.code(404).send({ error: 'Logo image not found' })
     }
 
     try {
       cleanupTitleTextArtifacts()
       const crop = normalizeCrop(body.crop)
-      console.log('--- POST /api/export ---')
-      console.log('body:', JSON.stringify({
-        filename: body.filename,
-        audioFilename: body.audioFilename,
-        replaceOriginal: body.replaceOriginal,
-        logoFilename: body.logoFilename,
-        logoSize: body.logoSize,
-        logoX: body.logoX,
-        logoY: body.logoY,
-        crop,
-      }))
-      const outPath = await exportVideo({
-        inputPath,
-        quality: body.quality || '720p',
-        aspectRatio: body.aspectRatio,
-        outputName: body.outputName,
-        startTime: body.startTime,
-        endTime: body.endTime,
-        crop,
-        audioPath,
-        audioStartTime: body.audioStartTime,
-        audioEndTime: body.audioEndTime,
-        audioOffset: body.audioOffset,
-        subtitlePath,
-        subtitleStyle: body.subtitleStyle,
-        titleStyle: body.titleStyle,
-        borderStyle: body.borderStyle,
-        logoPath,
-        logoSize: body.logoSize,
-        logoX: body.logoX,
-        logoY: body.logoY,
-        replaceOriginal: body.replaceOriginal,
-        outputDir: path.join(process.cwd(), 'final-outputs'),
-      })
+      const outPath = await exportVideo(
+        {
+          jobId,
+          inputPath,
+          quality: body.quality || '720p',
+          aspectRatio: body.aspectRatio,
+          outputName: body.outputName,
+          startTime: body.startTime,
+          endTime: body.endTime,
+          crop,
+          audioPath,
+          audioStartTime: body.audioStartTime,
+          audioEndTime: body.audioEndTime,
+          audioOffset: body.audioOffset,
+          subtitlePath,
+          subtitleStyle: body.subtitleStyle,
+          titleStyle: body.titleStyle,
+          borderStyle: body.borderStyle,
+          logoPath,
+          logoSize: body.logoSize,
+          logoX: body.logoX,
+          logoY: body.logoY,
+          replaceOriginal: body.replaceOriginal,
+          outputDir: path.join(process.cwd(), 'final-outputs'),
+        },
+        (pct) => {
+          exportJobsProgressMap.set(jobId, { percent: pct, status: 'processing' })
+        }
+      )
+      exportJobsProgressMap.set(jobId, { percent: 100, status: 'done' })
       const filename = path.basename(outPath)
       return {
         url: `/final-outputs/${filename}`,
@@ -391,7 +421,10 @@ export async function processRoute(app: FastifyInstance) {
     } catch (err: unknown) {
       app.log.error(err)
       const message = err instanceof Error ? err.message : 'Export failed'
+      exportJobsProgressMap.set(jobId, { percent: 0, status: 'error' })
       return reply.code(500).send({ error: message })
+    } finally {
+      setTimeout(() => exportJobsProgressMap.delete(jobId), 30000)
     }
   })
 

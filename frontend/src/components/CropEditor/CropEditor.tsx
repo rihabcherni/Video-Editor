@@ -45,7 +45,7 @@ export default function CropEditor() {
   return (
     <div className="space-y-3">
       <div>
-        <h2 className="text-xl font-semibold text-zinc-900 mb-1">Rogner</h2>
+        <h2 className="text-xl font-semibold text-zinc-900 mb-1">Crop</h2>
         <p className="text-xs text-zinc-500">
           Trim the visible frame from the top, bottom, left, or right without changing video duration.
         </p>
@@ -59,7 +59,7 @@ export default function CropEditor() {
             </div>
             <div>
               <div className="text-sm font-semibold text-zinc-900">Spatial crop</div>
-              <div className="text-xs text-zinc-500">Enable crop, adjust the frame, then click Rogner to apply it.</div>
+              <div className="text-xs text-zinc-500">Enable crop, adjust the frame, then click Crop to apply it.</div>
             </div>
           </div>
           <button type="button"
@@ -123,7 +123,7 @@ export default function CropEditor() {
         className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
       >
         <CheckCircle2 size={16} />
-        {previewLoading ? 'Applying...' : 'Rogner'}
+        {previewLoading ? 'Applying...' : 'Crop'}
       </button>
     </div>
   )

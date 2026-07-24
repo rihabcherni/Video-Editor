@@ -51,6 +51,7 @@ export interface SubtitleOptions {
 }
 
 export interface ExportOptions {
+  jobId?: string
   inputPath: string
   quality?: '480p' | '720p' | '1080p'
   aspectRatio?: 'original' | '16:9' | '9:16' | '1:1' | '4:5' | '5:4' | '4:3' | '3:2'
@@ -589,6 +590,9 @@ export interface MontageClipDefinition {
   inputPath: string
   startTime: number
   endTime: number
+  speed?: number   // 0.25 – 4.0 (default 1.0)
+  volume?: number  // 0.0 – 2.0 (default 1.0)
+  muted?: boolean  // mute video audio
 }
 
 export interface MontageAudioDefinition {
@@ -596,6 +600,103 @@ export interface MontageAudioDefinition {
   startTime?: number
   endTime?: number
   offset?: number
+  speed?: number   // 0.25 – 4.0 (default 1.0)
+  volume?: number  // 0.0 – 2.0 (default 1.0)
+  muted?: boolean  // mute this audio track
+}
+
+/** Build an atempo chain that supports rates outside 0.5-2.0 range by chaining filters */
+function buildAtempoChain(speed: number): string[] {
+  const safeSpeed = Math.max(0.25, Math.min(4.0, speed))
+  if (Math.abs(safeSpeed - 1.0) < 0.001) return []
+  const filters: string[] = []
+  let remaining = safeSpeed
+  // atempo only supports 0.5-2.0 per filter, so chain multiple
+  while (remaining > 2.0) {
+    filters.push('atempo=2.0')
+    remaining /= 2.0
+  }
+  while (remaining < 0.5) {
+    filters.push('atempo=0.5')
+    remaining *= 2.0
+  }
+  filters.push(`atempo=${remaining.toFixed(6)}`)
+  return filters
+}
+
+/** Process a single video clip: cut + apply speed / volume / mute via FFmpeg */
+async function processVideoClip(clip: MontageClipDefinition): Promise<string> {
+  const safeSpeed = Math.max(0.25, Math.min(4.0, clip.speed ?? 1.0))
+  const safeVolume = Math.max(0, Math.min(2.0, clip.volume ?? 1.0))
+  const muted = clip.muted ?? false
+  const hasSpeedChange = Math.abs(safeSpeed - 1.0) > 0.001
+  const hasVolumeChange = Math.abs(safeVolume - 1.0) > 0.001
+  const needsFilter = hasSpeedChange || hasVolumeChange || muted
+
+  // First, cut the clip to trim range
+  const cutPath = await cutVideo({
+    inputPath: clip.inputPath,
+    startTime: clip.startTime,
+    endTime: Math.max(clip.endTime, clip.startTime + 0.1),
+  })
+
+  if (!needsFilter) return cutPath
+
+  // Apply speed/volume/mute filters
+  const outFile = path.join(tempDir, `clip_proc_${uuidv4()}.mp4`)
+
+  return new Promise((resolve, reject) => {
+    const videoFilters: string[] = []
+    const audioFilters: string[] = []
+
+    if (hasSpeedChange) {
+      // Video speed: setpts scales presentation timestamps
+      videoFilters.push(`setpts=${(1 / safeSpeed).toFixed(6)}*PTS`)
+    }
+
+    if (muted) {
+      audioFilters.push('volume=0')
+    } else {
+      if (hasSpeedChange) {
+        audioFilters.push(...buildAtempoChain(safeSpeed))
+      }
+      if (hasVolumeChange) {
+        audioFilters.push(`volume=${safeVolume.toFixed(4)}`)
+      }
+    }
+
+    const filterParts: string[] = []
+    let videoLabel = '[0:v]'
+    let audioLabel = '[0:a]'
+
+    if (videoFilters.length > 0) {
+      filterParts.push(`[0:v]${videoFilters.join(',')}[vout]`)
+      videoLabel = '[vout]'
+    }
+    if (audioFilters.length > 0) {
+      filterParts.push(`[0:a]${audioFilters.join(',')}[aout]`)
+      audioLabel = '[aout]'
+    }
+
+    const cmd = ffmpeg(cutPath).videoCodec('libx264').audioCodec('aac')
+
+    if (filterParts.length > 0) {
+      cmd.complexFilter(filterParts)
+      cmd.outputOptions([`-map ${videoLabel}`, `-map ${audioLabel}`])
+    }
+
+    cmd
+      .output(outFile)
+      .on('end', () => {
+        try { fs.unlinkSync(cutPath) } catch { /* ignore */ }
+        resolve(outFile)
+      })
+      .on('error', (err) => {
+        try { fs.unlinkSync(cutPath) } catch { /* ignore */ }
+        reject(err)
+      })
+      .run()
+  })
 }
 
 export async function mergeClips(
@@ -604,22 +705,18 @@ export async function mergeClips(
 ): Promise<string> {
   if (!clips.length) throw new Error('No clips provided')
 
-  // Step 1: Cut each clip to its trim range
-  const cutPaths: string[] = []
+  // Step 1: Process each clip (cut + speed/volume/mute)
+  const processedPaths: string[] = []
   for (const clip of clips) {
-    const outPath = await cutVideo({
-      inputPath: clip.inputPath,
-      startTime: clip.startTime,
-      endTime: Math.max(clip.endTime, clip.startTime + 0.1),
-    })
-    cutPaths.push(outPath)
+    const outPath = await processVideoClip(clip)
+    processedPaths.push(outPath)
   }
 
-  // Step 2: Concatenate all cut clips
-  const merged = await mergeVideos({ inputPaths: cutPaths })
+  // Step 2: Concatenate all processed clips
+  const merged = await mergeVideos({ inputPaths: processedPaths })
 
-  // Step 3: Clean up temp cut files
-  for (const p of cutPaths) {
+  // Step 3: Clean up temp processed files
+  for (const p of processedPaths) {
     try { fs.unlinkSync(p) } catch { /* ignore */ }
   }
 
@@ -642,6 +739,9 @@ export async function mergeClips(
     audioTracks.forEach((track, index) => {
       const inputIndex = index + 1
       const filters: string[] = []
+      const trackMuted = track.muted ?? false
+      const trackSpeed = Math.max(0.25, Math.min(4.0, track.speed ?? 1.0))
+      const trackVolume = Math.max(0, Math.min(2.0, track.volume ?? 1.0))
 
       // Apply trim if specified
       if ((track.startTime ?? 0) > 0 || (track.endTime ?? 0) > 0) {
@@ -651,6 +751,18 @@ export async function mergeClips(
           filters.push(`atrim=start=${trimStart}:end=${trimEnd}`)
           filters.push('asetpts=PTS-STARTPTS')
         }
+      }
+
+      // Apply speed
+      if (Math.abs(trackSpeed - 1.0) > 0.001) {
+        filters.push(...buildAtempoChain(trackSpeed))
+      }
+
+      // Apply mute or volume
+      if (trackMuted) {
+        filters.push('volume=0')
+      } else if (Math.abs(trackVolume - 1.0) > 0.001) {
+        filters.push(`volume=${trackVolume.toFixed(4)}`)
       }
 
       // Apply offset (delay) if specified
@@ -744,6 +856,22 @@ export function burnSubtitles({ inputPath, subtitlePath, style }: SubtitleOption
       .on('error', reject)
       .run()
   })
+}
+
+const activeExportJobs = new Map<string, ffmpeg.FfmpegCommand>()
+
+export function cancelExportJob(jobId: string): boolean {
+  const cmd = activeExportJobs.get(jobId)
+  if (cmd) {
+    try {
+      cmd.kill('SIGKILL')
+    } catch {
+      /* ignore */
+    }
+    activeExportJobs.delete(jobId)
+    return true
+  }
+  return false
 }
 
 export function exportVideo(options: ExportOptions, onProgress?: (pct: number) => void): Promise<string> {
@@ -881,11 +1009,21 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
       cmd.audioCodec('aac')
     }
 
+    if (options.jobId) {
+      activeExportJobs.set(options.jobId, cmd)
+    }
+
     cmd
       .output(outFile)
       .on('progress', p => onProgress?.(Math.round(p.percent || 0)))
-      .on('end', () => resolve(outFile))
-      .on('error', reject)
+      .on('end', () => {
+        if (options.jobId) activeExportJobs.delete(options.jobId)
+        resolve(outFile)
+      })
+      .on('error', (err) => {
+        if (options.jobId) activeExportJobs.delete(options.jobId)
+        reject(err)
+      })
       .run()
   })
 }

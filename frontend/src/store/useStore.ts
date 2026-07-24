@@ -155,6 +155,9 @@ export interface MontageClip {
   trimEnd: number
   timelineStart: number
   order: number
+  speed: number    // 0.25 – 4.0, default 1.0
+  volume: number   // 0.0 – 2.0, default 1.0
+  muted: boolean   // mute video audio
 }
 
 export interface MontageAudioClip {
@@ -165,6 +168,9 @@ export interface MontageAudioClip {
   duration: number
   offset: number
   order: number
+  speed: number    // 0.25 – 4.0, default 1.0
+  volume: number   // 0.0 – 2.0, default 1.0
+  muted: boolean   // mute this audio track
 }
 
 export type TitlePosition =
@@ -1006,7 +1012,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
     return {
       montageClips: [
         ...state.montageClips,
-        { id: createId(), video, trimStart: 0, trimEnd: video.duration, timelineStart, order },
+        { id: createId(), video, trimStart: 0, trimEnd: video.duration, timelineStart, order, speed: 1, volume: 1, muted: false },
       ],
     }
   }),
@@ -1091,7 +1097,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
     return {
       montageAudioClips: [
         ...state.montageAudioClips,
-        { id: createId(), audio, trimStart: 0, trimEnd: duration, duration, offset, order },
+        { id: createId(), audio, trimStart: 0, trimEnd: duration, duration, offset, order, speed: 1, volume: 1, muted: false },
       ],
     }
   }),

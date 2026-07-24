@@ -83,7 +83,7 @@ function formatRulerTime(s: number) {
   return remainingMinutes > 0 ? `${hours}h${remainingMinutes.toString().padStart(2, '0')}` : `${hours}h`
 }
 
-function clipDuration(clip: MontageClip | MontageAudioClip) {
+function clipDuration(clip: { trimStart: number; trimEnd: number }) {
   return Math.max(MIN_CLIP_SECONDS, clip.trimEnd - clip.trimStart)
 }
 
@@ -421,7 +421,7 @@ export default function MontageTimeline() {
 
   const applyVideoLayout = useCallback((clipId: string, desiredStart: number, trimStart: number, trimEnd: number) => {
     const nextStart = Math.max(0, desiredStart)
-    const safeTrimStart = Math.max(0, Math.min(trimStart, clipDuration({ id: clipId, video: { id: '', title: '', filename: '', url: '', duration: 0 }, trimStart, trimEnd, timelineStart: 0, order: 0 })))
+    const safeTrimStart = Math.max(0, Math.min(trimStart, clipDuration({ trimStart, trimEnd })))
     const activeClip = videoClips.find(clip => clip.id === clipId)
     if (!activeClip) return
 
@@ -632,6 +632,9 @@ export default function MontageTimeline() {
           filename: c.video.filename,
           startTime: c.trimStart,
           endTime: c.trimEnd,
+          speed: c.speed !== 1 ? c.speed : undefined,
+          volume: c.muted ? 0 : (c.volume !== 1 ? c.volume : undefined),
+          muted: c.muted || undefined,
         }))
 
         const audioTracks = audioClips.length > 0
@@ -640,6 +643,9 @@ export default function MontageTimeline() {
             startTime: a.trimStart > 0 ? a.trimStart : undefined,
             endTime: a.trimEnd < a.duration ? a.trimEnd : undefined,
             offset: a.offset > 0 ? a.offset : undefined,
+            speed: a.speed !== 1 ? a.speed : undefined,
+            volume: a.muted ? 0 : (a.volume !== 1 ? a.volume : undefined),
+            muted: a.muted || undefined,
           }))
           : undefined
 
@@ -1032,6 +1038,60 @@ export default function MontageTimeline() {
                         </div>
                       )}
 
+                      {/* Speed / Volume / Mute controls */}
+                      <div className={`rounded-lg border p-2 space-y-1.5 ${isSelected ? 'bg-cyan-50/60 border-cyan-200' : 'bg-zinc-50 border-zinc-100'}`}>
+                        {/* Speed */}
+                        <div>
+                          <div className="flex justify-between text-[8px] text-zinc-500 mb-0.5">
+                            <span className="font-semibold uppercase tracking-wide">Speed</span>
+                            <span className="font-mono font-bold text-cyan-700">{clip.speed.toFixed(2)}×</span>
+                          </div>
+                          <input
+                            type="range"
+                            min={0.25}
+                            max={4}
+                            step={0.05}
+                            value={clip.speed}
+                            onClick={e => e.stopPropagation()}
+                            onChange={e => updateMontageClip(clip.id, { speed: Number(e.target.value) })}
+                            className="h-1 w-full accent-cyan-600 rounded-full appearance-none cursor-pointer"
+                          />
+                          <div className="flex justify-between text-[7px] text-zinc-400 mt-0.5">
+                            <span>0.25×</span><span>1×</span><span>4×</span>
+                          </div>
+                        </div>
+                        {/* Volume + Mute */}
+                        <div>
+                          <div className="flex justify-between items-center text-[8px] text-zinc-500 mb-0.5">
+                            <span className="font-semibold uppercase tracking-wide">Volume</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-mono font-bold text-cyan-700">{clip.muted ? 'Muted' : `${Math.round(clip.volume * 100)}%`}</span>
+                              <button
+                                type="button"
+                                onClick={e => { e.stopPropagation(); updateMontageClip(clip.id, { muted: !clip.muted }) }}
+                                className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wide transition-colors ${clip.muted ? 'bg-red-500 text-white' : 'bg-zinc-200 text-zinc-600 hover:bg-zinc-300'}`}
+                              >
+                                {clip.muted ? '🔇' : '🔊'}
+                              </button>
+                            </div>
+                          </div>
+                          <input
+                            type="range"
+                            min={0}
+                            max={2}
+                            step={0.05}
+                            value={clip.volume}
+                            disabled={clip.muted}
+                            onClick={e => e.stopPropagation()}
+                            onChange={e => updateMontageClip(clip.id, { volume: Number(e.target.value) })}
+                            className="h-1 w-full accent-cyan-600 rounded-full appearance-none cursor-pointer disabled:opacity-40"
+                          />
+                          <div className="flex justify-between text-[7px] text-zinc-400 mt-0.5">
+                            <span>0%</span><span>100%</span><span>200%</span>
+                          </div>
+                        </div>
+                      </div>
+
                       <button
                         type="button"
                         onClick={() => setActiveTrimEditor(current => current?.kind === 'video' && current.id === clip.id ? null : { kind: 'video', id: clip.id })}
@@ -1203,6 +1263,60 @@ export default function MontageTimeline() {
                           </div>
                         </div>
                       )}
+
+                      {/* Speed / Volume / Mute controls */}
+                      <div className={`rounded-lg border p-2 space-y-1.5 ${isSelected ? 'bg-teal-50/60 border-teal-200' : 'bg-zinc-50 border-zinc-100'}`}>
+                        {/* Speed */}
+                        <div>
+                          <div className="flex justify-between text-[8px] text-zinc-500 mb-0.5">
+                            <span className="font-semibold uppercase tracking-wide">Speed</span>
+                            <span className="font-mono font-bold text-teal-700">{clip.speed.toFixed(2)}×</span>
+                          </div>
+                          <input
+                            type="range"
+                            min={0.25}
+                            max={4}
+                            step={0.05}
+                            value={clip.speed}
+                            onClick={e => e.stopPropagation()}
+                            onChange={e => updateMontageAudioClip(clip.id, { speed: Number(e.target.value) })}
+                            className="h-1 w-full accent-teal-600 rounded-full appearance-none cursor-pointer"
+                          />
+                          <div className="flex justify-between text-[7px] text-zinc-400 mt-0.5">
+                            <span>0.25×</span><span>1×</span><span>4×</span>
+                          </div>
+                        </div>
+                        {/* Volume + Mute */}
+                        <div>
+                          <div className="flex justify-between items-center text-[8px] text-zinc-500 mb-0.5">
+                            <span className="font-semibold uppercase tracking-wide">Volume</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-mono font-bold text-teal-700">{clip.muted ? 'Muted' : `${Math.round(clip.volume * 100)}%`}</span>
+                              <button
+                                type="button"
+                                onClick={e => { e.stopPropagation(); updateMontageAudioClip(clip.id, { muted: !clip.muted }) }}
+                                className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wide transition-colors ${clip.muted ? 'bg-red-500 text-white' : 'bg-zinc-200 text-zinc-600 hover:bg-zinc-300'}`}
+                              >
+                                {clip.muted ? '🔇' : '🔊'}
+                              </button>
+                            </div>
+                          </div>
+                          <input
+                            type="range"
+                            min={0}
+                            max={2}
+                            step={0.05}
+                            value={clip.volume}
+                            disabled={clip.muted}
+                            onClick={e => e.stopPropagation()}
+                            onChange={e => updateMontageAudioClip(clip.id, { volume: Number(e.target.value) })}
+                            className="h-1 w-full accent-teal-600 rounded-full appearance-none cursor-pointer disabled:opacity-40"
+                          />
+                          <div className="flex justify-between text-[7px] text-zinc-400 mt-0.5">
+                            <span>0%</span><span>100%</span><span>200%</span>
+                          </div>
+                        </div>
+                      </div>
 
                       <button
                         type="button"
