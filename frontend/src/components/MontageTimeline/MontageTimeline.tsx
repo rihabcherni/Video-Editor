@@ -888,7 +888,7 @@ export default function MontageTimeline() {
             </div>
             <span className="rounded-lg bg-zinc-100 px-2 py-1 font-mono text-xs text-zinc-600">{formatDurationHMS(playhead)} - {formatDurationHMS(timelineDuration)}</span>
           </div>
-          <div className="relative flex-1 min-h-0 items-center justify-center bg-[linear-gradient(135deg,#f8fafc_0%,#eef2f7_100%)]">
+          <div className="relative flex flex-1 min-h-0 items-center justify-center bg-[linear-gradient(135deg,#f8fafc_0%,#eef2f7_100%)]">
             {activeVideoClip ? (
               <video
                 ref={videoRef}
@@ -901,7 +901,7 @@ export default function MontageTimeline() {
                 }}
               />
             ) : (
-              <div className="flex flex-col items-center gap-2 text-zinc-400">
+              <div className="flex flex-col items-center justify-center gap-2 text-zinc-400">
                 <Maximize2 size={28} />
                 <span className="text-xs font-medium">No video at playhead</span>
               </div>
@@ -918,7 +918,7 @@ export default function MontageTimeline() {
             )}
           </div>
         </div>
-        <div className="rounded-2xl border border-zinc-200 bg-gradient-to-br from-white to-zinc-50 p-4 shadow-[0_8px_30px_rgba(15,23,42,0.08)] flex flex-col min-h-0">
+        <div className="rounded-2xl border border-zinc-200 bg-gradient-to-br from-white to-zinc-50 px-2 py-2 shadow-[0_8px_30px_rgba(15,23,42,0.08)] flex flex-col min-h-0">
             <div className="flex items-center gap-3 flex-shrink-0">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-600 text-white shadow-lg shadow-cyan-500/25">
                 <Layers size={18} />

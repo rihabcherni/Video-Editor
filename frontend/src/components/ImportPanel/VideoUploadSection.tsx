@@ -103,12 +103,7 @@ export default function VideoUploadSection() {
   }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h3 className="text-sm font-semibold text-zinc-900 mb-1">Video Source</h3>
-        <p className="text-xs text-zinc-500">Upload from file or paste a URL from any platform</p>
-      </div>
-
+    <div className="space-y-2">
       {/* Tab switcher for File/URL */}
       <div className="flex gap-2 border-b border-zinc-200">
         <button 

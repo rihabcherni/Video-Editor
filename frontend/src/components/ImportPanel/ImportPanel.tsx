@@ -99,47 +99,42 @@ export default function ImportPanel() {
   }
 
   return (
-    <div className="space-y-3 min-w-0 w-full overflow-hidden">
-      <div className="grid gap-4">
-        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-2 min-w-0 w-full overflow-hidden">
+      <div className="grid gap-2">
+        <div className="rounded-2xl border border-slate-200 bg-white py-3 px-5 shadow-sm">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <p className="text-base font-semibold text-slate-900">Import Media</p>
-              <p className="mt-1 text-sm text-slate-500">
-                Upload files or paste URLs from any platform to import content.
-              </p>
+              <p className="text-sm font-semibold text-slate-900">Import Media</p>
+              <p className="mt-1 text-xs text-slate-500"> Upload files or paste URLs from any platform to import content.</p>
             </div>
             <div className="inline-flex rounded-full bg-slate-100 p-1 shadow-sm">
               <button
                 type="button"
                 onClick={() => setUploadTab('video')}
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${uploadTab === 'video' ? 'bg-cyan-600 text-white shadow' : 'bg-transparent text-slate-700 hover:text-slate-900 hover:bg-slate-50'} ${uploadTab === 'video' ? '' : 'border border-slate-200'}`}
+                className={`rounded-s-full px-4 py-2 text-sm font-semibold transition ${uploadTab === 'video' ? 'bg-cyan-600 text-white shadow' : 'bg-transparent text-slate-700 hover:text-slate-900 hover:bg-slate-50'} ${uploadTab === 'video' ? '' : 'border-y border-l border-slate-200'}`}
               >
                 Video
               </button>
               <button
                 type="button"
                 onClick={() => setUploadTab('audio')}
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${uploadTab === 'audio' ? 'bg-blue-600 text-white shadow' : 'bg-transparent text-slate-700 hover:text-slate-900 hover:bg-slate-50'} ${uploadTab === 'audio' ? '' : 'border border-slate-200'}`}
+                className={`rounded-e-full px-4 py-2 text-sm font-semibold transition ${uploadTab === 'audio' ? 'bg-blue-600 text-white shadow' : 'bg-transparent text-slate-700 hover:text-slate-900 hover:bg-slate-50'} ${uploadTab === 'audio' ? '' : 'border-y border-r border-slate-200'}`}
               >
                 Audio
               </button>
             </div>
           </div>
-
-          <div className="mt-5">
-            {uploadTab === 'video' ? <VideoUploadSection /> : <AudioUploadSection />}
-          </div>
+          {uploadTab === 'video' ? <VideoUploadSection /> : <AudioUploadSection />}
         </div>
 
-        <div className="rounded-3xl border border-zinc-200 bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white py-3 px-5 shadow-sm">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-semibold text-zinc-900">Library Assets ({mediaAssets.length})</p>
               <p className="mt-1 text-xs text-zinc-500">Your imported audio and video files are stored here for easy reuse.</p>
             </div>
             {mediaAssets.length > 0 && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={addAllToTimeline}
@@ -159,13 +154,13 @@ export default function ImportPanel() {
           </div>
 
           {mediaAssets.length === 0 ? (
-            <div className="mt-5 rounded-[2rem] border border-dashed border-zinc-200 bg-zinc-50 py-12 px-5 text-center">
+            <div className="mt-2 rounded-[2rem] border border-dashed border-zinc-200 bg-zinc-50 py-12 px-5 text-center">
               <ImageIcon size={28} className="mx-auto text-zinc-300" />
               <p className="mt-4 text-sm font-semibold text-zinc-800">No assets yet</p>
               <p className="mt-2 text-xs text-zinc-500">Import a file or paste a link to populate your media library.</p>
             </div>
           ) : (
-            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
+            <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
               {mediaAssets.map(asset => (
                 <div key={asset.id} className="group min-w-0 overflow-hidden rounded-[1.5rem] border border-zinc-200 bg-zinc-50 shadow-sm transition hover:border-zinc-300">
                   <div className="relative h-24 bg-zinc-950 text-zinc-200 flex items-center justify-center overflow-hidden">
@@ -192,11 +187,11 @@ export default function ImportPanel() {
                       </button>
                     </div>
                   </div>
-                  <div className="space-y-3 p-4">
+                  <div className="space-y-2 py-2 px-4">
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-zinc-900 line-clamp-2 break-words" title={asset.title}>{asset.title}</p>
+                      <p className="text-xs font-semibold text-zinc-900 line-clamp-2 break-words" title={asset.title}>{asset.title}</p>
                     </div>
-                    <div className="flex items-center justify-between gap-3 text-[11px] text-zinc-500">
+                    <div className="flex items-center justify-between gap-3 text-[10px] text-zinc-500">
                       <span className={`rounded-full px-2 py-1 font-semibold uppercase ${asset.type === 'video' ? 'bg-violet-100 text-violet-700' : 'bg-cyan-100 text-cyan-700'}`}>
                         {asset.type}
                       </span>
@@ -206,7 +201,7 @@ export default function ImportPanel() {
                         className="text-zinc-400 transition hover:text-red-500"
                         title="Delete asset"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={13} />
                       </button>
                     </div>
                   </div>
