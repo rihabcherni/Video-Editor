@@ -1124,23 +1124,11 @@ export const useStore = create<EditorState>()(persist((set) => ({
       c.id === id ? { ...c, trimStart, trimEnd } : c
     ),
   })),
-  updateMontageClip: (id, updates) => set(state => {
-    const updatedClips = state.montageClips.map(c =>
+  updateMontageClip: (id, updates) => set(state => ({
+    montageClips: state.montageClips.map(c =>
       c.id === id ? { ...c, ...updates } : c
-    )
-    if ('speed' in updates || 'trimStart' in updates || 'trimEnd' in updates) {
-      const sortedClips = [...updatedClips].sort((a, b) => a.order - b.order)
-      let cursor = 0
-      const reordered = sortedClips.map((clip, index) => {
-        const duration = Math.max(0, clip.trimEnd - clip.trimStart) / (clip.speed || 1)
-        const timelineStart = cursor
-        cursor += duration
-        return { ...clip, order: index, timelineStart }
-      })
-      return { montageClips: reordered }
-    }
-    return { montageClips: updatedClips }
-  }),
+    ),
+  })),
   splitMontageClip: (id, splitTime) => set(state => {
     const snapshot = {
       montageClips: JSON.parse(JSON.stringify(state.montageClips)),
@@ -1265,23 +1253,11 @@ export const useStore = create<EditorState>()(persist((set) => ({
       montageAudioClips: reordered,
     }
   }),
-  updateMontageAudioClip: (id, updates) => set(state => {
-    const updatedClips = state.montageAudioClips.map(c =>
+  updateMontageAudioClip: (id, updates) => set(state => ({
+    montageAudioClips: state.montageAudioClips.map(c =>
       c.id === id ? { ...c, ...updates } : c
-    )
-    if ('speed' in updates || 'trimStart' in updates || 'trimEnd' in updates) {
-      const sortedClips = [...updatedClips].sort((a, b) => a.order - b.order)
-      let cursor = 0
-      const reordered = sortedClips.map((clip, index) => {
-        const duration = Math.max(0, clip.trimEnd - clip.trimStart) / (clip.speed || 1)
-        const offset = cursor
-        cursor += duration
-        return { ...clip, order: index, offset }
-      })
-      return { montageAudioClips: reordered }
-    }
-    return { montageAudioClips: updatedClips }
-  }),
+    ),
+  })),
   splitMontageAudioClip: (id, splitTime) => set(state => {
     const snapshot = {
       montageClips: JSON.parse(JSON.stringify(state.montageClips)),
