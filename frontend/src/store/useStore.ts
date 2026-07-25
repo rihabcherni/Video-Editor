@@ -156,7 +156,7 @@ export interface MontageClip {
   timelineStart: number
   order: number
   speed: number    // 0.25 – 4.0, default 1.0
-  volume: number   // 0.0 – 2.0, default 1.0
+  volume: number   // 0.0 – 1.0, default 1.0
   muted: boolean   // mute video audio
 }
 
@@ -169,7 +169,7 @@ export interface MontageAudioClip {
   offset: number
   order: number
   speed: number    // 0.25 – 4.0, default 1.0
-  volume: number   // 0.0 – 2.0, default 1.0
+  volume: number   // 0.0 – 1.0, default 1.0
   muted: boolean   // mute this audio track
 }
 

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AlertCircle, CheckCircle2, Film, GitMerge, GripVertical, Layers, Loader2, Maximize2, Music, Pause, Play, RotateCcw, RotateCw, Scissors, Trash2, Volume2, ZoomIn, ZoomOut} from 'lucide-react'
+import { AlertCircle, CheckCircle2, Film, GitMerge, GripVertical, Layers, Loader2, Maximize2, Music, Pause, Play, RotateCcw, RotateCw, Scissors, Trash2, Volume2, VolumeX, ZoomIn, ZoomOut} from 'lucide-react'
 import { mergeClips } from '../../api/client'
 import { useStore } from '../../store/useStore'
 import type { MontageAudioClip, MontageClip } from '../../store/useStore'
@@ -972,7 +972,7 @@ export default function MontageTimeline() {
                         setDropListKind(null)
                       }}
                       onClick={() => setSelectedId(clip.id)}
-                      className={`group relative flex flex-col gap-1.5 p-2 rounded-xl border transition-all duration-200 cursor-pointer ${isSelected
+                      className={`group relative flex flex-col gap-1.5 p-2 my-1 rounded-xl border transition-all duration-200 cursor-pointer ${isSelected
                         ? 'bg-gradient-to-r from-cyan-50/90 via-cyan-50/40 to-white border-cyan-400 ring-2 ring-cyan-400/30 shadow-md shadow-cyan-500/10'
                         : 'bg-white border-zinc-200 hover:border-zinc-300 hover:shadow-sm hover:bg-zinc-50/60'
                         } ${isDropTarget ? 'border-t-4 border-t-cyan-500' : ''}`}
@@ -1048,12 +1048,12 @@ export default function MontageTimeline() {
                       </div>
 
                       {isTrimOpen && (
-                        <div className="mt-1 rounded-lg bg-gradient-to-r from-cyan-50 to-cyan-100/50 border border-cyan-200 p-2">
-                          <div className="flex items-center justify-between mb-1.5">
+                        <div className="mt-1 rounded-lg bg-gradient-to-r from-cyan-50 to-cyan-100/50 border border-cyan-200 py-1 px-2">
+                          <div className="flex items-center justify-between mb-1">
                             <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-cyan-700">Trim Video</span>
                             <span className="text-[9px] font-mono font-medium text-cyan-800">{formatDurationHMS(clip.trimStart)} - {formatDurationHMS(clip.trimEnd)}</span>
                           </div>
-                          <div className="space-y-1">
+                          <div className="space-y-0">
                             <div>
                               <div className="flex justify-between text-[8px] text-zinc-500">
                                 <span>Start</span>
@@ -1107,10 +1107,10 @@ export default function MontageTimeline() {
                       )}
 
                       {/* Speed / Volume / Mute controls */}
-                      <div className={`rounded-lg border p-2 space-y-1.5 ${isSelected ? 'bg-white/80 border-cyan-200 shadow-xs' : 'bg-zinc-50/80 border-zinc-100'}`}>
+                      <div className={`rounded-lg border py-1 px-2 space-y-1 ${isSelected ? 'bg-white/80 border-cyan-200 shadow-xs' : 'bg-zinc-50/80 border-zinc-100'}`}>
                         {/* Speed */}
                         <div>
-                          <div className="flex justify-between text-[8px] text-zinc-500 mb-0.5">
+                          <div className="flex justify-between text-[8px] text-zinc-500">
                             <span className="font-semibold uppercase tracking-wide">Speed</span>
                             <span className="font-mono font-bold text-cyan-700">{clip.speed.toFixed(2)}×</span>
                           </div>
@@ -1127,24 +1127,24 @@ export default function MontageTimeline() {
                         </div>
                         {/* Volume + Mute */}
                         <div>
-                          <div className="flex justify-between items-center text-[8px] text-zinc-500 mb-0.5">
+                          <div className="flex justify-between items-center text-[8px] text-zinc-500">
                             <span className="font-semibold uppercase tracking-wide">Volume</span>
                             <div className="flex items-center gap-1.5">
                               <span className="font-mono font-bold text-cyan-700">{clip.muted ? 'Muted' : `${Math.round(clip.volume * 100)}%`}</span>
                               <button
                                 type="button"
                                 onClick={e => { e.stopPropagation(); updateMontageClip(clip.id, { muted: !clip.muted }) }}
-                                className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wide transition-colors ${clip.muted ? 'bg-red-500 text-white' : 'bg-zinc-200 text-zinc-600 hover:bg-zinc-300'}`}
+                                className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wide transition-colors flex items-center justify-center ${clip.muted ? 'bg-red-500 text-white' : 'bg-zinc-200 text-zinc-600 hover:bg-zinc-300'}`}
                               >
-                                {clip.muted ? '🔇' : '🔊'}
+                                {clip.muted ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
                               </button>
                             </div>
                           </div>
                           <input
                             type="range"
                             min={0}
-                            max={2}
-                            step={0.05}
+                            max={1}
+                            step={0.01}
                             value={clip.volume}
                             disabled={clip.muted}
                             onClick={e => e.stopPropagation()}
@@ -1198,8 +1198,14 @@ export default function MontageTimeline() {
                         setDropListPlacement('before')
                         setDropListKind(null)
                       }}
+                      onDragEnd={() => {
+                        setDraggedListId(null)
+                        setDropListTargetId(null)
+                        setDropListPlacement('before')
+                        setDropListKind(null)
+                      }}
                       onClick={() => setSelectedId(clip.id)}
-                      className={`group relative flex flex-col gap-1.5 p-2 rounded-xl border transition-all duration-200 cursor-pointer ${isSelected
+                      className={`group relative flex flex-col gap-1.5 py-1 px-2 my-1 rounded-xl border transition-all duration-200 cursor-pointer ${isSelected
                         ? 'bg-gradient-to-r from-teal-50/90 via-teal-50/40 to-white border-teal-400 ring-2 ring-teal-400/30 shadow-md shadow-teal-500/10'
                         : 'bg-white border-zinc-200 hover:border-zinc-300 hover:shadow-sm hover:bg-zinc-50/60'
                         } ${isDropTarget ? 'border-t-4 border-t-teal-500' : ''}`}
@@ -1264,12 +1270,12 @@ export default function MontageTimeline() {
                       </div>
 
                       {isTrimOpen && (
-                        <div className="mt-1 rounded-lg bg-gradient-to-r from-teal-50 to-teal-100/50 border border-teal-200 p-2">
-                          <div className="flex items-center justify-between mb-1.5">
+                        <div className="rounded-lg bg-gradient-to-r from-teal-50 to-teal-100/50 border border-teal-200 py-1 px-2">
+                          <div className="flex items-center justify-between mb-1">
                             <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-teal-700">Trim Audio</span>
                             <span className="text-[9px] font-mono font-medium text-teal-800">{formatDurationHMS(clip.trimStart)} - {formatDurationHMS(clip.trimEnd)}</span>
                           </div>
-                          <div className="space-y-1">
+                          <div className="space-y-0.5">
                             <div>
                               <div className="flex justify-between text-[8px] text-zinc-500">
                                 <span>Start</span>
@@ -1323,10 +1329,10 @@ export default function MontageTimeline() {
                       )}
 
                       {/* Speed / Volume / Mute controls */}
-                      <div className={`rounded-lg border p-2 space-y-1.5 ${isSelected ? 'bg-white/80 border-teal-200 shadow-xs' : 'bg-zinc-50/80 border-zinc-100'}`}>
+                      <div className={`rounded-lg border p-1 space-y-1 ${isSelected ? 'bg-white/80 border-teal-200 shadow-xs' : 'bg-zinc-50/80 border-zinc-100'}`}>
                         {/* Speed */}
                         <div>
-                          <div className="flex justify-between text-[8px] text-zinc-500 mb-0.5">
+                          <div className="flex justify-between text-[8px] text-zinc-500">
                             <span className="font-semibold uppercase tracking-wide">Speed</span>
                             <span className="font-mono font-bold text-teal-700">{clip.speed.toFixed(2)}×</span>
                           </div>
@@ -1343,24 +1349,24 @@ export default function MontageTimeline() {
                         </div>
                         {/* Volume + Mute */}
                         <div>
-                          <div className="flex justify-between items-center text-[8px] text-zinc-500 mb-0.5">
+                          <div className="flex justify-between items-center text-[8px] text-zinc-500">
                             <span className="font-semibold uppercase tracking-wide">Volume</span>
                             <div className="flex items-center gap-1.5">
                               <span className="font-mono font-bold text-teal-700">{clip.muted ? 'Muted' : `${Math.round(clip.volume * 100)}%`}</span>
                               <button
                                 type="button"
                                 onClick={e => { e.stopPropagation(); updateMontageAudioClip(clip.id, { muted: !clip.muted }) }}
-                                className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wide transition-colors ${clip.muted ? 'bg-red-500 text-white' : 'bg-zinc-200 text-zinc-600 hover:bg-zinc-300'}`}
+                                className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wide transition-colors flex items-center justify-center ${clip.muted ? 'bg-red-500 text-white' : 'bg-zinc-200 text-zinc-600 hover:bg-zinc-300'}`}
                               >
-                                {clip.muted ? '🔇' : '🔊'}
+                                {clip.muted ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
                               </button>
                             </div>
                           </div>
                           <input
                             type="range"
                             min={0}
-                            max={2}
-                            step={0.05}
+                            max={1}
+                            step={0.01}
                             value={clip.volume}
                             disabled={clip.muted}
                             onClick={e => e.stopPropagation()}
@@ -1376,7 +1382,7 @@ export default function MontageTimeline() {
             </div>
           </div>
           {videoClips.length > 0 && (     
-            <div className="flex justify-between gap-2 flex-items">
+            <div className="flex justify-between gap-2 flex-items mt-1">
              <button
               type="button"
               onClick={handleMerge}
@@ -1397,7 +1403,7 @@ export default function MontageTimeline() {
              </div>
           )}
           {mergeStatus && (
-            <div className={`mt-3 flex flex-col gap-2 rounded-xl border px-3 py-2 text-xs ${mergeStatus.startsWith('Error') ? 'border-red-200 bg-red-50 text-red-700' : 'border-cyan-200 bg-cyan-50 text-cyan-700'}`}>
+            <div className={`mt-1 flex flex-col gap-2 rounded-xl border px-3 py-2 text-xs ${mergeStatus.startsWith('Error') ? 'border-red-200 bg-red-50 text-red-700' : 'border-cyan-200 bg-cyan-50 text-cyan-700'}`}>
               <div className="flex items-center gap-2">
                 {mergeStatus.startsWith('Error') ? <AlertCircle size={14} /> : <Loader2 size={14} className="animate-spin" />}
                 {mergeStatus}
