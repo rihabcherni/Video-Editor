@@ -187,7 +187,7 @@ export async function processRoute(app: FastifyInstance) {
 
   app.post('/merge-clips', async (req, reply) => {
     const { clips, audioTracks } = req.body as {
-      clips: { filename: string; startTime: number; endTime: number; speed?: number; volume?: number; muted?: boolean }[]
+      clips: { filename: string; startTime: number; endTime: number; timelineStart?: number; speed?: number; volume?: number; muted?: boolean }[]
       audioTracks?: { filename: string; startTime?: number; endTime?: number; offset?: number; speed?: number; volume?: number; muted?: boolean }[]
     }
 
@@ -199,6 +199,7 @@ export async function processRoute(app: FastifyInstance) {
       inputPath: resolveMediaPath(clip.filename),
       startTime: clip.startTime,
       endTime: clip.endTime,
+      timelineStart: clip.timelineStart,
       speed: clip.speed,
       volume: clip.volume,
       muted: clip.muted,
@@ -230,7 +231,7 @@ export async function processRoute(app: FastifyInstance) {
 
     try {
       const outPath = await mergeClips(
-        resolvedClips as { inputPath: string; startTime: number; endTime: number; speed?: number; volume?: number; muted?: boolean }[],
+        resolvedClips as { inputPath: string; startTime: number; endTime: number; timelineStart?: number; speed?: number; volume?: number; muted?: boolean }[],
         resolvedAudioTracks
       )
       return { url: `/outputs/${path.basename(outPath)}`, filename: path.basename(outPath) }

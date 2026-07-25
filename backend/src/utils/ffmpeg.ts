@@ -590,6 +590,7 @@ export interface MontageClipDefinition {
   inputPath: string
   startTime: number
   endTime: number
+  timelineStart?: number
   speed?: number   // 0.25 – 4.0 (default 1.0)
   volume?: number  // 0.0 – 2.0 (default 1.0)
   muted?: boolean  // mute video audio
@@ -624,6 +625,25 @@ function buildAtempoChain(speed: number): string[] {
   return filters
 }
 
+async function createGapVideo(duration: number, width: number, height: number, fps: number): Promise<string> {
+  const outFile = path.join(tempDir, `gap_${uuidv4()}.mp4`)
+  const safeDuration = Math.max(0.1, duration)
+  return new Promise((resolve, reject) => {
+    ffmpeg()
+      .input(`color=c=black:s=${width}x${height}:r=${fps}:d=${safeDuration}`)
+      .inputFormat('lavfi')
+      .input(`anullsrc=r=44100:cl=stereo`)
+      .inputFormat('lavfi')
+      .videoCodec('libx264')
+      .audioCodec('aac')
+      .outputOptions(['-shortest', '-pix_fmt yuv420p'])
+      .output(outFile)
+      .on('end', () => resolve(outFile))
+      .on('error', reject)
+      .run()
+  })
+}
+
 /** Process a single video clip: cut + apply speed / volume / mute via FFmpeg */
 async function processVideoClip(clip: MontageClipDefinition): Promise<string> {
   const safeSpeed = Math.max(0.25, Math.min(4.0, clip.speed ?? 1.0))
@@ -631,7 +651,6 @@ async function processVideoClip(clip: MontageClipDefinition): Promise<string> {
   const muted = clip.muted ?? false
   const hasSpeedChange = Math.abs(safeSpeed - 1.0) > 0.001
   const hasVolumeChange = Math.abs(safeVolume - 1.0) > 0.001
-  const needsFilter = hasSpeedChange || hasVolumeChange || muted
 
   // First, cut the clip to trim range
   const cutPath = await cutVideo({
@@ -639,6 +658,17 @@ async function processVideoClip(clip: MontageClipDefinition): Promise<string> {
     startTime: clip.startTime,
     endTime: Math.max(clip.endTime, clip.startTime + 0.1),
   })
+
+  // Check if input clip has audio
+  let hasAudio = false
+  try {
+    const meta = await getVideoMeta(cutPath)
+    hasAudio = meta.streams.some(s => s.codec_type === 'audio')
+  } catch {
+    hasAudio = true
+  }
+
+  const needsFilter = hasSpeedChange || hasVolumeChange || muted || !hasAudio
 
   if (!needsFilter) return cutPath
 
@@ -654,7 +684,7 @@ async function processVideoClip(clip: MontageClipDefinition): Promise<string> {
       videoFilters.push(`setpts=${(1 / safeSpeed).toFixed(6)}*PTS`)
     }
 
-    if (muted) {
+    if (muted || !hasAudio) {
       audioFilters.push('volume=0')
     } else {
       if (hasSpeedChange) {
@@ -667,22 +697,33 @@ async function processVideoClip(clip: MontageClipDefinition): Promise<string> {
 
     const filterParts: string[] = []
     let videoLabel = '[0:v]'
-    let audioLabel = '[0:a]'
+    let audioLabel = hasAudio ? '[0:a]' : '[1:a]'
 
     if (videoFilters.length > 0) {
       filterParts.push(`[0:v]${videoFilters.join(',')}[vout]`)
       videoLabel = '[vout]'
     }
-    if (audioFilters.length > 0) {
-      filterParts.push(`[0:a]${audioFilters.join(',')}[aout]`)
+
+    if (hasAudio) {
+      if (audioFilters.length > 0) {
+        filterParts.push(`[0:a]${audioFilters.join(',')}[aout]`)
+        audioLabel = '[aout]'
+      }
+    } else {
+      filterParts.push(`[1:a]volume=0[aout]`)
       audioLabel = '[aout]'
     }
 
-    const cmd = ffmpeg(cutPath).videoCodec('libx264').audioCodec('aac')
+    const cmd = ffmpeg(cutPath)
+    if (!hasAudio) {
+      cmd.input('anullsrc=r=44100:cl=stereo').inputFormat('lavfi')
+    }
+
+    cmd.videoCodec('libx264').audioCodec('aac')
 
     if (filterParts.length > 0) {
       cmd.complexFilter(filterParts)
-      cmd.outputOptions([`-map ${videoLabel}`, `-map ${audioLabel}`])
+      cmd.outputOptions([`-map ${videoLabel}`, `-map ${audioLabel}`, '-shortest'])
     }
 
     cmd
@@ -705,11 +746,51 @@ export async function mergeClips(
 ): Promise<string> {
   if (!clips.length) throw new Error('No clips provided')
 
-  // Step 1: Process each clip (cut + speed/volume/mute)
+  // Probe metadata of first video to align resolution and fps for any gaps
+  let width = 1280
+  let height = 720
+  let fps = 30
+  try {
+    const meta = await getVideoMeta(clips[0].inputPath)
+    const vStream = meta.streams.find(s => s.codec_type === 'video')
+    if (vStream?.width && vStream?.height) {
+      width = makeEven(vStream.width)
+      height = makeEven(vStream.height)
+    }
+    if (vStream?.r_frame_rate) {
+      const [num, den] = vStream.r_frame_rate.split('/')
+      if (num && den && Number(den) > 0) {
+        fps = Math.round(Number(num) / Number(den)) || 30
+      }
+    }
+  } catch {
+    /* fallback defaults */
+  }
+
+  // Sort clips by timelineStart
+  const sortedClips = [...clips].sort((a, b) => (a.timelineStart ?? 0) - (b.timelineStart ?? 0))
+
+  // Step 1: Process each clip and insert gaps if present
+  let currentTimelineTime = 0
   const processedPaths: string[] = []
-  for (const clip of clips) {
+
+  for (const clip of sortedClips) {
+    const targetStart = clip.timelineStart ?? currentTimelineTime
+    const gap = targetStart - currentTimelineTime
+
+    if (gap > 0.05) {
+      const gapPath = await createGapVideo(gap, width, height, fps)
+      processedPaths.push(gapPath)
+      currentTimelineTime += gap
+    }
+
     const outPath = await processVideoClip(clip)
     processedPaths.push(outPath)
+
+    const clipRawDuration = Math.max(0.1, clip.endTime - clip.startTime)
+    const clipSpeed = Math.max(0.25, Math.min(4.0, clip.speed ?? 1.0))
+    const clipEffectiveDuration = clipRawDuration / clipSpeed
+    currentTimelineTime = Math.max(currentTimelineTime, targetStart + clipEffectiveDuration)
   }
 
   // Step 2: Concatenate all processed clips
@@ -744,11 +825,14 @@ export async function mergeClips(
       const trackVolume = Math.max(0, Math.min(2.0, track.volume ?? 1.0))
 
       // Apply trim if specified
-      if ((track.startTime ?? 0) > 0 || (track.endTime ?? 0) > 0) {
-        const trimStart = track.startTime ?? 0
+      if (typeof track.startTime === 'number' || typeof track.endTime === 'number') {
+        const trimStart = Math.max(0, track.startTime ?? 0)
         const trimEnd = track.endTime ?? 0
         if (trimEnd > trimStart) {
           filters.push(`atrim=start=${trimStart}:end=${trimEnd}`)
+          filters.push('asetpts=PTS-STARTPTS')
+        } else if (trimStart > 0) {
+          filters.push(`atrim=start=${trimStart}`)
           filters.push('asetpts=PTS-STARTPTS')
         }
       }
@@ -768,7 +852,7 @@ export async function mergeClips(
       // Apply offset (delay) if specified
       if ((track.offset ?? 0) > 0) {
         const delayMs = Math.round((track.offset ?? 0) * 1000)
-        filters.push(`adelay=${delayMs}|${delayMs}`)
+        filters.push(`adelay=${delayMs}:all=1`)
       }
 
       const label = `[a${inputIndex}]`
@@ -781,7 +865,7 @@ export async function mergeClips(
     })
 
     const numInputs = audioOutputs.length
-    filterParts.push(`${audioOutputs.join('')}amix=inputs=${numInputs}:duration=first:dropout_transition=2[aout]`)
+    filterParts.push(`${audioOutputs.join('')}amix=inputs=${numInputs}:duration=first:dropout_transition=0[aout]`)
 
     cmd
       .complexFilter(filterParts)

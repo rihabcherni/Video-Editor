@@ -175,7 +175,7 @@ export const mergeVideos = async (filenames: string[]) => {
 }
 
 export const mergeClips = async (params: {
-  clips: { filename: string; startTime: number; endTime: number; speed?: number; volume?: number; muted?: boolean }[]
+  clips: { filename: string; startTime: number; endTime: number; timelineStart?: number; speed?: number; volume?: number; muted?: boolean }[]
   audioTracks?: { filename: string; startTime?: number; endTime?: number; offset?: number; speed?: number; volume?: number; muted?: boolean }[]
 }) => {
   const { data } = await api.post('/merge-clips', params)

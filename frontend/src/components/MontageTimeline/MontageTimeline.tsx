@@ -18,19 +18,19 @@ const TARGET_RULER_MARK_PX = 86
 const RULER_STEPS = [0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600]
 
 const VIDEO_CLIP_THEMES = [
-  { bg: '#d946ef', border: '#a21caf', soft: 'rgba(217,70,239,0.16)' },
-  { bg: '#0ea5e9', border: '#0369a1', soft: 'rgba(14,165,233,0.16)' },
-  { bg: '#22c55e', border: '#15803d', soft: 'rgba(34,197,94,0.16)' },
-  { bg: '#f97316', border: '#c2410c', soft: 'rgba(249,115,22,0.16)' },
-  { bg: '#6366f1', border: '#4338ca', soft: 'rgba(99,102,241,0.16)' },
+  { bg: '#da9de4ff', border: '#a21caf', soft: 'rgba(217,70,239,0.16)' },
+  { bg: '#94d4f1ff', border: '#0369a1', soft: 'rgba(14,165,233,0.16)' },
+  { bg: '#98e9b6ff', border: '#15803d', soft: 'rgba(34,197,94,0.16)' },
+  { bg: '#e6b18bff', border: '#c2410c', soft: 'rgba(249,115,22,0.16)' },
+  { bg: '#a4a5ecff', border: '#4338ca', soft: 'rgba(99,102,241,0.16)' },
   { bg: '#e11d48', border: '#be123c', soft: 'rgba(225,29,72,0.16)' },
 ]
 
 const AUDIO_CLIP_THEMES = [
-  { bg: '#14b8a6', border: '#0f766e', soft: 'rgba(20,184,166,0.16)' },
+  { bg: '#a4f1e8ff', border: '#0f766e', soft: 'rgba(20,184,166,0.16)' },
   { bg: '#06b6d4', border: '#0e7490', soft: 'rgba(6,182,212,0.16)' },
-  { bg: '#84cc16', border: '#4d7c0f', soft: 'rgba(132,204,22,0.16)' },
-  { bg: '#f59e0b', border: '#b45309', soft: 'rgba(245,158,11,0.16)' },
+  { bg: '#ddffaaff', border: '#4d7c0f', soft: 'rgba(132,204,22,0.16)' },
+  { bg: '#f1d19aff', border: '#b45309', soft: 'rgba(245,158,11,0.16)' },
   { bg: '#8b5cf6', border: '#6d28d9', soft: 'rgba(139,92,246,0.16)' },
 ]
 
@@ -679,6 +679,7 @@ export default function MontageTimeline() {
           filename: c.video.filename,
           startTime: c.trimStart,
           endTime: c.trimEnd,
+          timelineStart: c.timelineStart,
           speed: c.speed !== 1 ? c.speed : undefined,
           volume: c.muted ? 0 : (c.volume !== 1 ? c.volume : undefined),
           muted: c.muted || undefined,
@@ -687,9 +688,9 @@ export default function MontageTimeline() {
         const audioTracks = audioClips.length > 0
           ? audioClips.map(a => ({
             filename: a.audio.filename,
-            startTime: a.trimStart > 0 ? a.trimStart : undefined,
-            endTime: a.trimEnd < a.duration ? a.trimEnd : undefined,
-            offset: a.offset > 0 ? a.offset : undefined,
+            startTime: a.trimStart,
+            endTime: a.trimEnd,
+            offset: a.offset,
             speed: a.speed !== 1 ? a.speed : undefined,
             volume: a.muted ? 0 : (a.volume !== 1 ? a.volume : undefined),
             muted: a.muted || undefined,
@@ -1608,7 +1609,7 @@ export default function MontageTimeline() {
                           <img
                             src={clip.video.thumbnail}
                             alt=""
-                            className="absolute inset-0 h-full w-full object-cover opacity-35 mix-blend-luminosity"
+                            className="absolute inset-0 h-full w-full object-cover opacity-45 mix-blend-luminosity"
                             onError={event => {
                               event.currentTarget.style.display = 'none'
                             }}
@@ -1645,7 +1646,7 @@ export default function MontageTimeline() {
                             event.stopPropagation()
                             removeMontageClip(clip.id)
                           }}
-                          className="absolute right-1.5 top-1.5 z-20 flex h-6 w-6 items-center justify-center rounded-full border border-white/30 bg-slate-900/70 p-1 text-white shadow-lg backdrop-blur-sm transition-colors hover:bg-red-500/90"
+                          className="absolute right-2.5 top-1.5 z-20 flex h-6 w-6 items-center justify-center rounded-full border border-white/30 bg-slate-900/70 p-1 text-white shadow-lg backdrop-blur-sm transition-colors hover:bg-red-500/90"
                           aria-label="Remove video clip"
                         >
                           <Trash2 size={11} />
@@ -1729,7 +1730,7 @@ export default function MontageTimeline() {
                               event.stopPropagation()
                               removeMontageAudioClip(clip.id)
                             }}
-                            className="absolute right-1.5 top-1.5 z-20 flex h-6 w-6 items-center justify-center rounded-full border border-white/30 bg-slate-900/70 p-1 text-white shadow-lg backdrop-blur-sm transition-colors hover:bg-red-500/90"
+                            className="absolute right-2.5 top-1.5 z-20 flex h-6 w-6 items-center justify-center rounded-full border border-white/30 bg-slate-900/70 p-1 text-white shadow-lg backdrop-blur-sm transition-colors hover:bg-red-500/90"
                             aria-label="Remove audio clip"
                           >
                             <Trash2 size={11} />
