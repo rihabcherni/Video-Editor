@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AlertCircle, CheckCircle2, Film, GitMerge, GripVertical, Layers, Loader2, Maximize2, Music, Pause, Play, RotateCcw, RotateCw, Scissors, Trash2, Volume2, VolumeX, ZoomIn, ZoomOut} from 'lucide-react'
+import { AlertCircle, CheckCircle2, Film, GitMerge, GripVertical, Layers, Loader2, Maximize2, Music, Pause, Play, RotateCcw, RotateCw, Scissors, Trash2, Volume2, VolumeX, ZoomIn, ZoomOut } from 'lucide-react'
 import { mergeClips } from '../../api/client'
 import { useStore } from '../../store/useStore'
 import type { MontageAudioClip, MontageClip } from '../../store/useStore'
@@ -322,7 +322,7 @@ export default function MontageTimeline() {
       videoEl.playbackRate = clipSpeed
       videoEl.muted = !!clip.muted
       videoEl.volume = clip.muted ? 0 : Math.min(1, Math.max(0, clip.volume ?? 1))
-      
+
       const driftThreshold = shouldPlay ? 0.75 : 0.05
       if (Math.abs(videoEl.currentTime - mediaTime) > driftThreshold) {
         videoEl.currentTime = Math.min(mediaTime, clip.trimEnd)
@@ -351,7 +351,7 @@ export default function MontageTimeline() {
       audioEl.playbackRate = clipSpeed
       audioEl.muted = !!clip.muted
       audioEl.volume = clip.muted ? 0 : Math.min(1, Math.max(0, clip.volume ?? 1))
-      
+
       const driftThreshold = shouldPlay ? 0.75 : 0.05
       if (Math.abs(audioEl.currentTime - mediaTime) > driftThreshold) {
         audioEl.currentTime = mediaTime
@@ -393,7 +393,7 @@ export default function MontageTimeline() {
         audioEl.volume = clip.muted ? 0 : Math.min(1, Math.max(0, clip.volume ?? 1))
       }
     })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeVideoClip, clipAVFingerprint])
 
   useEffect(() => {
@@ -662,17 +662,17 @@ export default function MontageTimeline() {
 
   const handleMerge = useCallback(async () => {
     if (videoClips.length === 0) return
-    
-    
+
+
     setMergeLoading(true)
     setMergeStatus('Preparing timeline clips...')
     setMergeProgress(0)
-    
+
     const MAX_RETRIES = 2
     let retryCount = 0
     let lastError: Error | null = null
     let progressInterval: NodeJS.Timeout | null = null
-    
+
     while (retryCount <= MAX_RETRIES) {
       try {
         const clips = videoClips.map(c => ({
@@ -699,9 +699,9 @@ export default function MontageTimeline() {
         if (retryCount > 0) {
           setMergeStatus(`Retrying merge attempt ${retryCount + 1}/${MAX_RETRIES + 1}...`)
         } else {
-          setMergeStatus('Rendering final montage on server... (this may take several minutes for long videos)')
+          setMergeStatus('Rendering final montage...')
         }
-        
+
         // Start progress simulation
         setMergeProgress(10)
         progressInterval = setInterval(() => {
@@ -710,16 +710,16 @@ export default function MontageTimeline() {
             return prev + Math.random() * 5
           })
         }, 2000)
-        
+
         const result = await mergeClips({ clips, audioTracks })
-        
+
         // Clear progress interval
         if (progressInterval) {
           clearInterval(progressInterval)
           progressInterval = null
         }
         setMergeProgress(100)
-        
+
         setMergedVideo({
           id: createId(),
           title: `Montage (${videoClips.length} clips)`,
@@ -740,13 +740,13 @@ export default function MontageTimeline() {
           progressInterval = null
         }
         setMergeProgress(0)
-        
+
         lastError = err instanceof Error ? err : new Error('Merge failed')
         const errorMessage = lastError.message
-        
+
         // Detect timeout errors - these are worth retrying
         const isTimeoutError = errorMessage.includes('timeout') || errorMessage.includes('504') || errorMessage.includes('Gateway')
-        
+
         if (isTimeoutError && retryCount < MAX_RETRIES) {
           retryCount++
           setMergeStatus(`Timeout detected. Retrying in 3 seconds... (attempt ${retryCount}/${MAX_RETRIES})`)
@@ -765,7 +765,7 @@ export default function MontageTimeline() {
         }
       }
     }
-    
+
     setMergeLoading(false)
   }, [audioClips, clearMontageAudioClips, clearMontageClips, pushActionToast, setMergeLoading, setMergeStatus, setMergedVideo, videoClips])
 
@@ -774,24 +774,24 @@ export default function MontageTimeline() {
       pushActionToast('Select a clip to cut.')
       return
     }
-    
+
     const videoClip = videoClips.find(clip => clip.id === selectedId)
     const audioClip = audioClips.find(clip => clip.id === selectedId)
-    
+
     if (videoClip) {
       const start = clipStart(videoClip)
       const duration = clipDuration(videoClip)
       const end = start + duration
-      
+
       const targetCutTime = (playhead > start + 0.1 && playhead < end - 0.1)
         ? playhead
         : start + (duration / 2)
-      
+
       if (duration < 0.2) {
         pushActionToast('Clip is too short to split.')
         return
       }
-      
+
       splitMontageClip(selectedId, targetCutTime)
       seekPreview(targetCutTime, false)
       pushActionToast('Video clip split at cursor position!')
@@ -799,16 +799,16 @@ export default function MontageTimeline() {
       const start = audioClip.offset
       const duration = clipDuration(audioClip)
       const end = start + duration
-      
+
       const targetCutTime = (playhead > start + 0.1 && playhead < end - 0.1)
         ? playhead
         : start + (duration / 2)
-      
+
       if (duration < 0.2) {
         pushActionToast('Clip is too short to split.')
         return
       }
-      
+
       splitMontageAudioClip(selectedId, targetCutTime)
       seekPreview(targetCutTime, false)
       pushActionToast('Audio clip split at cursor position!')
@@ -914,7 +914,8 @@ export default function MontageTimeline() {
           </div>
         </div>
         <div className="rounded-2xl border border-zinc-200 bg-gradient-to-br from-white to-zinc-50 px-2 py-2 shadow-[0_8px_30px_rgba(15,23,42,0.08)] flex flex-col min-h-0">
-            <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex items-center justify-between gap-2 flex-shrink-0">
+            <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-600 text-white shadow-lg shadow-cyan-500/25">
                 <Layers size={18} />
               </div>
@@ -923,6 +924,28 @@ export default function MontageTimeline() {
                 <p className="text-xs text-zinc-500">{videoClips.length} video · {audioClips.length} audio</p>
               </div>
             </div>
+            {videoClips.length > 0 && (
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={handleMerge}
+                  disabled={mergeLoading || videoClips.length === 0}
+                  className="inline-flex items-center gap-1 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-600 p-2 text-[11px] font-semibold text-white shadow-md shadow-cyan-500/20 transition-all hover:from-cyan-400 hover:to-cyan-500 hover:shadow-cyan-500/30 disabled:cursor-not-allowed disabled:from-zinc-200 disabled:to-zinc-200 disabled:shadow-none disabled:text-zinc-400"
+                >
+                  {mergeLoading ? <Loader2 size={13} className="animate-spin" /> : <GitMerge size={13} />}
+                  Merge
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { clearMontageClips(); clearMontageAudioClips(); setPlayhead(0); setSelectedId(null) }}
+                  className="inline-flex items-center gap-1 rounded-xl border border-zinc-200 bg-white p-2 text-[11px] font-semibold text-zinc-500 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                >
+                  <Trash2 size={13} />
+                  Clear
+                </button>
+              </div>
+            )}
+          </div>
           <div className="mt-2 flex-1 overflow-hidden flex flex-col min-h-0">
             <div className="flex-1 space-y-2 overflow-y-auto pr-1.5 scrollbar-thin scrollbar-thumb-zinc-300 scrollbar-track-transparent min-h-0">
               <div>
@@ -984,7 +1007,7 @@ export default function MontageTimeline() {
                             src={`${withMediaBase(clip.video.url)}#t=${clip.trimStart},${clip.trimEnd}`}
                             className="w-full h-full object-cover transition-transform duration-500 group-hover/preview:scale-105"
                             muted
-                            onMouseEnter={e => e.currentTarget.play().catch(() => {})}
+                            onMouseEnter={e => e.currentTarget.play().catch(() => { })}
                             onMouseLeave={e => {
                               e.currentTarget.pause()
                               e.currentTarget.currentTime = clip.trimStart
@@ -1376,30 +1399,10 @@ export default function MontageTimeline() {
               </div>
             </div>
           </div>
-          {videoClips.length > 0 && (     
-            <div className="flex justify-between gap-2 flex-items mt-1">
-             <button
-              type="button"
-              onClick={handleMerge}
-              disabled={mergeLoading || videoClips.length === 0}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-600 px-3 py-2 text-xs font-semibold text-white shadow-lg shadow-cyan-500/20 transition-all hover:from-cyan-400 hover:to-cyan-500 hover:shadow-cyan-500/30 disabled:cursor-not-allowed disabled:from-zinc-200 disabled:to-zinc-200 disabled:shadow-none disabled:text-zinc-400"
-            >
-              {mergeLoading ? <Loader2 size={14} className="animate-spin" /> : <GitMerge size={14} />}
-              Generate Final Video
-              </button>
-              <button
-                type="button"
-                onClick={() => { clearMontageClips(); clearMontageAudioClips(); setPlayhead(0); setSelectedId(null) }}
-                className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-500 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600"
-              >
-                <Trash2 size={13} />
-                Clear timeline
-              </button>    
-             </div>
-          )}
+
           {mergeStatus && (
-            <div className={`mt-1 flex flex-col gap-2 rounded-xl border px-3 py-2 text-xs ${mergeStatus.startsWith('Error') ? 'border-red-200 bg-red-50 text-red-700' : 'border-cyan-200 bg-cyan-50 text-cyan-700'}`}>
-              <div className="flex items-center gap-2">
+            <div className={`mt-1 flex flex-col gap-1 rounded-xl border p-2 text-[11px] ${mergeStatus.startsWith('Error') ? 'border-red-200 bg-red-50 text-red-700' : 'border-cyan-200 bg-cyan-50 text-cyan-700'}`}>
+              <div className="flex items-center gap-1">
                 {mergeStatus.startsWith('Error') ? <AlertCircle size={14} /> : <Loader2 size={14} className="animate-spin" />}
                 {mergeStatus}
               </div>
@@ -1410,7 +1413,7 @@ export default function MontageTimeline() {
                     <span className="text-[10px] font-mono">{Math.round(mergeProgress)}%</span>
                   </div>
                   <div className="h-1.5 w-full bg-cyan-200 rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className="h-full bg-cyan-600 rounded-full transition-all duration-300 ease-out"
                       style={{ width: `${mergeProgress}%` }}
                     />
