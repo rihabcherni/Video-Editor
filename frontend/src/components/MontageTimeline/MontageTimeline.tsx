@@ -116,33 +116,29 @@ function getInsertedVideoLayout(
 
   const nextActiveTrimStart = activeTrimStart ?? activeClip.trimStart
   const nextActiveTrimEnd = activeTrimEnd ?? activeClip.trimEnd
-  const activeDuration = Math.max(MIN_CLIP_SECONDS, nextActiveTrimEnd - nextActiveTrimStart)
-  const orderedOthers = clips
+  const activeDuration = Math.max(MIN_CLIP_SECONDS, (nextActiveTrimEnd - nextActiveTrimStart) / (activeClip.speed || 1))
+  const activeStart = Math.max(0, desiredStart)
+
+  // Build the list of OTHER clips sorted by their current start position
+  const others = clips
     .filter(clip => clip.id !== activeId)
     .sort((a, b) => clipStart(a) - clipStart(b) || a.order - b.order)
 
-  const desiredCenter = Math.max(0, desiredStart) + activeDuration / 2
-  const insertionIndex = orderedOthers.findIndex(clip => {
-    const center = clipStart(clip) + clipDuration(clip) / 2
-    return desiredCenter < center
-  })
-
-  const orderedClips = [...orderedOthers]
+  // Determine insertion order: insert active clip among others by its desired center
+  const desiredCenter = activeStart + activeDuration / 2
+  const insertionIndex = others.findIndex(clip => clipStart(clip) + clipDuration(clip) / 2 > desiredCenter)
+  const orderedClips = [...others]
   orderedClips.splice(insertionIndex === -1 ? orderedClips.length : insertionIndex, 0, activeClip)
 
+  // Cascade-shift: keep each clip at its preferred position; only push forward if it overlaps the previous
   let cursor = 0
-  return orderedClips.map(clip => {
+  return orderedClips.map((clip, index) => {
     const isActive = clip.id === activeId
     const duration = isActive ? activeDuration : clipDuration(clip)
-    const preferredStart = isActive ? Math.max(0, desiredStart) : clipStart(clip)
-    const timelineStart = Math.max(preferredStart, cursor)
+    const preferred = isActive ? activeStart : clipStart(clip)
+    const timelineStart = Math.max(preferred, cursor)
     cursor = timelineStart + duration
-
-    return {
-      id: clip.id,
-      timelineStart,
-      order: orderedClips.indexOf(clip),
-    }
+    return { id: clip.id, timelineStart, order: index }
   })
 }
 
@@ -158,32 +154,29 @@ function getInsertedAudioLayout(
 
   const nextActiveTrimStart = activeTrimStart ?? activeClip.trimStart
   const nextActiveTrimEnd = activeTrimEnd ?? activeClip.trimEnd
-  const activeDuration = Math.max(MIN_CLIP_SECONDS, nextActiveTrimEnd - nextActiveTrimStart)
-  const orderedOthers = clips
+  const activeDuration = Math.max(MIN_CLIP_SECONDS, (nextActiveTrimEnd - nextActiveTrimStart) / (activeClip.speed || 1))
+  const activeStart = Math.max(0, desiredStart)
+
+  // Build the list of OTHER clips sorted by their current offset
+  const others = clips
     .filter(clip => clip.id !== activeId)
     .sort((a, b) => a.offset - b.offset || a.trimStart - b.trimStart)
 
-  const desiredCenter = Math.max(0, desiredStart) + activeDuration / 2
-  const insertionIndex = orderedOthers.findIndex(clip => {
-    const center = clip.offset + clipDuration(clip) / 2
-    return desiredCenter < center
-  })
-
-  const orderedClips = [...orderedOthers]
+  // Determine insertion order by desired center
+  const desiredCenter = activeStart + activeDuration / 2
+  const insertionIndex = others.findIndex(clip => clip.offset + clipDuration(clip) / 2 > desiredCenter)
+  const orderedClips = [...others]
   orderedClips.splice(insertionIndex === -1 ? orderedClips.length : insertionIndex, 0, activeClip)
 
+  // Cascade-shift: keep each clip at its preferred offset; only push forward if it overlaps
   let cursor = 0
-  return orderedClips.map(clip => {
+  return orderedClips.map((clip, index) => {
     const isActive = clip.id === activeId
     const duration = isActive ? activeDuration : clipDuration(clip)
-    const preferredStart = isActive ? Math.max(0, desiredStart) : clip.offset
-    const offset = Math.max(preferredStart, cursor)
+    const preferred = isActive ? activeStart : clip.offset
+    const offset = Math.max(preferred, cursor)
     cursor = offset + duration
-
-    return {
-      id: clip.id,
-      offset,
-    }
+    return { id: clip.id, offset, order: index }
   })
 }
 
@@ -593,7 +586,7 @@ export default function MontageTimeline() {
       if (drag.kind === 'move') {
         const nextOffset = snapTime(Math.max(0, drag.originalStart + deltaSeconds), snapEdges)
         const layout = getInsertedAudioLayout(audioClips, drag.id, nextOffset)
-        layout.forEach(item => updateMontageAudioClip(item.id, { offset: item.offset }))
+        layout.forEach(item => updateMontageAudioClip(item.id, { offset: item.offset, order: item.order }))
       } else if (drag.kind === 'trim-start') {
         const maxStart = drag.originalTrimEnd - MIN_CLIP_SECONDS
         const nextTrimStart = Math.max(0, Math.min(maxStart, drag.originalTrimStart + deltaSeconds))
@@ -601,6 +594,7 @@ export default function MontageTimeline() {
         const layout = getInsertedAudioLayout(audioClips, drag.id, nextOffset, nextTrimStart, drag.originalTrimEnd)
         layout.forEach(item => updateMontageAudioClip(item.id, {
           offset: item.offset,
+          order: item.order,
           ...(item.id === drag.id ? { trimStart: nextTrimStart, trimEnd: drag.originalTrimEnd } : {}),
         }))
       } else {
@@ -608,6 +602,7 @@ export default function MontageTimeline() {
         const layout = getInsertedAudioLayout(audioClips, drag.id, drag.originalStart, drag.originalTrimStart, nextTrimEnd)
         layout.forEach(item => updateMontageAudioClip(item.id, {
           offset: item.offset,
+          order: item.order,
           ...(item.id === drag.id ? { trimEnd: nextTrimEnd } : {}),
         }))
       }

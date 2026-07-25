@@ -1124,11 +1124,30 @@ export const useStore = create<EditorState>()(persist((set) => ({
       c.id === id ? { ...c, trimStart, trimEnd } : c
     ),
   })),
-  updateMontageClip: (id, updates) => set(state => ({
-    montageClips: state.montageClips.map(c =>
+  updateMontageClip: (id, updates) => set(state => {
+    // Apply the update to the clip (keeps its start position)
+    const updatedClips = state.montageClips.map(c =>
       c.id === id ? { ...c, ...updates } : c
-    ),
-  })),
+    )
+    // Only resolve overlaps when speed or trim changes (which affect duration)
+    if ('speed' in updates || 'trimStart' in updates || 'trimEnd' in updates) {
+      // Sort all clips by their current start position
+      const sorted = [...updatedClips].sort(
+        (a, b) => (a.timelineStart ?? a.order ?? 0) - (b.timelineStart ?? b.order ?? 0)
+      )
+      // Cascade-shift: for each clip, if it overlaps the previous one, push it forward
+      let cursor = 0
+      const resolved = sorted.map((clip, index) => {
+        const start = clip.timelineStart ?? clip.order ?? 0
+        const duration = Math.max(0, clip.trimEnd - clip.trimStart) / (clip.speed || 1)
+        const resolvedStart = Math.max(start, cursor)
+        cursor = resolvedStart + duration
+        return { ...clip, order: index, timelineStart: resolvedStart }
+      })
+      return { montageClips: resolved }
+    }
+    return { montageClips: updatedClips }
+  }),
   splitMontageClip: (id, splitTime) => set(state => {
     const snapshot = {
       montageClips: JSON.parse(JSON.stringify(state.montageClips)),
@@ -1253,11 +1272,30 @@ export const useStore = create<EditorState>()(persist((set) => ({
       montageAudioClips: reordered,
     }
   }),
-  updateMontageAudioClip: (id, updates) => set(state => ({
-    montageAudioClips: state.montageAudioClips.map(c =>
+  updateMontageAudioClip: (id, updates) => set(state => {
+    // Apply the update to the clip (keeps its start position)
+    const updatedClips = state.montageAudioClips.map(c =>
       c.id === id ? { ...c, ...updates } : c
-    ),
-  })),
+    )
+    // Only resolve overlaps when speed or trim changes (which affect duration)
+    if ('speed' in updates || 'trimStart' in updates || 'trimEnd' in updates) {
+      // Sort all clips by their current offset position
+      const sorted = [...updatedClips].sort(
+        (a, b) => (a.offset ?? a.order ?? 0) - (b.offset ?? b.order ?? 0)
+      )
+      // Cascade-shift: for each clip, if it overlaps the previous one, push it forward
+      let cursor = 0
+      const resolved = sorted.map((clip, index) => {
+        const start = clip.offset ?? 0
+        const duration = Math.max(0, clip.trimEnd - clip.trimStart) / (clip.speed || 1)
+        const resolvedOffset = Math.max(start, cursor)
+        cursor = resolvedOffset + duration
+        return { ...clip, order: index, offset: resolvedOffset }
+      })
+      return { montageAudioClips: resolved }
+    }
+    return { montageAudioClips: updatedClips }
+  }),
   splitMontageAudioClip: (id, splitTime) => set(state => {
     const snapshot = {
       montageClips: JSON.parse(JSON.stringify(state.montageClips)),
