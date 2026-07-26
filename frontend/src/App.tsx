@@ -12,16 +12,16 @@ import BorderEditor from './components/BorderEditor/BorderEditor'
 import CropEditor from './components/CropEditor/CropEditor'
 import MontageTimeline from './components/MontageTimeline/MontageTimeline'
 
-type Tab = 'ratio' | 'import' | 'montage' | 'crop' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
+type Tab = 'ratio' | 'import' | 'montage' | 'crop' | 'border' | 'subtitles' | 'logo' | 'title' | 'export'
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode; requiresVideo?: boolean }[] = [
   { id: 'ratio', label: 'Aspect ratio', icon: <Monitor size={15} /> },
   { id: 'import', label: 'Import', icon: <Upload size={15} /> },
   { id: 'montage', label: 'Montage', icon: <Layers size={15} /> },
   { id: 'crop', label: 'Crop', icon: <CropIcon size={15} />, requiresVideo: true },
+  { id: 'border', label: 'Border', icon: <Square size={15} />, requiresVideo: true },
   { id: 'subtitles', label: 'Subtitles', icon: <FileText size={15} />, requiresVideo: true },
   { id: 'logo', label: 'Logo', icon: <ImageIcon size={15} />, requiresVideo: true },
-  { id: 'border', label: 'Border', icon: <Square size={15} />, requiresVideo: true },
   { id: 'title', label: 'Title', icon: <Type size={15} />, requiresVideo: true },
   { id: 'export', label: 'Export', icon: <Download size={15} />, requiresVideo: true },
 ]
@@ -457,10 +457,10 @@ export default function App() {
               {activeTab === 'ratio' && <AspectRatioPanel />}
               {activeTab === 'import' && <ImportPanel />}
               {activeTab === 'crop' && <CropEditor />}
+              {activeTab === 'border' && <BorderEditor />}
               {activeTab === 'subtitles' && <SubtitleEditor />}
               {activeTab === 'logo' && <LogoEditor />}
               {activeTab === 'title' && <TitleEditor />}
-              {activeTab === 'border' && <BorderEditor />}
               {activeTab === 'export' && <ExportPanel />}
             </div>
           </div>
