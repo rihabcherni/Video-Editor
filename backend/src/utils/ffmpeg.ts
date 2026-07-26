@@ -696,8 +696,8 @@ async function processVideoClip(clip: MontageClipDefinition): Promise<string> {
     }
 
     const filterParts: string[] = []
-    let videoLabel = '[0:v]'
-    let audioLabel = hasAudio ? '[0:a]' : '[1:a]'
+    let videoLabel = '0:v'
+    let audioLabel = hasAudio ? '0:a' : '[aout]'
 
     if (videoFilters.length > 0) {
       filterParts.push(`[0:v]${videoFilters.join(',')}[vout]`)

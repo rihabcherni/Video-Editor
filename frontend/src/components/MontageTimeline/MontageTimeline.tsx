@@ -209,7 +209,7 @@ export default function MontageTimeline() {
     removeMontageAudioClip, updateMontageAudioClip, reorderMontageAudioClips,
     clearMontageClips, clearMontageAudioClips,
     mergeLoading, setMergeLoading, mergeStatus, setMergeStatus,
-    setMergedVideo, pushActionToast,
+    setMergedVideo, pushActionToast, setActiveTab,
     splitMontageClip, splitMontageAudioClip,
     undoTimeline, redoTimeline, canUndoTimeline, canRedoTimeline, pushTimelineSnapshot,
   } = useStore()
@@ -733,6 +733,7 @@ export default function MontageTimeline() {
         setMergeStatus(null)
         setMergeProgress(0)
         pushActionToast(`Video generated! You can now add borders, titles, crop, and more.`)
+        setActiveTab('crop')
         return // Success, exit the retry loop
       } catch (err: unknown) {
         // Clear progress interval on error

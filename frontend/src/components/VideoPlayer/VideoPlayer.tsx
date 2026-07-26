@@ -552,7 +552,7 @@ export default function VideoPlayer() {
             )}
           </div>
         )}
-        {activeTab === 'title' && (
+        {previewTitleText.trim() && (
           <div className="absolute inset-0" style={{ pointerEvents: 'none' }}>
             <div
               onMouseDown={() => {
@@ -560,7 +560,7 @@ export default function VideoPlayer() {
                 draggingRef.current = true
               }}
               className={`absolute rounded-md select-none ${activeTab === 'title' ? (previewLoading || isApplyingTitle ? 'cursor-not-allowed' : 'cursor-move') : ''
-                } ${(previewTitleText.trim() ? '' : 'opacity-60 italic')}`}
+                }`}
               style={{
                 left: `${titleDraftRect.left + (constrainedPreviewTitleX * titleDraftRect.width)}px`,
                 top: `${titleDraftRect.top + (constrainedPreviewTitleY * titleDraftRect.height)}px`,

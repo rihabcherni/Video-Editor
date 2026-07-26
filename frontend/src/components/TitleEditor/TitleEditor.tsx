@@ -41,7 +41,7 @@ export default function TitleEditor() {
     titleDraftX, titleDraftY, setTitleDraftXY,
     isApplyingTitle, setIsApplyingTitle,
     previewLoading,
-    setPendingPreviewAction,
+    pushActionToast,
   } = useStore()
 
   const [draftText, setDraftText] = useState(titleDraftText || titleText)
@@ -95,7 +95,7 @@ export default function TitleEditor() {
   const applyChanges = () => {
     if (isApplyingTitle || previewLoading) return
     setIsApplyingTitle(true)
-    setPendingPreviewAction('Title applied successfully.')
+    pushActionToast('Title applied successfully.')
     setTitleText(draftText)
     setTitleDraftText(draftText)
     setTitleFont(draftFont)

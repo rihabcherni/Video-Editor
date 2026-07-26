@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { Square, CheckCircle2, Check } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 
@@ -23,40 +23,40 @@ export default function BorderEditor() {
     borderWidth, setBorderWidth,
     borderHeight, setBorderHeight,
     borderColor, setBorderColor,
-    setPendingPreviewAction,
+    borderDraftEnabled, setBorderDraftEnabled,
+    borderDraftWidth, setBorderDraftWidth,
+    borderDraftHeight, setBorderDraftHeight,
+    borderDraftColor, setBorderDraftColor,
+    pushActionToast,
   } = useStore()
 
-  const [draftEnabled, setDraftEnabled] = useState(borderEnabled)
-  const [draftWidth, setDraftWidth] = useState(borderWidth)
-  const [draftHeight, setDraftHeight] = useState(borderHeight)
-  const [draftColor, setDraftColor] = useState(borderColor)
-
+  // Sync draft store from applied state when applied state changes (e.g. on reset)
   useEffect(() => {
-    setDraftEnabled(borderEnabled)
-    setDraftWidth(borderWidth)
-    setDraftHeight(borderHeight)
-    setDraftColor(borderColor)
-  }, [borderEnabled, borderWidth, borderHeight, borderColor])
+    setBorderDraftEnabled(borderEnabled)
+    setBorderDraftWidth(borderWidth)
+    setBorderDraftHeight(borderHeight)
+    setBorderDraftColor(borderColor)
+  }, [borderEnabled, borderWidth, borderHeight, borderColor, setBorderDraftEnabled, setBorderDraftWidth, setBorderDraftHeight, setBorderDraftColor])
 
   const hasChanges =
-    draftEnabled !== borderEnabled ||
-    draftWidth !== borderWidth ||
-    draftHeight !== borderHeight ||
-    draftColor !== borderColor
+    borderDraftEnabled !== borderEnabled ||
+    borderDraftWidth !== borderWidth ||
+    borderDraftHeight !== borderHeight ||
+    borderDraftColor !== borderColor
 
   const applyChanges = () => {
-    setPendingPreviewAction('Border applied successfully.')
-    setBorderEnabled(draftEnabled)
-    setBorderWidth(draftWidth)
-    setBorderHeight(draftHeight)
-    setBorderColor(draftColor)
+    pushActionToast('Border applied successfully.')
+    setBorderEnabled(borderDraftEnabled)
+    setBorderWidth(borderDraftWidth)
+    setBorderHeight(borderDraftHeight)
+    setBorderColor(borderDraftColor)
   }
 
   const resetDraft = () => {
-    setDraftEnabled(borderEnabled)
-    setDraftWidth(borderWidth)
-    setDraftHeight(borderHeight)
-    setDraftColor(borderColor)
+    setBorderDraftEnabled(borderEnabled)
+    setBorderDraftWidth(borderWidth)
+    setBorderDraftHeight(borderHeight)
+    setBorderDraftColor(borderColor)
   }
 
   return (
@@ -71,9 +71,9 @@ export default function BorderEditor() {
           <input
             id="border-enabled"
             type="checkbox"
-            checked={draftEnabled}
+            checked={borderDraftEnabled}
             onChange={e => {
-              setDraftEnabled(e.target.checked)
+              setBorderDraftEnabled(e.target.checked)
             }}
             className="accent-cyan-600"
           />
@@ -83,10 +83,10 @@ export default function BorderEditor() {
 
         {/* Border position selection removed as requested */}
 
-        <div className={`space-y-2 ${!draftEnabled ? 'opacity-50' : ''}`}>
+        <div className={`space-y-2 ${!borderDraftEnabled ? 'opacity-50' : ''}`}>
           <div className="flex items-center justify-between text-xs text-zinc-500">
             <span>Border width</span>
-            <span className="font-mono">{draftWidth}px</span>
+            <span className="font-mono">{borderDraftWidth}px</span>
           </div>
           <input
             aria-label="Border width"
@@ -94,20 +94,20 @@ export default function BorderEditor() {
             min={0}
             max={300}
             step={1}
-            value={draftWidth}
+            value={borderDraftWidth}
             onChange={e => {
               const val = Number(e.target.value)
-              setDraftWidth(val)
+              setBorderDraftWidth(val)
             }}
-            disabled={!draftEnabled}
+            disabled={!borderDraftEnabled}
             className="w-full accent-cyan-600 h-1 disabled:opacity-50"
           />
         </div>
 
-        <div className={`space-y-2 ${!draftEnabled ? 'opacity-50' : ''}`}>
+        <div className={`space-y-2 ${!borderDraftEnabled ? 'opacity-50' : ''}`}>
           <div className="flex items-center justify-between text-xs text-zinc-500">
             <span>Border height</span>
-            <span className="font-mono">{draftHeight}px</span>
+            <span className="font-mono">{borderDraftHeight}px</span>
           </div>
           <input
             aria-label="Border height"
@@ -115,37 +115,37 @@ export default function BorderEditor() {
             min={0}
             max={300}
             step={1}
-            value={draftHeight}
+            value={borderDraftHeight}
             onChange={e => {
               const val = Number(e.target.value)
-              setDraftHeight(val)
+              setBorderDraftHeight(val)
             }}
-            disabled={!draftEnabled}
+            disabled={!borderDraftEnabled}
             className="w-full accent-cyan-600 h-1 disabled:opacity-50"
           />
         </div>
 
-        <div className={`space-y-2 ${!draftEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+        <div className={`space-y-2 ${!borderDraftEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
           <div className="flex justify-between items-center text-xs text-zinc-500 mb-1">
             <span>Border color</span>
             <span className="font-mono text-[10px] uppercase">
-              {PRINCIPAL_COLORS.find(c => c.hex.toLowerCase() === draftColor.toLowerCase())?.name || draftColor}
+              {PRINCIPAL_COLORS.find(c => c.hex.toLowerCase() === borderDraftColor.toLowerCase())?.name || borderDraftColor}
             </span>
           </div>
           <div className="grid grid-cols-6 gap-2">
             {PRINCIPAL_COLORS.map(color => {
-              const isSelected = draftColor.toLowerCase() === color.hex.toLowerCase()
+              const isSelected = borderDraftColor.toLowerCase() === color.hex.toLowerCase()
               return (
                 <button
                   key={color.hex}
                   type="button"
                   title={color.name}
                   onClick={() => {
-                    if (draftEnabled) {
-                      setDraftColor(color.hex)
+                    if (borderDraftEnabled) {
+                      setBorderDraftColor(color.hex)
                     }
                   }}
-                  disabled={!draftEnabled}
+                  disabled={!borderDraftEnabled}
                   className={`relative w-8 h-8 rounded-full border transition-all flex items-center justify-center focus:outline-none ${
                     color.hex === '#ffffff' ? 'border-zinc-300' : 'border-transparent'
                   } ${

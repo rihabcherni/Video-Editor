@@ -27,7 +27,7 @@ function getSubtitleSignature(entries: SubtitleEntry[], style: { size: number; c
 
 export default function SubtitleEditor() {
   const { video, trimStart, trimEnd, subtitles, subtitleFilename, setSubtitles, setSubtitleFilename, subtitleStyle,
-    setSubtitleStyle, appliedSubtitleStyle, setAppliedSubtitleStyle, subtitleAppliedSignature, setSubtitleAppliedSignature, setPendingPreviewAction } = useStore()
+    setSubtitleStyle, appliedSubtitleStyle, setAppliedSubtitleStyle, subtitleAppliedSignature, setSubtitleAppliedSignature, pushActionToast } = useStore()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [autoLoading, setAutoLoading] = useState(false)
@@ -76,7 +76,7 @@ export default function SubtitleEditor() {
     setError(null)
     try {
       const result = await createSubtitles(subtitles)
-      setPendingPreviewAction('Subtitles applied successfully.')
+      pushActionToast('Subtitles applied successfully.')
       setSubtitleFilename(result.filename)
       setAppliedSubtitleStyle(subtitleStyle)
       setSubtitleAppliedSignature(currentSignature)
@@ -127,7 +127,7 @@ export default function SubtitleEditor() {
   const handleApply = async () => {
     if (subtitles.length === 0) return
     if (pendingSubtitleFilename) {
-      setPendingPreviewAction('Subtitles applied successfully.')
+      pushActionToast('Subtitles applied successfully.')
       setSubtitleFilename(pendingSubtitleFilename)
       setAppliedSubtitleStyle(subtitleStyle)
       setSubtitleAppliedSignature(currentSignature)

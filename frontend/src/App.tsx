@@ -76,7 +76,7 @@ async function doesLocalResourceExist(url: string) {
 }
 
 export default function App() {
-  const { video, activeTab, setActiveTab, reset, trimStart, trimEnd, segments, audioTrack, audioDuration, audioApplied, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd, appliedAudioOffset, subtitles, subtitleFilename, appliedSubtitleStyle, logoImage, logoSize, logoX, logoY, titleText, titleFont, titleSize, titleColor, titleBgColor, titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleLineSpacing, titleAlign, titleX, titleY, titleRenderLayout, borderEnabled, borderWidth, borderHeight, borderColor, cropEnabled, crop, exportAspectRatio, videoSourceWidth, videoSourceHeight, processedUrl, setProcessedUrl, previewLoading, setPreviewLoading, pendingPreviewAction, setPendingPreviewAction, actionToasts, actionHistory, pushActionToast, removeActionToast, montageClips, montageAudioClips} = useStore()
+  const { video, activeTab, setActiveTab, reset, trimStart, trimEnd, segments, audioTrack, audioDuration, audioApplied, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd, appliedAudioOffset, subtitles, subtitleFilename, appliedSubtitleStyle, logoImage, logoSize, logoX, logoY, titleText, titleFont, titleSize, titleColor, titleBgColor, titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleLineSpacing, titleAlign, titleX, titleY, titleRenderLayout, borderEnabled, borderWidth, borderHeight, borderColor, borderDraftEnabled, borderDraftWidth, borderDraftHeight, borderDraftColor, setBorderEnabled, setBorderWidth, setBorderHeight, setBorderColor, cropEnabled, crop, exportAspectRatio, videoSourceWidth, videoSourceHeight, processedUrl, setProcessedUrl, previewLoading, setPreviewLoading, pendingPreviewAction, setPendingPreviewAction, actionToasts, actionHistory, pushActionToast, removeActionToast, montageClips, montageAudioClips} = useStore()
   const [previewError, setPreviewError] = useState<string | null>(null)
   const [actionsOpen, setActionsOpen] = useState(false)
   const [lastSeenActionCount, setLastSeenActionCount] = useState(0)
@@ -167,6 +167,26 @@ export default function App() {
       cancelled = true
     }
   }, [audioTrack?.url, logoImage?.url, processedUrl, reset, setProcessedUrl, video, video?.url])
+
+  // Auto-apply border draft when navigating away from the border tab
+  const prevActiveTabRef = useRef<string>(activeTab)
+  useEffect(() => {
+    const prev = prevActiveTabRef.current
+    prevActiveTabRef.current = activeTab
+    if (prev === 'border' && activeTab !== 'border') {
+      if (
+        borderDraftEnabled !== borderEnabled ||
+        borderDraftWidth !== borderWidth ||
+        borderDraftHeight !== borderHeight ||
+        borderDraftColor !== borderColor
+      ) {
+        setBorderEnabled(borderDraftEnabled)
+        setBorderWidth(borderDraftWidth)
+        setBorderHeight(borderDraftHeight)
+        setBorderColor(borderDraftColor)
+      }
+    }
+  }, [activeTab, borderDraftEnabled, borderDraftWidth, borderDraftHeight, borderDraftColor, borderEnabled, borderWidth, borderHeight, borderColor, setBorderEnabled, setBorderWidth, setBorderHeight, setBorderColor])
 
   const handlePreview = useCallback(async () => {
     if (!video) return
@@ -359,20 +379,11 @@ export default function App() {
     })
 
     if (sig === lastPreviewSig.current) return
-    pendingSig.current = sig
+    lastPreviewSig.current = sig
 
-    if (debounceRef.current) window.clearTimeout(debounceRef.current)
-    debounceRef.current = window.setTimeout(() => {
-      if (previewLoading) return
-      if (titleText.trim() && !resolvedTitleRenderLayoutKey) return
-      if (pendingSig.current && pendingSig.current !== lastPreviewSig.current) {
-        lastPreviewSig.current = pendingSig.current
-        handlePreview()
-      }
-    }, 1000)
-
-    return () => {
-      if (debounceRef.current) window.clearTimeout(debounceRef.current)
+    // When edits change, clear pre-rendered processedUrl so the player immediately displays instant live overlays
+    if (processedUrl) {
+      setProcessedUrl(null)
     }
   }, [
     video,
@@ -408,27 +419,13 @@ export default function App() {
     titleAlign,
     titleX,
     titleY,
-    resolvedTitleRenderLayoutKey,
     borderEnabled,
     borderWidth,
     borderHeight,
     borderColor,
-    pendingPreviewAction,
-    handlePreview,
-    previewLoading,
     processedUrl,
     setProcessedUrl,
   ])
-
-  useEffect(() => {
-    if (!video) return
-    if (previewLoading) return
-    if (titleText.trim() && !resolvedTitleRenderLayoutKey) return
-    if (pendingSig.current && pendingSig.current !== lastPreviewSig.current) {
-      lastPreviewSig.current = pendingSig.current
-      handlePreview()
-    }
-  }, [handlePreview, previewLoading, resolvedTitleRenderLayoutKey, titleText, video])
 
   const appName = import.meta.env.VITE_APP_NAME || 'Video Editor'
   const recentActions = actionHistory.slice(-6).reverse()
@@ -543,7 +540,7 @@ export default function App() {
           <div className="w-full lg:w-40 flex-shrink-0 lg:sticky lg:top-[64px]">
             <nav className="bg-white rounded-2xl p-1.5 border border-zinc-200 shadow-sm">
               {TABS.map(tab => {
-                const disabled = tab.requiresVideo && !video
+                const disabled = video ? (tab.id === 'import' || tab.id === 'montage') : tab.requiresVideo
                 const active = activeTab === tab.id
                 const completed = !!completedTabs[tab.id]
                 return (
@@ -610,27 +607,7 @@ export default function App() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPendingPreviewAction('Preview updated successfully.')
-                          void handlePreview()
-                        }}
-                        disabled={previewLoading}
-                        className="px-2 py-2 rounded-lg text-[11px] font-medium bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white transition-colors"
-                      >
-                        {previewLoading ? 'Generating preview...' : 'Preview changes'}
-                      </button>
-                      {processedUrl && (
-                        <button
-                          onClick={() => setProcessedUrl(null)}
-                          className="px-2 py-2 rounded-lg text-[11px] font-medium bg-zinc-100 hover:bg-zinc-200 text-zinc-700 transition-colors"
-                        >
-                          Show original
-                        </button>
-                      )}
-                    </div>
+
                   </div>
                   <div className="bg-white rounded-2xl border border-zinc-200 p-2">
                     <VideoPlayer />
