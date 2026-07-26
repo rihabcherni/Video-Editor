@@ -73,6 +73,15 @@ export default function SubtitleEditor() {
     setPendingSubtitleFilename(null)
   }
 
+  const handleClearAll = () => {
+    setSubtitles([])
+    setSubtitleFilename(null)
+    setPendingSubtitleFilename(null)
+    setAppliedSubtitleStyle(null)
+    setSubtitleAppliedSignature(null)
+    pushActionToast('All subtitles cleared.')
+  }
+
   const startProgressTimer = () => {
     setSubtitleProgress(10)
     const interval = setInterval(() => {
@@ -424,8 +433,22 @@ export default function SubtitleEditor() {
           <p className="text-sm">No subtitles yet. Add an entry or upload a .srt file.</p>
         </div>
       ) : (
-        <div className="space-y-2 max-h-[190px] overflow-y-auto">
-          {subtitles.map((entry, i) => (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between px-1">
+            <span className="text-xs font-semibold text-zinc-700">
+              Subtitle Entries ({subtitles.length})
+            </span>
+            <button
+              type="button"
+              onClick={handleClearAll}
+              className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200/80 rounded-lg transition-colors"
+            >
+              <Trash2 size={13} />
+              Clear all
+            </button>
+          </div>
+          <div className="space-y-2 max-h-[190px] overflow-y-auto pr-1">
+            {subtitles.map((entry, i) => (
             <div key={i} className="bg-zinc-50 rounded-xl px-2 py-1 space-y-1 border border-zinc-200">
               <div className="flex items-center gap-2">
                 <span className="text-xs text-zinc-500 font-mono w-4">{entry.index}</span>
@@ -456,6 +479,7 @@ export default function SubtitleEditor() {
               />
             </div>
           ))}
+        </div>
         </div>
       )}
 
