@@ -74,17 +74,17 @@ export async function generateSrtWithWhisper(params: {
     throw new Error(details ? `Failed to extract audio for subtitles: ${details}` : 'Failed to extract audio for subtitles')
   }
 
+  const targetLanguage = language && language !== 'auto' ? language : 'fr'
+
   const args = [
     scriptPath,
     wavPath,
     tempSrtPath,
     modelName,
-    language || 'auto',
+    targetLanguage,
+    '--language', targetLanguage,
   ]
 
-  if (language && language !== 'auto') {
-    args.push('--language', language)
-  }
   if (fast) {
     args.push('--fast')
   }

@@ -34,7 +34,7 @@ export default function SubtitleEditor() {
   const [error, setError] = useState<string | null>(null)
   const [autoLoading, setAutoLoading] = useState(false)
   const [uploadLoading, setUploadLoading] = useState(false)
-  const [autoLang, setAutoLang] = useState('auto')
+  const [autoLang, setAutoLang] = useState('fr')
   const [autoModel, setAutoModel] = useState<'tiny' | 'base' | 'small' | 'medium' | 'large' | 'large-v2' | 'large-v3' | 'large-v3-turbo'>('small')
   const [autoFast, setAutoFast] = useState(true)
   const [activeMode, setActiveMode] = useState<'manual' | 'import' | 'ai'>('manual')
@@ -148,7 +148,7 @@ export default function SubtitleEditor() {
     try {
       const result = await autoSubtitles({
         videoFilename: video.filename,
-        language: autoLang === 'auto' ? undefined : autoLang,
+        language: autoLang,
         model: autoModel,
         startTime: hasTrim ? trimStart : undefined,
         endTime: hasTrim ? trimEnd : undefined,
@@ -359,7 +359,6 @@ export default function SubtitleEditor() {
                 onChange={e => setAutoLang(e.target.value)}
                 className="mt-1 w-full bg-white border border-zinc-200 rounded-lg px-2 py-1 text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-cyan-600"
               >
-                <option value="auto">Auto detect</option>
                 <option value="fr">French</option>
                 <option value="en">English</option>
                 <option value="ar">Arabic</option>

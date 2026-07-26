@@ -18,7 +18,7 @@ def main():
     parser.add_argument("input", help="Input audio file")
     parser.add_argument("output", help="Output .srt file")
     parser.add_argument("model", nargs="?", default="small", help="Whisper model name")
-    parser.add_argument("language", nargs="?", default="auto", help="Language code or 'auto'")
+    parser.add_argument("language", nargs="?", default="fr", help="Language code")
     parser.add_argument("--language", dest="language_flag", help="Language code override")
     parser.add_argument("--fast", action="store_true", help="Faster but less accurate settings")
     parser.add_argument("--beam-size", type=int, default=None, help="Beam size")
@@ -29,7 +29,7 @@ def main():
     audio_file = args.input
     srt_file = args.output
     model_name = args.model
-    language = args.language_flag or args.language
+    language = args.language_flag or args.language or "fr"
 
     device = os.environ.get("WHISPER_FASTER_DEVICE", "cpu")
     compute_type = os.environ.get("WHISPER_FASTER_COMPUTE_TYPE", "int8")
@@ -49,23 +49,14 @@ def main():
         best_of = args.best_of if args.best_of is not None else 5
         vad_filter = args.vad
 
-    if language and language != "auto":
-        segments, _info = model.transcribe(
-            audio_file,
-            task="transcribe",
-            language=language,
-            beam_size=beam_size,
-            best_of=best_of,
-            vad_filter=vad_filter,
-        )
-    else:
-        segments, _info = model.transcribe(
-            audio_file,
-            task="transcribe",
-            beam_size=beam_size,
-            best_of=best_of,
-            vad_filter=vad_filter,
-        )
+    segments, _info = model.transcribe(
+        audio_file,
+        task="transcribe",
+        language=language,
+        beam_size=beam_size,
+        best_of=best_of,
+        vad_filter=vad_filter,
+    )
 
     with open(srt_file, "w", encoding="utf-8") as f:
         for i, segment in enumerate(segments, start=1):
