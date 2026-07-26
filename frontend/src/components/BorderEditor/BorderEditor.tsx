@@ -1,21 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Square, CheckCircle2, Check } from 'lucide-react'
+import { Square, CheckCircle2 } from 'lucide-react'
 import { useStore } from '../../store/useStore'
-
-const PRINCIPAL_COLORS = [
-  { hex: '#ffffff', name: 'White', darkCheck: true },
-  { hex: '#000000', name: 'Black', darkCheck: false },
-  { hex: '#EF4444', name: 'Red', darkCheck: false },
-  { hex: '#F97316', name: 'Orange', darkCheck: false },
-  { hex: '#FBBF24', name: 'Yellow', darkCheck: true },
-  { hex: '#10B981', name: 'Green', darkCheck: false },
-  { hex: '#06B6D4', name: 'Cyan', darkCheck: false },
-  { hex: '#3B82F6', name: 'Blue', darkCheck: false },
-  { hex: '#6366F1', name: 'Indigo', darkCheck: false },
-  { hex: '#8B5CF6', name: 'Purple', darkCheck: false },
-  { hex: '#EC4899', name: 'Pink', darkCheck: false },
-  { hex: '#6B7280', name: 'Gray', darkCheck: false },
-]
+import ColorPicker from '../common/ColorPicker'
 
 export default function BorderEditor() {
   const {
@@ -133,46 +119,14 @@ export default function BorderEditor() {
           />
         </div>
 
-        <div className={`space-y-2 ${!borderDraftEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
-          <div className="flex justify-between items-center text-xs text-zinc-500 mb-1">
-            <span>Border color</span>
-            <span className="font-mono text-[10px] uppercase">
-              {PRINCIPAL_COLORS.find(c => c.hex.toLowerCase() === borderDraftColor.toLowerCase())?.name || borderDraftColor}
-            </span>
-          </div>
-          <div className="grid grid-cols-6 gap-2">
-            {PRINCIPAL_COLORS.map(color => {
-              const isSelected = borderDraftColor.toLowerCase() === color.hex.toLowerCase()
-              return (
-                <button
-                  key={color.hex}
-                  type="button"
-                  title={color.name}
-                  onClick={() => {
-                    if (borderDraftEnabled) {
-                      setBorderDraftColor(color.hex)
-                    }
-                  }}
-                  disabled={!borderDraftEnabled}
-                  className={`relative w-8 h-8 rounded-full border transition-all flex items-center justify-center focus:outline-none ${
-                    color.hex === '#ffffff' ? 'border-zinc-300' : 'border-transparent'
-                  } ${
-                    isSelected
-                      ? 'ring-2 ring-offset-2 ring-cyan-600 scale-105'
-                      : 'hover:scale-105'
-                  }`}
-                  style={{ backgroundColor: color.hex }}
-                >
-                  {isSelected && (
-                    <Check
-                      size={14}
-                      className={color.darkCheck ? 'text-zinc-900' : 'text-white'}
-                    />
-                  )}
-                </button>
-              )
-            })}
-          </div>
+        <div className={`${!borderDraftEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+          <ColorPicker
+            label="Border color"
+            value={borderDraftColor}
+            onChange={setBorderDraftColor}
+            allowTransparent={false}
+            disabled={!borderDraftEnabled}
+          />
         </div>
       </div>
 

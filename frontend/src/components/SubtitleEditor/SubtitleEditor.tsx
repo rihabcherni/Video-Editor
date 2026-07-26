@@ -3,6 +3,7 @@ import { ArrowRight, Plus, Trash2, Upload, FileText, Loader2 } from 'lucide-reac
 import { autoSubtitles, createSubtitles, getApiErrorMessage, uploadSubtitle } from '../../api/client'
 import { useStore } from '../../store/useStore'
 import { SubtitleEntry } from '../../api/client'
+import ColorPicker from '../common/ColorPicker'
 
 function secondsToSRT(s: number): string {
   const h = Math.floor(s / 3600)
@@ -224,39 +225,31 @@ export default function SubtitleEditor() {
             />
           </div>
         </div>
-      )}      <div className="bg-zinc-50 rounded-xl p-2 border border-zinc-200 space-y-1">
+      )}      <div className="bg-zinc-50 rounded-xl p-2 border border-zinc-200 space-y-3">
         <h3 className="text-sm font-medium text-zinc-700">Style</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <label className="text-[11px] text-zinc-500">
-            Size
-            <input
-              type="number"
-              min={12}
-              max={60}
-              value={subtitleStyle.size}
-              onChange={e => setSubtitleStyle({ ...subtitleStyle, size: Number(e.target.value) || 22 })}
-              className="mt-1 w-full bg-white border border-zinc-200 rounded-lg px-2 py-1 text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-cyan-600"
-            />
-          </label>
-          <label className="text-[11px] text-zinc-500">
-            Color
-            <input
-              type="color"
-              value={subtitleStyle.color}
-              onChange={e => setSubtitleStyle({ ...subtitleStyle, color: e.target.value })}
-              className="mt-1 w-full h-7 bg-white border border-zinc-200 rounded-lg p-0.5"
-            />
-          </label>
-          <label className="text-[11px] text-zinc-500">
-            Background
-            <input
-              type="color"
-              value={subtitleStyle.backgroundColor}
-              onChange={e => setSubtitleStyle({ ...subtitleStyle, backgroundColor: e.target.value })}
-              className="mt-1 w-full h-7 bg-white border border-zinc-200 rounded-lg p-0.5"
-            />
-          </label>
+        <div className="flex items-center gap-3">
+          <label className="text-[11px] text-zinc-500 w-8 shrink-0">Size</label>
+          <input
+            type="number"
+            min={12}
+            max={60}
+            value={subtitleStyle.size}
+            onChange={e => setSubtitleStyle({ ...subtitleStyle, size: Number(e.target.value) || 22 })}
+            className="w-20 bg-white border border-zinc-200 rounded-lg px-2 py-1 text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-cyan-600"
+          />
         </div>
+        <ColorPicker
+          label="Text color"
+          value={subtitleStyle.color}
+          onChange={c => setSubtitleStyle({ ...subtitleStyle, color: c })}
+          allowTransparent={false}
+        />
+        <ColorPicker
+          label="Background"
+          value={subtitleStyle.backgroundColor}
+          onChange={c => setSubtitleStyle({ ...subtitleStyle, backgroundColor: c })}
+          allowTransparent={true}
+        />
       </div>
       <div className="flex items-center gap-3 text-zinc-500">
         <div className="flex-1 h-px bg-zinc-200" />

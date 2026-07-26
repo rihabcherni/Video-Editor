@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Type, CheckCircle2 } from 'lucide-react'
 import { useStore } from '../../store/useStore'
+import ColorPicker from '../common/ColorPicker'
 
 const fonts = [
   'Arial',
@@ -262,77 +263,30 @@ export default function TitleEditor() {
             />
           </div>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <label className="text-[11px] text-zinc-500 w-8 shrink-0">Color</label>
-            <input
-              type="color"
-              value={draftColor}
-              onChange={e => {
-                setDraftColor(e.target.value)
-                setTitleDraftColor(e.target.value)
-              }}
-              aria-label="Title text color"
-              className="w-6 h-6 shrink-0 p-0 border border-zinc-200 rounded bg-white"
-            />
-            <input
-              value={draftColor}
-              onChange={e => {
-                setDraftColor(e.target.value)
-                setTitleDraftColor(e.target.value)
-              }}
-              aria-label="Title text color value"
-              className="min-w-0 flex-1 bg-white border border-zinc-200 rounded-lg px-2 py-1 text-xs font-mono text-zinc-600"
-            />
-          </div>
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <label className="text-[11px] text-zinc-500 w-16 shrink-0">Background</label>
-            <input
-              type="color"
-              value={draftBgColor}
-              onChange={e => {
-                setDraftBgColor(e.target.value)
-                setTitleDraftBgColor(e.target.value)
-              }}
-              aria-label="Title background color"
-              className="w-6 h-6 shrink-0 p-0 border border-zinc-200 rounded bg-white"
-            />
-            <input
-              value={draftBgColor}
-              onChange={e => {
-                setDraftBgColor(e.target.value)
-                setTitleDraftBgColor(e.target.value)
-              }}
-              aria-label="Title background color value"
-              className="min-w-0 flex-1 bg-white border border-zinc-200 rounded-lg px-2 py-1 text-xs font-mono text-zinc-600"
-            />
-          </div>
-        </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-          <label className="text-[11px] text-zinc-500 sm:w-16 sm:shrink-0">Text border</label>
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <input
-              type="color"
-              value={draftBorderColor}
-              onChange={e => {
-                setDraftBorderColor(e.target.value)
-                setTitleDraftBorderColor(e.target.value)
-              }}
-              aria-label="Title text border color"
-              className="w-6 h-6 shrink-0 p-0 border border-zinc-200 rounded bg-white"
-            />
-            <input
-              value={draftBorderColor}
-              onChange={e => {
-                setDraftBorderColor(e.target.value)
-                setTitleDraftBorderColor(e.target.value)
-              }}
-              aria-label="Title text border color value"
-              className="min-w-0 flex-1 bg-white border border-zinc-200 rounded-lg px-2 py-1 text-xs font-mono text-zinc-600"
-            />
-            <div className="w-24 shrink-0 self-center">
+        <ColorPicker
+          label="Text color"
+          value={draftColor}
+          onChange={v => { setDraftColor(v); setTitleDraftColor(v) }}
+          allowTransparent={false}
+        />
+        <ColorPicker
+          label="Background"
+          value={draftBgColor}
+          onChange={v => { setDraftBgColor(v); setTitleDraftBgColor(v) }}
+          allowTransparent={true}
+        />
+        <div className="space-y-1.5">
+          <ColorPicker
+            label="Text border color"
+            value={draftBorderColor}
+            onChange={v => { setDraftBorderColor(v); setTitleDraftBorderColor(v) }}
+            allowTransparent={false}
+          />
+          <div className="flex items-center gap-3">
+            <label className="text-[11px] text-zinc-500 w-24 shrink-0">Border size</label>
+            <div className="flex-1">
               <div className="flex justify-between text-[11px] text-zinc-500">
-                <span>Size</span>
+                <span></span>
                 <span className="font-mono">{draftBorderWidth}px</span>
               </div>
               <input type="range" min={0} max={16} step={1} value={draftBorderWidth} onChange={e => {
@@ -345,25 +299,18 @@ export default function TitleEditor() {
             </div>
           </div>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-          <label className="text-[11px] text-zinc-500 sm:w-16 sm:shrink-0">Background frame</label>
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <input type="color" value={draftFrameColor} onChange={e => {
-              setDraftFrameColor(e.target.value)
-              setTitleDraftFrameColor(e.target.value)
-            }}
-              aria-label="Title background frame color" className="w-6 h-6 shrink-0 p-0 border border-zinc-200 rounded bg-white"
-            />
-            <input value={draftFrameColor} onChange={e => {
-              setDraftFrameColor(e.target.value)
-              setTitleDraftFrameColor(e.target.value)
-            }}
-              aria-label="Title background frame color value"
-              className="min-w-0 flex-1 bg-white border border-zinc-200 rounded-lg px-2 py-1 text-xs font-mono text-zinc-600"
-            />
-            <div className="w-24 shrink-0 self-center">
+        <div className="space-y-1.5">
+          <ColorPicker
+            label="Background frame color"
+            value={draftFrameColor}
+            onChange={v => { setDraftFrameColor(v); setTitleDraftFrameColor(v) }}
+            allowTransparent={true}
+          />
+          <div className="flex items-center gap-3">
+            <label className="text-[11px] text-zinc-500 w-24 shrink-0">Frame size</label>
+            <div className="flex-1">
               <div className="flex justify-between text-[11px] text-zinc-500">
-                <span>Size</span>
+                <span></span>
                 <span className="font-mono">{draftFrameWidth}px</span>
               </div>
               <input type="range" min={0} max={24} step={1} value={draftFrameWidth}
