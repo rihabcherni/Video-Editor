@@ -1,6 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
-import axios from 'axios'
-import { Upload, FileText, Download, Film, RotateCcw, Image as ImageIcon, Type, Square, ChevronLeft, ChevronRight, Volume2, Crop as CropIcon, CheckCircle2, X, History, ChevronDown, AlertCircle, Layers } from 'lucide-react'
+import React, { useEffect, useRef, useState } from 'react'
+import { Upload, FileText, Download, Film, RotateCcw, Image as ImageIcon, Type, Square, Crop as CropIcon, CheckCircle2, X, History, ChevronDown, AlertCircle, Layers } from 'lucide-react'
 import { useStore } from './store/useStore'
 import ImportPanel from './components/ImportPanel/ImportPanel'
 import VideoPlayer from './components/VideoPlayer/VideoPlayer'
@@ -11,10 +10,6 @@ import TitleEditor from './components/TitleEditor/TitleEditor'
 import BorderEditor from './components/BorderEditor/BorderEditor'
 import CropEditor from './components/CropEditor/CropEditor'
 import MontageTimeline from './components/MontageTimeline/MontageTimeline'
-import { getApiErrorMessage, previewVideo } from './api/client'
-import { ensureTitleFontLoaded } from './hooks/useTitleFontReady'
-import { getRenderedTitleFontSize, getTitleRenderLayout } from './utils/titleLayout'
-import { getCroppedSourceDimensions, getRenderedVideoDimensions } from './utils/videoLayout'
 
 type Tab = 'import' | 'montage' | 'crop' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
 
@@ -76,47 +71,11 @@ async function doesLocalResourceExist(url: string) {
 }
 
 export default function App() {
-  const { video, activeTab, setActiveTab, reset, trimStart, trimEnd, segments, audioTrack, audioDuration, audioApplied, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd, appliedAudioOffset, subtitles, subtitleFilename, appliedSubtitleStyle, logoImage, logoSize, logoX, logoY, titleText, titleFont, titleSize, titleColor, titleBgColor, titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleLineSpacing, titleAlign, titleX, titleY, titleRenderLayout, borderEnabled, borderWidth, borderHeight, borderColor, borderDraftEnabled, borderDraftWidth, borderDraftHeight, borderDraftColor, setBorderEnabled, setBorderWidth, setBorderHeight, setBorderColor, cropEnabled, crop, exportAspectRatio, videoSourceWidth, videoSourceHeight, processedUrl, setProcessedUrl, previewLoading, setPreviewLoading, pendingPreviewAction, setPendingPreviewAction, actionToasts, actionHistory, pushActionToast, removeActionToast, montageClips, montageAudioClips} = useStore()
+  const { video, activeTab, setActiveTab, reset, trimStart, trimEnd, segments, audioTrack, audioDuration, audioApplied, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd, appliedAudioOffset, subtitles, subtitleFilename, appliedSubtitleStyle, logoImage, logoSize, logoX, logoY, titleText, titleFont, titleSize, titleColor, titleBgColor, titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleLineSpacing, titleAlign, titleX, titleY, titleRenderLayout, borderEnabled, borderWidth, borderHeight, borderColor, borderDraftEnabled, borderDraftWidth, borderDraftHeight, borderDraftColor, setBorderEnabled, setBorderWidth, setBorderHeight, setBorderColor, cropEnabled, crop, exportAspectRatio, processedUrl, setProcessedUrl, actionToasts, actionHistory, pushActionToast, removeActionToast, montageClips, montageAudioClips } = useStore()
   const [previewError, setPreviewError] = useState<string | null>(null)
   const [actionsOpen, setActionsOpen] = useState(false)
   const [lastSeenActionCount, setLastSeenActionCount] = useState(0)
-  const debounceRef = useRef<number | null>(null)
-  const lastPreviewSig = useRef<string>('')
-  const pendingSig = useRef<string>('')
   const validatedProjectSig = useRef<string>('')
-  const effectiveTitleSourceDimensions = getCroppedSourceDimensions({
-    sourceWidth: videoSourceWidth,
-    sourceHeight: videoSourceHeight,
-    cropEnabled,
-    crop,
-  })
-  const renderedTitleSize = getRenderedTitleFontSize(titleSize)
-  const titleRenderedVideoDimensions = getRenderedVideoDimensions({
-    sourceWidth: effectiveTitleSourceDimensions.width,
-    sourceHeight: effectiveTitleSourceDimensions.height,
-    aspectRatio: exportAspectRatio,
-    borderEnabled,
-    borderWidth,
-    borderHeight,
-  })
-  const resolvedTitleRenderLayout = titleText.trim() && titleRenderedVideoDimensions.width > 0
-    ? getTitleRenderLayout({
-      text: titleText,
-      fontSize: renderedTitleSize,
-      videoWidth: titleRenderedVideoDimensions.width,
-      padding: titlePadding,
-      frameWidth: titleFrameWidth,
-      lineSpacing: titleLineSpacing,
-      fontFamily: titleFont,
-      borderWidth: titleBorderWidth,
-      align: titleAlign,
-    })
-    : titleRenderLayout
-  const resolvedTitleX = titleX ?? 0.5
-  const resolvedTitleY = titleY ?? 0.2
-  const resolvedTitleRenderLayoutKey = resolvedTitleRenderLayout
-    ? JSON.stringify(resolvedTitleRenderLayout)
-    : ''
 
   useEffect(() => {
     if (!video) {
@@ -188,138 +147,6 @@ export default function App() {
     }
   }, [activeTab, borderDraftEnabled, borderDraftWidth, borderDraftHeight, borderDraftColor, borderEnabled, borderWidth, borderHeight, borderColor, setBorderEnabled, setBorderWidth, setBorderHeight, setBorderColor])
 
-  const handlePreview = useCallback(async () => {
-    if (!video) return
-    if (titleText.trim() && !resolvedTitleRenderLayoutKey) return
-    setPreviewLoading(true)
-    setPreviewError(null)
-
-    const hasTrim = trimStart > 0 || trimEnd < video.duration
-    const hasCrop = cropEnabled && (crop.top > 0 || crop.bottom > 0 || crop.left > 0 || crop.right > 0)
-    const hasAppliedAudio = !!audioTrack && audioApplied
-    const hasAppliedAudioTrim = hasAppliedAudio && audioDuration > 0 && (appliedAudioTrimStart > 0 || appliedAudioTrimEnd < audioDuration)
-    const hasAppliedSubtitles = !!subtitleFilename && !!appliedSubtitleStyle
-
-    try {
-      if (titleText.trim()) {
-        await ensureTitleFontLoaded(renderedTitleSize, titleFont)
-      }
-
-      const currentTitleRenderLayout = titleText.trim() && titleRenderedVideoDimensions.width > 0
-        ? getTitleRenderLayout({
-          text: titleText,
-          fontSize: renderedTitleSize,
-          videoWidth: titleRenderedVideoDimensions.width,
-          padding: titlePadding,
-          frameWidth: titleFrameWidth,
-          lineSpacing: titleLineSpacing,
-          fontFamily: titleFont,
-          borderWidth: titleBorderWidth,
-          align: titleAlign,
-        })
-        : null
-
-      const result = await previewVideo({
-        filename: video.filename,
-        aspectRatio: exportAspectRatio,
-        startTime: hasTrim ? trimStart : undefined,
-        endTime: hasTrim ? trimEnd : undefined,
-        crop: hasCrop ? crop : undefined,
-        audioFilename: hasAppliedAudio ? audioTrack?.filename : undefined,
-        audioStartTime: hasAppliedAudioTrim ? appliedAudioTrimStart : undefined,
-        audioEndTime: hasAppliedAudioTrim ? appliedAudioTrimEnd : undefined,
-        audioOffset: hasAppliedAudio ? appliedAudioOffset : undefined,
-        subtitleFilename: hasAppliedSubtitles ? subtitleFilename || undefined : undefined,
-        subtitleStyle: hasAppliedSubtitles ? appliedSubtitleStyle || undefined : undefined,
-        titleStyle: titleText.trim() ? {
-          text: titleText.trim(),
-          font: titleFont,
-          size: renderedTitleSize,
-          color: titleColor,
-          bgColor: titleBgColor,
-          borderColor: titleBorderColor,
-          borderWidth: titleBorderWidth,
-          frameColor: titleFrameColor,
-          frameWidth: titleFrameWidth,
-          padding: titlePadding,
-          lineSpacing: titleLineSpacing,
-          align: titleAlign,
-          frameMode: borderEnabled ? 'outside' : 'inside',
-          x: resolvedTitleX,
-          y: resolvedTitleY,
-          layout: currentTitleRenderLayout || undefined,
-        } : undefined,
-        borderStyle: {
-          enabled: borderEnabled,
-          sizeX: borderWidth,
-          sizeY: borderHeight,
-          color: borderColor,
-          mode: 'outside',
-        },
-        logoFilename: undefined,
-      })
-
-      setProcessedUrl(result.url)
-      if (pendingPreviewAction) {
-        pushActionToast(pendingPreviewAction)
-        setPendingPreviewAction(null)
-      }
-    } catch (e: unknown) {
-      const errorMessage = getApiErrorMessage(e, 'Preview failed')
-      if (axios.isAxiosError(e) && e.response?.status === 404) {
-        validatedProjectSig.current = ''
-        setProcessedUrl(null)
-        setPreviewError('Preview file not found or expired. Showing base video.')
-      } else {
-        setPreviewError(errorMessage)
-      }
-      if (pendingPreviewAction) setPendingPreviewAction(null)
-    } finally {
-      setPreviewLoading(false)
-    }
-  }, [
-    video,
-    reset,
-    trimStart,
-    trimEnd,
-    audioTrack,
-    audioDuration,
-    audioApplied,
-    appliedAudioTrimStart,
-    appliedAudioTrimEnd,
-    appliedAudioOffset,
-    subtitleFilename,
-    appliedSubtitleStyle,
-    titleText,
-    titleFont,
-    renderedTitleSize,
-    titleColor,
-    titleBgColor,
-    titleBorderColor,
-    titleBorderWidth,
-    titleFrameColor,
-    titleFrameWidth,
-    titlePadding,
-    titleLineSpacing,
-    titleAlign,
-    titleRenderedVideoDimensions.width,
-    resolvedTitleX,
-    resolvedTitleY,
-    resolvedTitleRenderLayoutKey,
-    borderEnabled,
-    borderWidth,
-    borderHeight,
-    borderColor,
-    cropEnabled,
-    crop,
-    exportAspectRatio,
-    pendingPreviewAction,
-    pushActionToast,
-    setPreviewLoading,
-    setPendingPreviewAction,
-    setProcessedUrl,
-  ])
-
   useEffect(() => {
     if (actionToasts.length === 0) return
 
@@ -331,101 +158,6 @@ export default function App() {
       timers.forEach(timer => window.clearTimeout(timer))
     }
   }, [actionToasts, removeActionToast])
-
-  useEffect(() => {
-    if (!video) return
-    const hasTrim = trimStart > 0 || trimEnd < video.duration
-    const hasCrop = cropEnabled && (crop.top > 0 || crop.bottom > 0 || crop.left > 0 || crop.right > 0)
-    const hasSubtitlesApplied = !!subtitleFilename && !!appliedSubtitleStyle
-    const hasLogo = !!logoImage
-    const hasTitle = titleText.trim().length > 0
-    const hasBorder = borderEnabled && (borderWidth > 0 || borderHeight > 0)
-    const hasOutputTransform = exportAspectRatio !== 'original'
-    const hasAppliedAudio = !!audioTrack && audioApplied
-    const hasAppliedAudioTrim = hasAppliedAudio && audioDuration > 0 && (appliedAudioTrimStart > 0 || appliedAudioTrimEnd < audioDuration)
-    const hasChanges = hasTrim || hasCrop || hasAppliedAudio || hasAppliedAudioTrim || hasSubtitlesApplied || hasLogo || hasTitle || hasBorder || hasOutputTransform
-
-    if (!hasChanges) {
-      pendingSig.current = ''
-      lastPreviewSig.current = ''
-      if (processedUrl) setProcessedUrl(null)
-      return
-    }
-
-    const sig = JSON.stringify({
-      trimStart,
-      trimEnd,
-      cropEnabled,
-      crop,
-      audio: hasAppliedAudio
-        ? {
-          id: audioTrack!.id,
-          duration: audioDuration,
-          trimApplied: hasAppliedAudioTrim,
-          replace: appliedReplaceOriginal,
-          t0: appliedAudioTrimStart,
-          t1: appliedAudioTrimEnd,
-          offset: appliedAudioOffset,
-        }
-        : null,
-      subtitles: hasSubtitlesApplied ? ['applied'] : [],
-      subtitleFilename: hasSubtitlesApplied ? subtitleFilename : null,
-      subtitleStyle: hasSubtitlesApplied ? appliedSubtitleStyle : null,
-      exportAspectRatio,
-      logo: logoImage ? { id: logoImage.id, size: logoSize, x: logoX, y: logoY } : null,
-      title: titleText.trim() ? { text: titleText, font: titleFont, size: titleSize, color: titleColor, bg: titleBgColor, border: titleBorderColor, bw: titleBorderWidth, frame: titleFrameColor, fw: titleFrameWidth, pad: titlePadding, ls: titleLineSpacing, align: titleAlign } : null,
-      titleXY: titleX !== null && titleY !== null ? { x: titleX, y: titleY } : null,
-      border: borderEnabled ? { sizeX: borderWidth, sizeY: borderHeight, color: borderColor, mode: 'outside' } : null,
-    })
-
-    if (sig === lastPreviewSig.current) return
-    lastPreviewSig.current = sig
-
-    // When edits change, clear pre-rendered processedUrl so the player immediately displays instant live overlays
-    if (processedUrl) {
-      setProcessedUrl(null)
-    }
-  }, [
-    video,
-    trimStart,
-    trimEnd,
-    cropEnabled,
-    crop,
-    audioTrack,
-    audioDuration,
-    audioApplied,
-    appliedReplaceOriginal,
-    appliedAudioTrimStart,
-    appliedAudioTrimEnd,
-    appliedAudioOffset,
-    subtitleFilename,
-    appliedSubtitleStyle,
-    exportAspectRatio,
-    logoImage,
-    logoSize,
-    logoX,
-    logoY,
-    titleText,
-    titleFont,
-    titleSize,
-    titleColor,
-    titleBgColor,
-    titleBorderColor,
-    titleBorderWidth,
-    titleFrameColor,
-    titleFrameWidth,
-    titlePadding,
-    titleLineSpacing,
-    titleAlign,
-    titleX,
-    titleY,
-    borderEnabled,
-    borderWidth,
-    borderHeight,
-    borderColor,
-    processedUrl,
-    setProcessedUrl,
-  ])
 
   const appName = import.meta.env.VITE_APP_NAME || 'Video Editor'
   const recentActions = actionHistory.slice(-6).reverse()

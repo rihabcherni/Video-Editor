@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Square, CheckCircle2, Check } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 
@@ -30,6 +30,8 @@ export default function BorderEditor() {
     pushActionToast,
   } = useStore()
 
+  const [justApplied, setJustApplied] = useState(false)
+
   // Sync draft store from applied state when applied state changes (e.g. on reset)
   useEffect(() => {
     setBorderDraftEnabled(borderEnabled)
@@ -44,12 +46,18 @@ export default function BorderEditor() {
     borderDraftHeight !== borderHeight ||
     borderDraftColor !== borderColor
 
+  // Reset justApplied as soon as user makes a new change
+  useEffect(() => {
+    if (hasChanges) setJustApplied(false)
+  }, [hasChanges])
+
   const applyChanges = () => {
     pushActionToast('Border applied successfully.')
     setBorderEnabled(borderDraftEnabled)
     setBorderWidth(borderDraftWidth)
     setBorderHeight(borderDraftHeight)
     setBorderColor(borderDraftColor)
+    setJustApplied(true)
   }
 
   const resetDraft = () => {
@@ -181,10 +189,16 @@ export default function BorderEditor() {
           type="button"
           onClick={applyChanges}
           disabled={!hasChanges}
-          className="flex-1 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5"
+          className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all duration-300 flex items-center justify-center gap-1.5 ${
+            justApplied
+              ? 'bg-green-500 text-white cursor-default'
+              : hasChanges
+                ? 'bg-cyan-600 hover:bg-cyan-500 text-white'
+                : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
+          }`}
         >
           <CheckCircle2 size={15} />
-          Apply border
+          {justApplied ? '✓ Applied' : 'Apply border'}
         </button>
       </div>
     </div>

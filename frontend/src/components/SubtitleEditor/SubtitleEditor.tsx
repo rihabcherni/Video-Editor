@@ -39,6 +39,7 @@ export default function SubtitleEditor() {
   const [pendingSrt, setPendingSrt] = useState<File | null>(null)
   const [pendingSubtitleFilename, setPendingSubtitleFilename] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
+  const [justApplied, setJustApplied] = useState(false)
   const fileRef = React.useRef<HTMLInputElement>(null)
   const currentSignature = getSubtitleSignature(subtitles, subtitleStyle)
 
@@ -81,6 +82,7 @@ export default function SubtitleEditor() {
       setAppliedSubtitleStyle(subtitleStyle)
       setSubtitleAppliedSignature(currentSignature)
       setPendingSubtitleFilename(null)
+      setJustApplied(true)
     } catch (e: unknown) {
       setError(getApiErrorMessage(e, 'Save failed'))
     } finally {
@@ -132,6 +134,7 @@ export default function SubtitleEditor() {
       setAppliedSubtitleStyle(subtitleStyle)
       setSubtitleAppliedSignature(currentSignature)
       setPendingSubtitleFilename(null)
+      setJustApplied(true)
       return
     }
     await handleSave()
@@ -140,6 +143,8 @@ export default function SubtitleEditor() {
   const hasUnappliedChanges = subtitleAppliedSignature !== currentSignature
     || JSON.stringify(appliedSubtitleStyle) !== JSON.stringify(subtitleStyle)
   const canApply = subtitles.length > 0 && (!!pendingSubtitleFilename || !subtitleFilename || hasUnappliedChanges)
+  // Reset justApplied when new changes arrive
+  if (justApplied && canApply) setJustApplied(false)
   return (
     <div className="space-y-2">
       <div>
@@ -333,9 +338,17 @@ export default function SubtitleEditor() {
         </div>
       )}
 
-      <button type="button" onClick={handleApply} disabled={!canApply || isApplying} className="w-full py-2 bg-green-600 hover:bg-green-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2">
+      <button type="button" onClick={handleApply} disabled={!canApply || isApplying} className={`w-full py-2 rounded-xl text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 ${
+        isApplying
+          ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
+          : justApplied && !canApply
+            ? 'bg-green-500 text-white cursor-default'
+            : canApply
+              ? 'bg-green-600 hover:bg-green-500 text-white'
+              : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
+      }`}>
         <FileText size={16} />
-        {isApplying ? 'Applying...' : 'Apply subtitles'}
+        {isApplying ? 'Applying...' : justApplied && !canApply ? '✓ Applied' : 'Apply subtitles'}
       </button>
       {pendingSubtitleFilename && canApply && (
         <div className="text-xs text-zinc-500 text-center">

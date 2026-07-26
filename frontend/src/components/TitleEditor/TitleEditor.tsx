@@ -58,6 +58,7 @@ export default function TitleEditor() {
   const [draftAlign, setDraftAlign] = useState(titleDraftAlign || titleAlign)
   const [draftX, setDraftX] = useState(titleDraftX ?? titleX)
   const [draftY, setDraftY] = useState(titleDraftY ?? titleY)
+  const [justApplied, setJustApplied] = useState(false)
 
   useEffect(() => {
     setDraftText(titleDraftText || titleText)
@@ -92,6 +93,11 @@ export default function TitleEditor() {
     draftX !== titleX ||
     draftY !== titleY
 
+  // Reset justApplied as soon as user makes a new change
+  useEffect(() => {
+    if (hasChanges) setJustApplied(false)
+  }, [hasChanges])
+
   const applyChanges = () => {
     if (isApplyingTitle || previewLoading) return
     setIsApplyingTitle(true)
@@ -122,6 +128,7 @@ export default function TitleEditor() {
     setTitleDraftAlign(draftAlign)
     setTitleXY(draftX ?? null, draftY ?? null)
     setTitleDraftXY(draftX ?? null, draftY ?? null)
+    setJustApplied(true)
     window.setTimeout(() => setIsApplyingTitle(false), 0)
   }
 
@@ -405,10 +412,18 @@ export default function TitleEditor() {
           Reset draft
         </button>
         <button type="button" onClick={applyChanges} disabled={!hasChanges || isApplyingTitle || previewLoading}
-          className="flex-1 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5"
+          className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all duration-300 flex items-center justify-center gap-1.5 ${
+            isApplyingTitle || previewLoading
+              ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
+              : justApplied
+                ? 'bg-green-500 text-white cursor-default'
+                : hasChanges
+                  ? 'bg-cyan-600 hover:bg-cyan-500 text-white'
+                  : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
+          }`}
         >
           <CheckCircle2 size={15} />
-          {isApplyingTitle || previewLoading ? 'Applying...' : 'Apply title'}
+          {isApplyingTitle || previewLoading ? 'Applying...' : justApplied ? '✓ Applied' : 'Apply title'}
         </button>
       </div>
     </div>

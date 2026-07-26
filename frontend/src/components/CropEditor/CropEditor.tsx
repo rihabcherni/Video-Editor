@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Crop as CropIcon, RotateCcw, CheckCircle2 } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 
@@ -25,6 +26,10 @@ export default function CropEditor() {
     cropDraft.left !== crop.left ||
     cropDraft.right !== crop.right
   const canApply = cropDraftEnabled && hasDraftCrop && hasChanges
+  const [justApplied, setJustApplied] = useState(false)
+
+  // Reset justApplied as soon as user makes a new change
+  if (hasChanges && justApplied) setJustApplied(false)
 
   const updateDraft = (updater: () => void) => {
     updater()
@@ -34,6 +39,7 @@ export default function CropEditor() {
     if (previewLoading || !canApply) return
     pushActionToast('Crop applied successfully.')
     applyCropDraft()
+    setJustApplied(true)
   }
 
   const handleResetCrop = () => {
@@ -120,10 +126,18 @@ export default function CropEditor() {
       <button type="button"
         onClick={handleApplyCrop}
         disabled={!canApply || previewLoading}
-        className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
+        className={`w-full py-2.5 rounded-xl text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 ${
+          previewLoading
+            ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
+            : justApplied && !canApply
+              ? 'bg-green-500 text-white cursor-default'
+              : canApply
+                ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
+        }`}
       >
         <CheckCircle2 size={16} />
-        {previewLoading ? 'Applying...' : 'Crop'}
+        {previewLoading ? 'Applying...' : justApplied && !canApply ? '✓ Applied' : 'Crop'}
       </button>
     </div>
   )

@@ -17,6 +17,16 @@ function formatTime(s: number) {
   return `${m}:${sec.toString().padStart(2, '0')}`
 }
 
+function srtToSeconds(t: string): number {
+  if (!t) return 0
+  const [hms, ms] = t.replace(',', '.').split('.')
+  const parts = hms ? hms.split(':').map(Number) : [0, 0, 0]
+  const h = parts[0] || 0
+  const m = parts[1] || 0
+  const s = parts[2] || 0
+  return h * 3600 + m * 60 + s + (parseFloat('0.' + (ms || '0')) || 0)
+}
+
 export default function VideoPlayer() {
   const {
     video, trimStart, trimEnd, setTrimEnd, processedUrl, audioTrack, audioDuration, audioApplied, appliedReplaceOriginal,
@@ -26,6 +36,7 @@ export default function VideoPlayer() {
     logoDraftImage, logoDraftSize, logoDraftX, logoDraftY, logoX, logoY, setLogoDraftXY,
     borderEnabled, borderWidth, borderHeight, borderColor,
     borderDraftEnabled, borderDraftWidth, borderDraftHeight, borderDraftColor,
+    subtitles, subtitleStyle, appliedSubtitleStyle,
     cropEnabled, cropDraftEnabled, crop, cropDraft, exportAspectRatio, seekTo,
     setSeekTo, setTitleRenderLayout, videoSourceWidth, videoSourceHeight, setVideoSourceDimensions } = useStore()
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -253,16 +264,27 @@ export default function VideoPlayer() {
   const renderedAppliedTitleSize = getRenderedTitleFontSize(titleSize)
   const previewTitleFontReady = useTitleFontReady(previewTitleSize, previewTitleFont)
   const appliedTitleFontReady = useTitleFontReady(renderedAppliedTitleSize, titleFont)
+  const previewCropEnabled = activeTab === 'crop' ? cropDraftEnabled : cropEnabled
   const effectiveSourceDimensions = getCroppedSourceDimensions({
     sourceWidth: baseSourceWidth,
     sourceHeight: baseSourceHeight,
-    cropEnabled,
-    crop,
+    cropEnabled: previewCropEnabled,
+    crop: previewCrop,
   })
+  const isCroppedOnOtherTabs = activeTab !== 'crop' && cropEnabled && (crop.top > 0 || crop.bottom > 0 || crop.left > 0 || crop.right > 0)
+  const cropWKeep = Math.max(0.01, 1 - (crop.left || 0) - (crop.right || 0))
+  const cropHKeep = Math.max(0.01, 1 - (crop.top || 0) - (crop.bottom || 0))
   const previewBorderEnabled = activeTab === 'border' ? borderDraftEnabled : borderEnabled
   const previewBorderWidth = activeTab === 'border' ? borderDraftWidth : borderWidth
   const previewBorderHeight = activeTab === 'border' ? borderDraftHeight : borderHeight
   const previewBorderColor = activeTab === 'border' ? borderDraftColor : borderColor
+
+  const activeSubtitle = subtitles?.find(entry => {
+    const start = srtToSeconds(entry.startTime)
+    const end = srtToSeconds(entry.endTime)
+    return currentTime >= start && currentTime <= end
+  })
+  const activeSubtitleStyle = activeTab === 'subtitles' ? subtitleStyle : (appliedSubtitleStyle || subtitleStyle)
 
   const renderedVideoDimensions = getRenderedVideoDimensions({
     sourceWidth: effectiveSourceDimensions.width,
@@ -447,11 +469,8 @@ export default function VideoPlayer() {
   return (
     <div className="space-y-2">
       <div ref={overlayRef} className="relative bg-zinc-950 rounded-xl overflow-hidden w-full flex items-center justify-center h-[40vh] min-h-[372px]">
-        <video
-          ref={videoRef}
-          src={src}
-          muted={isMuted}
-          className="object-contain"
+        <div
+          className="relative flex items-center justify-center overflow-hidden"
           style={{
             width: `${titleOuterRect.width}px`,
             height: `${titleOuterRect.height}px`,
@@ -463,24 +482,66 @@ export default function VideoPlayer() {
               : 'transparent',
             boxSizing: 'border-box',
           }}
-          onTimeUpdate={handleTimeUpdate}
-          onEnded={() => setPlaying(false)}
-          onLoadedMetadata={() => {
-            let nextStart = trimStart
-            if (videoRef.current) {
-              const actualDuration = Number.isFinite(videoRef.current.duration) ? videoRef.current.duration : 0
-              setMediaDuration(actualDuration)
-              if (src === originalVideoSrc || !videoSourceWidth || !videoSourceHeight) {
-                setVideoSourceDimensions(videoRef.current.videoWidth || 0, videoRef.current.videoHeight || 0)
-              }
-              nextStart = Math.min(trimStart, actualDuration || trimStart)
-              videoRef.current.currentTime = nextStart
-              setCurrentTime(nextStart)
-            }
-            updateVideoDisplayRect()
-            syncAudioToVideo(nextStart, false)
-          }}
-        />
+        >
+          {isCroppedOnOtherTabs ? (
+            <div className="relative w-full h-full overflow-hidden">
+              <video
+                ref={videoRef}
+                src={src}
+                muted={isMuted}
+                className="absolute max-w-none max-h-none"
+                style={{
+                  width: `${(1 / cropWKeep) * 100}%`,
+                  height: `${(1 / cropHKeep) * 100}%`,
+                  left: `-${((crop.left || 0) / cropWKeep) * 100}%`,
+                  top: `-${((crop.top || 0) / cropHKeep) * 100}%`,
+                  objectFit: 'fill',
+                }}
+                onTimeUpdate={handleTimeUpdate}
+                onEnded={() => setPlaying(false)}
+                onLoadedMetadata={() => {
+                  let nextStart = trimStart
+                  if (videoRef.current) {
+                    const actualDuration = Number.isFinite(videoRef.current.duration) ? videoRef.current.duration : 0
+                    setMediaDuration(actualDuration)
+                    if (src === originalVideoSrc || !videoSourceWidth || !videoSourceHeight) {
+                      setVideoSourceDimensions(videoRef.current.videoWidth || 0, videoRef.current.videoHeight || 0)
+                    }
+                    nextStart = Math.min(trimStart, actualDuration || trimStart)
+                    videoRef.current.currentTime = nextStart
+                    setCurrentTime(nextStart)
+                  }
+                  updateVideoDisplayRect()
+                  syncAudioToVideo(nextStart, false)
+                }}
+              />
+            </div>
+          ) : (
+            <video
+              ref={videoRef}
+              src={src}
+              muted={isMuted}
+              className="object-contain w-full h-full"
+              onTimeUpdate={handleTimeUpdate}
+              onEnded={() => setPlaying(false)}
+              onLoadedMetadata={() => {
+                let nextStart = trimStart
+                if (videoRef.current) {
+                  const actualDuration = Number.isFinite(videoRef.current.duration) ? videoRef.current.duration : 0
+                  setMediaDuration(actualDuration)
+                  if (src === originalVideoSrc || !videoSourceWidth || !videoSourceHeight) {
+                    setVideoSourceDimensions(videoRef.current.videoWidth || 0, videoRef.current.videoHeight || 0)
+                  }
+                  nextStart = Math.min(trimStart, actualDuration || trimStart)
+                  videoRef.current.currentTime = nextStart
+                  setCurrentTime(nextStart)
+                }
+                updateVideoDisplayRect()
+                syncAudioToVideo(nextStart, false)
+              }}
+            />
+          )}
+        </div>
         <div className="absolute inset-0 flex items-center justify-center cursor-pointer" onClick={togglePlay}>
           {!playing && (
             <div className="w-14 h-14 bg-black/60 rounded-full flex items-center justify-center backdrop-blur-sm">
@@ -489,7 +550,7 @@ export default function VideoPlayer() {
           )}
         </div>
 
-        {activeTab === 'crop' && cropDraftEnabled && hasPreviewCrop && hasPendingCropChanges && videoDisplayRect.width > 0 && videoDisplayRect.height > 0 && (
+        {activeTab === 'crop' && cropDraftEnabled && hasPreviewCrop && videoDisplayRect.width > 0 && videoDisplayRect.height > 0 && (
           <div className="absolute inset-0 pointer-events-none">
             {previewCrop.top > 0 && (
               <div
@@ -531,25 +592,23 @@ export default function VideoPlayer() {
                   left: `${videoDisplayRect.left + videoDisplayRect.width * (1 - previewCrop.right)}px`,
                   top: `${videoDisplayRect.top + videoDisplayRect.height * previewCrop.top}px`,
                   width: `${videoDisplayRect.width * previewCrop.right}px`,
-                  height: `${videoDisplayRect.height * (1 - previewCrop.top - previewCrop.bottom)}px`,
+                  height: `${videoDisplayRect.height * previewCrop.bottom}px`,
                 }}
               />
             )}
-            {hasPendingCropChanges && (
-              <div
-                className="absolute rounded-xl border border-emerald-400/80 shadow-[0_0_0_1px_rgba(16,185,129,0.2)]"
-                style={{
-                  left: `${videoDisplayRect.left + videoDisplayRect.width * previewCrop.left}px`,
-                  top: `${videoDisplayRect.top + videoDisplayRect.height * previewCrop.top}px`,
-                  width: `${videoDisplayRect.width * (1 - previewCrop.left - previewCrop.right)}px`,
-                  height: `${videoDisplayRect.height * (1 - previewCrop.top - previewCrop.bottom)}px`,
-                }}
-              >
-                <div className="absolute left-2 top-2 rounded-full bg-emerald-500/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
-                  Visible frame
-                </div>
+            <div
+              className="absolute rounded-xl border border-emerald-400/80 shadow-[0_0_0_1px_rgba(16,185,129,0.2)]"
+              style={{
+                left: `${videoDisplayRect.left + videoDisplayRect.width * previewCrop.left}px`,
+                top: `${videoDisplayRect.top + videoDisplayRect.height * previewCrop.top}px`,
+                width: `${videoDisplayRect.width * (1 - previewCrop.left - previewCrop.right)}px`,
+                height: `${videoDisplayRect.height * (1 - previewCrop.top - previewCrop.bottom)}px`,
+              }}
+            >
+              <div className="absolute left-2 top-2 rounded-full bg-emerald-500/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
+                Visible frame
               </div>
-            )}
+            </div>
           </div>
         )}
         {previewTitleText.trim() && (
@@ -609,6 +668,29 @@ export default function VideoPlayer() {
                 pointerEvents: activeTab === 'logo' ? 'auto' : 'none',
               }}
             />
+          </div>
+        )}
+        {activeSubtitle && activeSubtitle.text.trim() && videoDisplayRect.width > 0 && (
+          <div
+            className="absolute pointer-events-none flex flex-col justify-end items-center pb-6 z-20"
+            style={{
+              left: `${videoDisplayRect.left}px`,
+              top: `${videoDisplayRect.top}px`,
+              width: `${videoDisplayRect.width}px`,
+              height: `${videoDisplayRect.height}px`,
+            }}
+          >
+            <div
+              className="px-3 py-1.5 rounded-lg text-center select-none max-w-[85%] shadow-md transition-all font-sans"
+              style={{
+                fontSize: `${activeSubtitleStyle?.size || 22}px`,
+                color: activeSubtitleStyle?.color || '#ffffff',
+                backgroundColor: activeSubtitleStyle?.backgroundColor || '#000000',
+                lineHeight: 1.35,
+              }}
+            >
+              {activeSubtitle.text}
+            </div>
           </div>
         )}
       </div>

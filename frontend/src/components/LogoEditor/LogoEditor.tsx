@@ -18,6 +18,7 @@ export default function LogoEditor() {
 
   const [logoUploading, setLogoUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [justApplied, setJustApplied] = useState(false)
   const logoFileRef = useRef<HTMLInputElement>(null)
   const logoFileInputId = 'logo-file-input'
   const logoSizeInputId = 'logo-size-input'
@@ -34,6 +35,11 @@ export default function LogoEditor() {
     setLogoDraftSize(logoSize)
     setLogoDraftXY(logoX, logoY)
   }, [logoImage, logoSize, logoX, logoY, setLogoDraftImage, setLogoDraftSize, setLogoDraftXY])
+
+  // Reset justApplied as soon as user makes a new change
+  useEffect(() => {
+    if (hasChanges) setJustApplied(false)
+  }, [hasChanges])
 
   const handleLogoUpload = async (file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -59,6 +65,7 @@ export default function LogoEditor() {
     setLogoImage(logoDraftImage)
     setLogoSize(logoDraftSize)
     setLogoXY(logoDraftX ?? null, logoDraftY ?? null)
+    setJustApplied(true)
     window.setTimeout(() => setIsApplyingLogo(false), 0)
   }
 
@@ -140,10 +147,18 @@ export default function LogoEditor() {
       <button type="button"
         onClick={applyLogo}
         disabled={!hasLogo || !hasChanges || logoUploading || isApplyingLogo || previewLoading}
-        className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
+        className={`w-full py-2.5 rounded-xl text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 ${
+          previewLoading || isApplyingLogo
+            ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
+            : justApplied
+              ? 'bg-green-500 text-white cursor-default'
+              : hasLogo && hasChanges
+                ? 'bg-cyan-600 hover:bg-cyan-500 text-white'
+                : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
+        }`}
       >
         <CheckCircle2 size={16} />
-        {previewLoading || isApplyingLogo ? 'Applying...' : 'Apply logo'}
+        {previewLoading || isApplyingLogo ? 'Applying...' : justApplied ? '✓ Applied' : 'Apply logo'}
       </button>
 
       {error && (
