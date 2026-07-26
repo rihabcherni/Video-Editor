@@ -65,19 +65,11 @@ function isLocalAppUrl(url?: string | null) {
 
 async function doesLocalResourceExist(url: string) {
   try {
-    const headResponse = await fetch(url, { method: 'HEAD' })
-    if (headResponse.ok) return true
-    if (headResponse.status !== 405) return false
-  } catch {
-    return false
-  }
-
-  try {
-    const getResponse = await fetch(url, {
+    const response = await fetch(url, {
       method: 'GET',
       headers: { Range: 'bytes=0-0' },
     })
-    return getResponse.ok
+    return response.ok || response.status === 206
   } catch {
     return false
   }
@@ -160,7 +152,11 @@ export default function App() {
       const missingResource = results.find(resource => !resource.exists)
       if (missingResource) {
         validatedProjectSig.current = ''
-        reset()
+        if (missingResource.label === 'preview file') {
+          setProcessedUrl(null)
+        } else if (missingResource.label === 'video file') {
+          reset()
+        }
         return
       }
 
@@ -170,7 +166,7 @@ export default function App() {
     return () => {
       cancelled = true
     }
-  }, [audioTrack?.url, logoImage?.url, processedUrl, reset, video, video?.url])
+  }, [audioTrack?.url, logoImage?.url, processedUrl, reset, setProcessedUrl, video, video?.url])
 
   const handlePreview = useCallback(async () => {
     if (!video) return
@@ -252,7 +248,8 @@ export default function App() {
       const errorMessage = getApiErrorMessage(e, 'Preview failed')
       if (axios.isAxiosError(e) && e.response?.status === 404) {
         validatedProjectSig.current = ''
-        reset()
+        setProcessedUrl(null)
+        setPreviewError('Preview file not found or expired. Showing base video.')
       } else {
         setPreviewError(errorMessage)
       }

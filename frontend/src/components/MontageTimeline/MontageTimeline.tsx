@@ -1468,7 +1468,7 @@ export default function MontageTimeline() {
               className="inline-flex items-center gap-2 rounded-lg bg-cyan-50 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-700 transition-colors hover:bg-cyan-100 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
             >
               <Scissors size={12} />
-              Cut Selection
+              Cut
             </button>
             <button type="button" onClick={fitTimeline} className={`h-8 rounded-lg px-3 text-xs font-semibold transition-colors ${autoFit ? 'bg-cyan-600 text-white' : 'bg-white text-zinc-600 ring-1 ring-zinc-200 hover:bg-zinc-100'}`}>
               Fit
