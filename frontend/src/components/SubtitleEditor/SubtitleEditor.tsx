@@ -204,7 +204,7 @@ export default function SubtitleEditor() {
               </span>
             </div>
             <span className="text-xs font-mono font-bold text-cyan-700">
-              {subtitleProgress}%
+              {Math.round(subtitleProgress)}%
             </span>
           </div>
 
