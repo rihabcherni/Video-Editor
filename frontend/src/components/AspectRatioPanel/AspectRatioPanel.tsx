@@ -1,12 +1,10 @@
-import { useState } from 'react'
 import {
-  Square, Youtube, Instagram, Facebook, Linkedin, Twitter, Music2, Image as ImageIcon, CheckCircle2, Monitor
+  Square, Youtube, Instagram, Facebook, Linkedin, Twitter, Music2, Image as ImageIcon, CheckCircle2, Monitor, Lock, LockOpen
 } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 
 export default function AspectRatioPanel() {
-  const { exportAspectRatio, setExportAspectRatio, pushActionToast } = useStore()
-  const [justApplied, setJustApplied] = useState(false)
+  const { exportAspectRatio, setExportAspectRatio, pushActionToast, ratioLocked, setRatioLocked, setActiveTab } = useStore()
 
   const ratios = [
     {
@@ -89,22 +87,53 @@ export default function AspectRatioPanel() {
   ] as const
 
   const handleSelectRatio = (ratioId: typeof exportAspectRatio) => {
+    if (ratioLocked) return
     setExportAspectRatio(ratioId)
-    pushActionToast(`Aspect ratio set to ${ratioId}.`)
-    setJustApplied(true)
-    setTimeout(() => setJustApplied(false), 2000)
+  }
+
+  const handleApply = () => {
+    setRatioLocked(true)
+    pushActionToast(`Aspect ratio locked to ${exportAspectRatio === 'original' ? 'Original' : exportAspectRatio}.`)
+    setActiveTab('import')
+  }
+
+  const handleUnlock = () => {
+    setRatioLocked(false)
   }
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold text-zinc-900 mb-1">Aspect Ratio</h2>
-        <p className="text-xs text-zinc-500">
-          Choose the final target format & video size.
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-semibold text-zinc-900 mb-1">Aspect Ratio</h2>
+          <p className="text-xs text-zinc-500">
+            Choose the final target format &amp; video size.
+          </p>
+        </div>
+        {ratioLocked && (
+          <button
+            type="button"
+            onClick={handleUnlock}
+            title="Unlock to change aspect ratio"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold hover:bg-amber-100 transition-colors shrink-0"
+          >
+            <LockOpen size={12} />
+            Unlock
+          </button>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-3">
+      {ratioLocked && (
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2.5 text-amber-800 text-xs font-semibold">
+          <Lock size={14} className="text-amber-600 shrink-0" />
+          <span>
+            Aspect ratio locked to <strong>{exportAspectRatio === 'original' ? 'Original' : exportAspectRatio}</strong>.
+            Click <strong>Unlock</strong> to change it.
+          </span>
+        </div>
+      )}
+
+      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-3 transition-opacity ${ratioLocked ? 'opacity-50 pointer-events-none select-none' : ''}`}>
         {ratios.map(r => {
           const isSelected = exportAspectRatio === r.id
           return (
@@ -112,6 +141,7 @@ export default function AspectRatioPanel() {
               type="button"
               key={r.id}
               onClick={() => handleSelectRatio(r.id as typeof exportAspectRatio)}
+              disabled={ratioLocked}
               className={`p-5 rounded-2xl text-left transition-all border flex items-center justify-between gap-5 ${
                 isSelected
                   ? 'bg-green-500 text-white border-green-700 shadow-[0_8px_20px_rgba(8,145,178,0.25)]'
@@ -170,11 +200,15 @@ export default function AspectRatioPanel() {
         })}
       </div>
 
-      {justApplied && (
-        <div className="p-2.5 bg-green-500/10 border border-green-500/30 rounded-xl text-green-700 text-xs font-semibold flex items-center gap-2">
-          <CheckCircle2 size={15} />
-          Aspect ratio updated live across all player views!
-        </div>
+      {!ratioLocked && (
+        <button
+          type="button"
+          onClick={handleApply}
+          className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25"
+        >
+          <Lock size={14} />
+          Apply &amp; Lock ratio
+        </button>
       )}
     </div>
   )

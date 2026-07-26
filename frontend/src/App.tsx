@@ -73,7 +73,7 @@ async function doesLocalResourceExist(url: string) {
 }
 
 export default function App() {
-  const { video, mediaAssets, activeTab, setActiveTab, reset, trimStart, trimEnd, segments, audioTrack, audioDuration, audioApplied, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd, appliedAudioOffset, subtitles, subtitleFilename, appliedSubtitleStyle, logoImage, logoSize, logoX, logoY, titleText, titleFont, titleSize, titleColor, titleBgColor, titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleLineSpacing, titleAlign, titleX, titleY, titleRenderLayout, borderEnabled, borderWidth, borderHeight, borderColor, borderDraftEnabled, borderDraftWidth, borderDraftHeight, borderDraftColor, setBorderEnabled, setBorderWidth, setBorderHeight, setBorderColor, cropEnabled, crop, exportAspectRatio, processedUrl, setProcessedUrl, actionToasts, actionHistory, pushActionToast, removeActionToast, montageClips, montageAudioClips } = useStore()
+  const { video, mediaAssets, activeTab, setActiveTab, reset, trimStart, trimEnd, segments, audioTrack, audioDuration, audioApplied, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd, appliedAudioOffset, subtitles, subtitleFilename, appliedSubtitleStyle, logoImage, logoSize, logoX, logoY, titleText, titleFont, titleSize, titleColor, titleBgColor, titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleLineSpacing, titleAlign, titleX, titleY, titleRenderLayout, borderEnabled, borderWidth, borderHeight, borderColor, borderDraftEnabled, borderDraftWidth, borderDraftHeight, borderDraftColor, setBorderEnabled, setBorderWidth, setBorderHeight, setBorderColor, cropEnabled, crop, exportAspectRatio, ratioLocked, processedUrl, setProcessedUrl, actionToasts, actionHistory, pushActionToast, removeActionToast, montageClips, montageAudioClips } = useStore()
   const [previewError, setPreviewError] = useState<string | null>(null)
   const [actionsOpen, setActionsOpen] = useState(false)
   const [lastSeenActionCount, setLastSeenActionCount] = useState(0)
@@ -274,7 +274,8 @@ export default function App() {
           <div className="w-full lg:w-40 flex-shrink-0 lg:sticky lg:top-[64px]">
             <nav className="bg-white rounded-2xl p-1.5 border border-zinc-200 shadow-sm">
               {TABS.map(tab => {
-                const disabled = video ? (tab.id === 'import' || tab.id === 'montage') : tab.requiresVideo
+                const disabled = (tab.id === 'ratio' && ratioLocked && activeTab !== 'ratio')
+                  || (video ? (tab.id === 'import' || tab.id === 'montage') : tab.requiresVideo)
                 const active = activeTab === tab.id
                 const completed = !!completedTabs[tab.id]
                 return (

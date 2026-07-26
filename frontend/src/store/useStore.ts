@@ -366,6 +366,8 @@ interface EditorState {
 
   exportAspectRatio: 'original' | '16:9' | '9:16' | '1:1' | '4:5' | '5:4' | '4:3' | '3:2'
   setExportAspectRatio: (r: 'original' | '16:9' | '9:16' | '1:1' | '4:5' | '5:4' | '4:3' | '3:2') => void
+  ratioLocked: boolean
+  setRatioLocked: (locked: boolean) => void
   exportFilename: string
   setExportFilename: (name: string) => void
 
@@ -909,6 +911,8 @@ export const useStore = create<EditorState>()(persist((set) => ({
 
   exportAspectRatio: 'original',
   setExportAspectRatio: r => set({ exportAspectRatio: r }),
+  ratioLocked: false,
+  setRatioLocked: locked => set({ ratioLocked: locked }),
   exportFilename: '',
   setExportFilename: name => set({ exportFilename: name }),
 
@@ -1001,6 +1005,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
     crop: defaultCrop,
     cropDraft: defaultCrop,
     exportAspectRatio: 'original',
+    ratioLocked: false,
     exportFilename: '',
     processedUrl: null, activeTab: 'ratio', editStatus: null,
     previewLoading: false,

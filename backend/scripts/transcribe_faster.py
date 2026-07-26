@@ -52,6 +52,7 @@ def main():
     if language and language != "auto":
         segments, _info = model.transcribe(
             audio_file,
+            task="transcribe",
             language=language,
             beam_size=beam_size,
             best_of=best_of,
@@ -60,6 +61,7 @@ def main():
     else:
         segments, _info = model.transcribe(
             audio_file,
+            task="transcribe",
             beam_size=beam_size,
             best_of=best_of,
             vad_filter=vad_filter,
