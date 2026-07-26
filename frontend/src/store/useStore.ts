@@ -912,7 +912,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
   exportFilename: '',
   setExportFilename: name => set({ exportFilename: name }),
 
-  activeTab: 'import',
+  activeTab: 'ratio',
   setActiveTab: t => set({ activeTab: t }),
   isProcessing: false,
   setIsProcessing: p => set({ isProcessing: p }),
@@ -1002,7 +1002,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
     cropDraft: defaultCrop,
     exportAspectRatio: 'original',
     exportFilename: '',
-    processedUrl: null, activeTab: 'import', editStatus: null,
+    processedUrl: null, activeTab: 'ratio', editStatus: null,
     previewLoading: false,
     pendingPreviewAction: null,
     actionToasts: [],

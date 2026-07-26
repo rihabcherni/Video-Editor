@@ -339,11 +339,11 @@ export default function SubtitleEditor() {
           </div>
           <button type="button"
             onClick={() => pendingSrt && handleUploadSRT(pendingSrt)}
-            disabled={!pendingSrt || uploadLoading}
-            className="w-full py-2 bg-zinc-100 hover:bg-zinc-200 disabled:bg-zinc-200 disabled:text-zinc-400 text-zinc-700 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 border border-zinc-200"
+            disabled={!pendingSrt || uploadLoading || subtitleLoading}
+            className="w-full py-2 bg-zinc-100 hover:bg-zinc-200 disabled:bg-zinc-200 disabled:text-zinc-400 disabled:cursor-not-allowed text-zinc-700 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 border border-zinc-200"
           >
             <FileText size={14} />
-            {uploadLoading ? 'Loading...' : 'Show list'}
+            {uploadLoading || subtitleLoading ? 'Loading...' : 'Show list'}
           </button>
         </div>
       )}
@@ -393,11 +393,11 @@ export default function SubtitleEditor() {
           </label>
           <button type="button"
             onClick={handleAutoSubtitles}
-            disabled={!video || autoLoading}
-            className="w-full py-2 bg-zinc-100 hover:bg-zinc-200 disabled:bg-zinc-200 disabled:text-zinc-400 text-zinc-700 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 border border-zinc-200"
+            disabled={!video || autoLoading || subtitleLoading}
+            className="w-full py-2 bg-zinc-100 hover:bg-zinc-200 disabled:bg-zinc-200 disabled:text-zinc-400 disabled:cursor-not-allowed text-zinc-700 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 border border-zinc-200"
           >
             <FileText size={14} />
-            {autoLoading ? 'Generating...' : 'Generate list'}
+            {autoLoading || subtitleLoading ? 'Generating...' : 'Generate list'}
           </button>
         </div>
       )}

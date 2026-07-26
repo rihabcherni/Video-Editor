@@ -73,7 +73,7 @@ async function doesLocalResourceExist(url: string) {
 }
 
 export default function App() {
-  const { video, activeTab, setActiveTab, reset, trimStart, trimEnd, segments, audioTrack, audioDuration, audioApplied, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd, appliedAudioOffset, subtitles, subtitleFilename, appliedSubtitleStyle, logoImage, logoSize, logoX, logoY, titleText, titleFont, titleSize, titleColor, titleBgColor, titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleLineSpacing, titleAlign, titleX, titleY, titleRenderLayout, borderEnabled, borderWidth, borderHeight, borderColor, borderDraftEnabled, borderDraftWidth, borderDraftHeight, borderDraftColor, setBorderEnabled, setBorderWidth, setBorderHeight, setBorderColor, cropEnabled, crop, exportAspectRatio, processedUrl, setProcessedUrl, actionToasts, actionHistory, pushActionToast, removeActionToast, montageClips, montageAudioClips } = useStore()
+  const { video, mediaAssets, activeTab, setActiveTab, reset, trimStart, trimEnd, segments, audioTrack, audioDuration, audioApplied, appliedReplaceOriginal, appliedAudioTrimStart, appliedAudioTrimEnd, appliedAudioOffset, subtitles, subtitleFilename, appliedSubtitleStyle, logoImage, logoSize, logoX, logoY, titleText, titleFont, titleSize, titleColor, titleBgColor, titleBorderColor, titleBorderWidth, titleFrameColor, titleFrameWidth, titlePadding, titleLineSpacing, titleAlign, titleX, titleY, titleRenderLayout, borderEnabled, borderWidth, borderHeight, borderColor, borderDraftEnabled, borderDraftWidth, borderDraftHeight, borderDraftColor, setBorderEnabled, setBorderWidth, setBorderHeight, setBorderColor, cropEnabled, crop, exportAspectRatio, processedUrl, setProcessedUrl, actionToasts, actionHistory, pushActionToast, removeActionToast, montageClips, montageAudioClips } = useStore()
   const [previewError, setPreviewError] = useState<string | null>(null)
   const [actionsOpen, setActionsOpen] = useState(false)
   const [lastSeenActionCount, setLastSeenActionCount] = useState(0)
@@ -174,7 +174,7 @@ export default function App() {
   const hasExportChanges = exportAspectRatio !== 'original'
   const completedTabs: Partial<Record<Tab, boolean>> = {
     ratio: exportAspectRatio !== 'original',
-    import: !!video,
+    import: mediaAssets.length > 0 || !!video,
     montage: montageClips.length > 0 || montageAudioClips.length > 0,
     crop: hasCrop,
     subtitles: hasAppliedSubtitles,

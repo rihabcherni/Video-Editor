@@ -204,7 +204,7 @@ function buildScaleFilter(quality: NonNullable<ExportOptions['quality']>, aspect
   const scaleMap = { '480p': 854, '720p': 1280, '1080p': 1920 }
   const baseLong = scaleMap[quality]
   if (!aspectRatio || aspectRatio === 'original') {
-    return `scale=${baseLong}:-2`
+    return `scale=${baseLong}:-2,setsar=1`
   }
 
   const { w, h } = aspectRatioMap[aspectRatio] || aspectRatioMap['16:9']
@@ -221,7 +221,7 @@ function buildScaleFilter(quality: NonNullable<ExportOptions['quality']>, aspect
 
   // Scale video to fit inside target dimensions (letterbox/pillarbox) without cropping any content.
   // Then pad with black bars to reach the exact target canvas size.
-  return `scale=${targetWidth}:${targetHeight}:force_original_aspect_ratio=decrease,pad=${targetWidth}:${targetHeight}:(ow-iw)/2:(oh-ih)/2:color=black`
+  return `scale=${targetWidth}:${targetHeight}:force_original_aspect_ratio=decrease,pad=${targetWidth}:${targetHeight}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1`
 }
 
 function toAssColor(hex?: string) {
@@ -463,7 +463,7 @@ function buildCropFilter(crop?: CropSettings) {
   const xExpr = `min(iw-${widthExpr}\\,floor(iw*${left}))`
   const yExpr = `min(ih-${heightExpr}\\,floor(ih*${top}))`
 
-  return `crop=${widthExpr}:${heightExpr}:${xExpr}:${yExpr}`
+  return `crop=${widthExpr}:${heightExpr}:${xExpr}:${yExpr},setsar=1`
 }
 
 function clamp(n: number, min: number, max: number) {
