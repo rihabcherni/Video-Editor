@@ -274,8 +274,7 @@ export default function App() {
           <div className="w-full lg:w-40 flex-shrink-0 lg:sticky lg:top-[64px]">
             <nav className="bg-white rounded-2xl p-1.5 border border-zinc-200 shadow-sm">
               {TABS.map(tab => {
-                const disabled = (tab.id === 'ratio' && ratioLocked && activeTab !== 'ratio')
-                  || (video ? (tab.id === 'import' || tab.id === 'montage') : tab.requiresVideo)
+                const disabled = video ? (tab.id === 'import' || tab.id === 'montage') : tab.requiresVideo
                 const active = activeTab === tab.id
                 const completed = !!completedTabs[tab.id]
                 return (

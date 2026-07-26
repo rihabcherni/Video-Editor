@@ -732,8 +732,8 @@ export default function MontageTimeline() {
         clearMontageAudioClips()
         setMergeStatus(null)
         setMergeProgress(0)
-        pushActionToast(`Video generated! You can now add borders, titles, crop, and more.`)
-        setActiveTab('crop')
+        pushActionToast(`Video generated! You can now add aspect ratio, borders, titles, crop, and more.`)
+        setActiveTab('ratio')
         return // Success, exit the retry loop
       } catch (err: unknown) {
         // Clear progress interval on error
@@ -1492,9 +1492,6 @@ export default function MontageTimeline() {
             >
               <Scissors size={12} />
               Cut
-            </button>
-            <button type="button" onClick={fitTimeline} className={`h-8 rounded-lg px-3 text-xs font-semibold transition-colors ${autoFit ? 'bg-cyan-600 text-white' : 'bg-white text-zinc-600 ring-1 ring-zinc-200 hover:bg-zinc-100'}`}>
-              Fit
             </button>
             <button type="button" onClick={zoomOut} className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-zinc-600 ring-1 ring-zinc-200 hover:bg-zinc-100" aria-label="Zoom out">
               <ZoomOut size={15} />

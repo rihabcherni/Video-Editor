@@ -4,7 +4,7 @@ import {
 import { useStore } from '../../store/useStore'
 
 export default function AspectRatioPanel() {
-  const { exportAspectRatio, setExportAspectRatio, pushActionToast, ratioLocked, setRatioLocked, setActiveTab } = useStore()
+  const { exportAspectRatio, setExportAspectRatio, pushActionToast, setActiveTab } = useStore()
 
   const ratios = [
     {
@@ -87,18 +87,12 @@ export default function AspectRatioPanel() {
   ] as const
 
   const handleSelectRatio = (ratioId: typeof exportAspectRatio) => {
-    if (ratioLocked) return
     setExportAspectRatio(ratioId)
   }
 
   const handleApply = () => {
-    setRatioLocked(true)
-    pushActionToast(`Aspect ratio locked to ${exportAspectRatio === 'original' ? 'Original' : exportAspectRatio}.`)
-    setActiveTab('import')
-  }
-
-  const handleUnlock = () => {
-    setRatioLocked(false)
+    pushActionToast(`Aspect ratio set to ${exportAspectRatio === 'original' ? 'Original' : exportAspectRatio}.`)
+    setActiveTab('crop')
   }
 
   return (
@@ -110,30 +104,9 @@ export default function AspectRatioPanel() {
             Choose the final target format &amp; video size.
           </p>
         </div>
-        {ratioLocked && (
-          <button
-            type="button"
-            onClick={handleUnlock}
-            title="Unlock to change aspect ratio"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold hover:bg-amber-100 transition-colors shrink-0"
-          >
-            <LockOpen size={12} />
-            Unlock
-          </button>
-        )}
       </div>
 
-      {ratioLocked && (
-        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2.5 text-amber-800 text-xs font-semibold">
-          <Lock size={14} className="text-amber-600 shrink-0" />
-          <span>
-            Aspect ratio locked to <strong>{exportAspectRatio === 'original' ? 'Original' : exportAspectRatio}</strong>.
-            Click <strong>Unlock</strong> to change it.
-          </span>
-        </div>
-      )}
-
-      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-3 transition-opacity ${ratioLocked ? 'opacity-50 pointer-events-none select-none' : ''}`}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-3">
         {ratios.map(r => {
           const isSelected = exportAspectRatio === r.id
           return (
@@ -141,7 +114,6 @@ export default function AspectRatioPanel() {
               type="button"
               key={r.id}
               onClick={() => handleSelectRatio(r.id as typeof exportAspectRatio)}
-              disabled={ratioLocked}
               className={`p-5 rounded-2xl text-left transition-all border flex items-center justify-between gap-5 ${
                 isSelected
                   ? 'bg-green-500 text-white border-green-700 shadow-[0_8px_20px_rgba(8,145,178,0.25)]'
@@ -200,16 +172,14 @@ export default function AspectRatioPanel() {
         })}
       </div>
 
-      {!ratioLocked && (
-        <button
-          type="button"
-          onClick={handleApply}
-          className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25"
-        >
-          <Lock size={14} />
-          Apply 
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={handleApply}
+        className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25"
+      >
+        <CheckCircle2 size={16} />
+        Apply
+      </button>
     </div>
   )
 }
