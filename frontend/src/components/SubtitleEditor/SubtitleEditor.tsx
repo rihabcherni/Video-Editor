@@ -77,12 +77,12 @@ export default function SubtitleEditor() {
     setSubtitleProgress(10)
     const interval = setInterval(() => {
       const current = useStore.getState().subtitleProgress
-      if (current < 92) {
-        setSubtitleProgress(Math.min(92, current + Math.floor(Math.random() * 6 + 4)))
-      } else {
-        clearInterval(interval)
-      }
-    }, 350)
+      if (current >= 98) return // never exceed 98%, wait for real completion
+      // Decelerating increment: faster early on, very slow near 98%
+      const remaining = 98 - current
+      const step = Math.max(0.2, (remaining * 0.08) + Math.random() * 0.5)
+      setSubtitleProgress(Math.min(98, current + step))
+    }, 400)
     return interval
   }
 

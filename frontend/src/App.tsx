@@ -171,7 +171,6 @@ export default function App() {
   const hasLogo = !!logoImage
   const hasTitle = titleText.trim().length > 0
   const hasBorder = borderEnabled && (borderWidth > 0 || borderHeight > 0)
-  const hasExportChanges = exportAspectRatio !== 'original'
   const completedTabs: Partial<Record<Tab, boolean>> = {
     ratio: exportAspectRatio !== 'original',
     import: mediaAssets.length > 0 || !!video,
@@ -181,7 +180,7 @@ export default function App() {
     logo: hasLogo,
     title: hasTitle,
     border: hasBorder,
-    export: hasExportChanges,
+    export: !!processedUrl,
   }
 
   return (
