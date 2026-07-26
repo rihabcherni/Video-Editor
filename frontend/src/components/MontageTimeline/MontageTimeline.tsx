@@ -204,7 +204,7 @@ function EmptyTrack({ icon, title }: { icon: React.ReactNode; title: string }) {
 
 export default function MontageTimeline() {
   const {
-    montageClips, montageAudioClips,
+    montageClips, montageAudioClips, exportAspectRatio,
     removeMontageClip, updateMontageClip, reorderMontageClips,
     removeMontageAudioClip, updateMontageAudioClip, reorderMontageAudioClips,
     clearMontageClips, clearMontageAudioClips,
@@ -258,7 +258,7 @@ export default function MontageTimeline() {
     if (!hasTimelineMedia) return 0
     const videoEnd = videoClips.reduce((max, clip) => Math.max(max, clipStart(clip) + clipDuration(clip)), 0)
     const audioEnd = audioClips.reduce((max, clip) => Math.max(max, clip.offset + clipDuration(clip)), 0)
-    return Math.max(10, Math.ceil(Math.max(videoEnd, audioEnd)) + 2)
+    return Math.max(10, videoEnd === 0 && audioEnd === 0 ? 0 : Math.max(videoEnd, audioEnd) + 0.5)
   }, [audioClips, hasTimelineMedia, videoClips])
 
   const minimumZoom = useMemo(() => {
@@ -885,18 +885,40 @@ export default function MontageTimeline() {
             </div>
             <span className="rounded-lg bg-zinc-100 px-2 py-1 font-mono text-xs text-zinc-600">{formatDurationHMS(playhead)} - {formatDurationHMS(timelineDuration)}</span>
           </div>
-          <div className="relative flex flex-1 min-h-0 items-center justify-center bg-[linear-gradient(135deg,#f8fafc_0%,#eef2f7_100%)]">
+          <div className="relative flex flex-1 min-h-0 items-center justify-center bg-zinc-950 p-2 overflow-hidden">
             {activeVideoClip ? (
-              <video
-                ref={videoRef}
-                src={withMediaBase(activeVideoClip.video.url)}
-                className="h-full w-full object-contain"
-                onEnded={() => setPlaying(false)}
-                onClick={(e) => {
-                  e.preventDefault()
-                  togglePlay()
+              <div
+                className={`relative flex items-center justify-center max-h-full max-w-full overflow-hidden transition-all duration-300 ${
+                  exportAspectRatio !== 'original' ? 'bg-black shadow-2xl ring-1 ring-white/20 rounded-lg' : ''
+                }`}
+                style={{
+                  aspectRatio: exportAspectRatio !== 'original'
+                    ? ({
+                      '16:9': '16 / 9',
+                      '9:16': '9 / 16',
+                      '1:1': '1 / 1',
+                      '4:5': '4 / 5',
+                      '5:4': '5 / 4',
+                      '4:3': '4 / 3',
+                      '3:2': '3 / 2',
+                    }[exportAspectRatio] || 'auto')
+                    : 'auto',
+                  height: exportAspectRatio !== 'original' ? '100%' : 'auto',
+                  maxHeight: '100%',
+                  maxWidth: '100%',
                 }}
-              />
+              >
+                <video
+                  ref={videoRef}
+                  src={withMediaBase(activeVideoClip.video.url)}
+                  className="h-full w-full object-contain"
+                  onEnded={() => setPlaying(false)}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    togglePlay()
+                  }}
+                />
+              </div>
             ) : (
               <div className="flex flex-col items-center justify-center gap-2 text-zinc-400">
                 <Maximize2 size={28} />

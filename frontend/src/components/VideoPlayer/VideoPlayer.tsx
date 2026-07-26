@@ -236,7 +236,7 @@ export default function VideoPlayer() {
     updateVideoDisplayRect()
     window.addEventListener('resize', updateVideoDisplayRect)
     return () => window.removeEventListener('resize', updateVideoDisplayRect)
-  }, [src, updateVideoDisplayRect])
+  }, [src, exportAspectRatio, updateVideoDisplayRect])
 
   const draftLogoX = logoDraftX ?? logoX ?? 0.9
   const draftLogoY = logoDraftY ?? logoY ?? 0.1
@@ -470,7 +470,9 @@ export default function VideoPlayer() {
     <div className="space-y-2">
       <div ref={overlayRef} className="relative bg-zinc-950 rounded-xl overflow-hidden w-full flex items-center justify-center h-[40vh] min-h-[372px]">
         <div
-          className="relative flex items-center justify-center overflow-hidden"
+          className={`relative flex items-center justify-center overflow-hidden transition-all duration-300 ${
+            exportAspectRatio !== 'original' ? 'bg-black shadow-2xl ring-1 ring-white/20 rounded-lg' : ''
+          }`}
           style={{
             width: `${titleOuterRect.width}px`,
             height: `${titleOuterRect.height}px`,
@@ -479,7 +481,7 @@ export default function VideoPlayer() {
               : '0px',
             backgroundColor: previewBorderEnabled
               ? previewBorderColor
-              : 'transparent',
+              : (exportAspectRatio !== 'original' ? '#000000' : 'transparent'),
             boxSizing: 'border-box',
           }}
         >

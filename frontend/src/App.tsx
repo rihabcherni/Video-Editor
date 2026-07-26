@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Upload, FileText, Download, Film, RotateCcw, Image as ImageIcon, Type, Square, Crop as CropIcon, CheckCircle2, X, History, ChevronDown, AlertCircle, Layers } from 'lucide-react'
+import { Upload, FileText, Download, Film, RotateCcw, Image as ImageIcon, Type, Square, Crop as CropIcon, CheckCircle2, X, History, ChevronDown, AlertCircle, Layers, Monitor } from 'lucide-react'
 import { useStore } from './store/useStore'
 import ImportPanel from './components/ImportPanel/ImportPanel'
+import AspectRatioPanel from './components/AspectRatioPanel/AspectRatioPanel'
 import VideoPlayer from './components/VideoPlayer/VideoPlayer'
 import SubtitleEditor from './components/SubtitleEditor/SubtitleEditor'
 import ExportPanel from './components/ExportPanel/ExportPanel'
@@ -11,9 +12,10 @@ import BorderEditor from './components/BorderEditor/BorderEditor'
 import CropEditor from './components/CropEditor/CropEditor'
 import MontageTimeline from './components/MontageTimeline/MontageTimeline'
 
-type Tab = 'import' | 'montage' | 'crop' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
+type Tab = 'ratio' | 'import' | 'montage' | 'crop' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode; requiresVideo?: boolean }[] = [
+  { id: 'ratio', label: 'Aspect ratio', icon: <Monitor size={15} /> },
   { id: 'import', label: 'Import', icon: <Upload size={15} /> },
   { id: 'montage', label: 'Montage', icon: <Layers size={15} /> },
   { id: 'crop', label: 'Crop', icon: <CropIcon size={15} />, requiresVideo: true },
@@ -160,7 +162,7 @@ export default function App() {
   }, [actionToasts, removeActionToast])
 
   const appName = import.meta.env.VITE_APP_NAME || 'Video Editor'
-  const recentActions = actionHistory.slice(-6).reverse()
+  const recentActions = actionHistory.slice().reverse()
   const showActionHistoryCard = recentActions.length > 0
   const newActionCount = Math.max(0, actionHistory.length - lastSeenActionCount)
   const hasNewActions = newActionCount > 0
@@ -171,6 +173,7 @@ export default function App() {
   const hasBorder = borderEnabled && (borderWidth > 0 || borderHeight > 0)
   const hasExportChanges = exportAspectRatio !== 'original'
   const completedTabs: Partial<Record<Tab, boolean>> = {
+    ratio: exportAspectRatio !== 'original',
     import: !!video,
     montage: montageClips.length > 0 || montageAudioClips.length > 0,
     crop: hasCrop,
@@ -281,7 +284,7 @@ export default function App() {
                     key={tab.id}
                     onClick={() => !disabled && setActiveTab(tab.id)}
                     disabled={disabled}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${active
+                    className={`w-full flex items-center gap-2 p-2.5 rounded-xl text-xs font-medium transition-all ${active
                       ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/30'
                       : disabled
                         ? 'text-zinc-300 cursor-not-allowed'
@@ -293,7 +296,7 @@ export default function App() {
                     {completed && (
                       <span className={`ml-auto flex h-5 w-5 items-center justify-center rounded-full ${active ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-600'
                         }`}>
-                        <CheckCircle2 size={13} />
+                        <CheckCircle2 size={12} />
                       </span>
                     )}
                     {/* badges */}
@@ -307,7 +310,7 @@ export default function App() {
               })}
             </nav>
           </div>
-          {activeTab !== 'import' && (
+          {activeTab !== 'import' && activeTab !== 'ratio' && (
             <div className="flex-1 min-w-0 w-full overflow-hidden">
               {activeTab === 'montage' ? (
                 <div className="rounded-2xl border border-zinc-200 bg-white p-2 w-full">
@@ -449,8 +452,9 @@ export default function App() {
               )}
             </div>
           )}
-          <div className={`w-full ${activeTab === 'import' ? 'lg:flex-1 lg:min-w-0' : 'lg:w-80 xl:w-[28rem] flex-shrink-0'} lg:sticky lg:top-[64px] ${activeTab === 'montage' ? 'hidden' : ''}`}>
+          <div className={`w-full ${(activeTab === 'import' || activeTab === 'ratio') ? 'lg:flex-1 lg:min-w-0' : 'lg:w-80 xl:w-[28rem] flex-shrink-0'} lg:sticky lg:top-[64px] ${activeTab === 'montage' ? 'hidden' : ''}`}>
             <div className="bg-white rounded-2xl px-4 py-4 border border-zinc-200 min-h-[300px] shadow-sm max-w-full">
+              {activeTab === 'ratio' && <AspectRatioPanel />}
               {activeTab === 'import' && <ImportPanel />}
               {activeTab === 'crop' && <CropEditor />}
               {activeTab === 'subtitles' && <SubtitleEditor />}

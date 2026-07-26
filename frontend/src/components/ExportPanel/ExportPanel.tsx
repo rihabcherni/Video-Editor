@@ -31,7 +31,7 @@ export default function ExportPanel() {
   const [exportProgress, setExportProgress] = useState(0)
   const [done, setDone] = useState<{ url: string; downloadUrl: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [exportTab, setExportTab] = useState<'ratio' | 'name' | 'summary'>('name')
+  const [exportTab, setExportTab] = useState<'name' | 'summary'>('name')
   const abortControllerRef = useRef<AbortController | null>(null)
 
   const hasTrim = video && (trimStart > 0 || trimEnd < video.duration)
@@ -187,7 +187,6 @@ export default function ExportPanel() {
       <div className="flex gap-2">
         {([
           { id: 'name', label: 'File name' },
-          { id: 'ratio', label: 'Aspect ratio' },
           { id: 'summary', label: 'Summary' },
         ] as const).map(tab => (
           <button type="button"
@@ -214,133 +213,6 @@ export default function ExportPanel() {
               className="w-full rounded-xl border border-zinc-200 bg-white p-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600"
             />
             <span className="text-xs text-zinc-500">.mp4</span>
-          </div>
-        </div>
-      )}
-      {exportTab === 'ratio' && (
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-zinc-700">Aspect ratio</label>
-          <div className="grid grid-cols-2 gap-2">
-            {([
-              {
-                id: 'original',
-                ratioLabel: 'Original',
-                label: 'Original',
-                icons: [],
-              },
-              {
-                id: '16:9',
-                ratioLabel: '16:9',
-                label: 'Standard',
-                icons: [
-                  { node: <Youtube size={12} className="text-white" />, className: 'bg-[#FF0000]' },
-                  { node: <Linkedin size={12} className="text-white" />, className: 'bg-[#0A66C2]' },
-                  { node: <Twitter size={12} className="text-white" />, className: 'bg-zinc-900' },
-                ],
-              },
-              {
-                id: '9:16',
-                ratioLabel: '9:16',
-                label: 'Reels / Stories / Shorts',
-                icons: [
-                  { node: <Music2 size={12} className="text-white" />, className: 'bg-black' },
-                  { node: <Instagram size={12} className="text-white" />, className: 'bg-gradient-to-br from-fuchsia-500 via-rose-500 to-amber-400' },
-                  { node: <Facebook size={12} className="text-white" />, className: 'bg-[#1877F2]' },
-                  { node: <Youtube size={12} className="text-white" />, className: 'bg-[#FF0000]' },
-                  { node: <Twitter size={12} className="text-white" />, className: 'bg-zinc-900' },
-                ],
-              },
-              {
-                id: '4:5',
-                ratioLabel: '4:5',
-                label: 'Feed (best)',
-                icons: [
-                  { node: <Instagram size={12} className="text-white" />, className: 'bg-gradient-to-br from-fuchsia-500 via-rose-500 to-amber-400' },
-                  { node: <Facebook size={12} className="text-white" />, className: 'bg-[#1877F2]' },
-                ],
-              },
-              {
-                id: '1:1',
-                ratioLabel: '1:1',
-                label: 'Feed',
-                icons: [
-                  { node: <Facebook size={12} className="text-white" />, className: 'bg-[#1877F2]' },
-                  { node: <Instagram size={12} className="text-white" />, className: 'bg-gradient-to-br from-fuchsia-500 via-rose-500 to-amber-400' },
-                ],
-              },
-              {
-                id: '5:4',
-                ratioLabel: '5:4',
-                label: 'Classic (desktop)',
-                icons: [
-                  { node: <Square size={12} className="text-white" />, className: 'bg-zinc-600' },
-                ],
-              },
-              {
-                id: '4:3',
-                ratioLabel: '4:3',
-                label: 'Classic (TV)',
-                icons: [
-                  { node: <Square size={12} className="text-white" />, className: 'bg-zinc-700' },
-                ],
-              },
-              {
-                id: '3:2',
-                ratioLabel: '3:2',
-                label: 'Photo',
-                icons: [
-                  { node: <ImageIcon size={12} className="text-white" />, className: 'bg-zinc-700' },
-                ],
-              },
-            ] as const).map(r => (
-              <button type="button"
-                key={`${r.id}-${r.label}`}
-                onClick={() => setExportAspectRatio(r.id)}
-                className={`p-2 rounded-xl text-sm font-medium transition-all ${exportAspectRatio === r.id
-                  ? 'bg-cyan-600 text-white border border-cyan-700 shadow-[0_8px_20px_rgba(8,145,178,0.25)]'
-                  : 'bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200'
-                  }`}
-              >
-                {r.id === 'original' ? (
-                  <div className="flex h-full items-center justify-center">
-                    <div className={`text-[11px] font-semibold ${exportAspectRatio === r.id ? 'text-white' : 'text-zinc-700'}`}>{r.label}</div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`relative border border-current/10 ${exportAspectRatio === r.id ? 'text-white/90' : 'text-zinc-500'
-                          } ${r.id === '16:9'
-                            ? 'w-12 h-7'
-                            : r.id === '9:16'
-                              ? 'w-7 h-12'
-                              : r.id === '4:5'
-                                ? 'w-7 h-9'
-                                : r.id === '1:1'
-                                  ? 'w-8 h-8'
-                                  : 'w-10 h-7'
-                          }`}
-                      >
-                        <span className="absolute inset-0 flex items-center justify-center text-[11px] font-semibold">
-                          {r.ratioLabel}
-                        </span>
-                      </div>
-                      <div className={`text-[11px] font-semibold ${exportAspectRatio === r.id ? 'text-white' : 'text-zinc-700'}`}>{r.label}</div>
-                    </div>
-                    <div className="flex flex-wrap gap-1 min-h-[28px] justify-center">
-                      {r.icons.map((icon, index) => (
-                        <span
-                          key={`${r.id}-${index}`}
-                          className={`inline-flex h-7 w-7 items-center justify-center rounded-full ${icon.className} ${exportAspectRatio === r.id ? 'ring-2 ring-white/40' : ''}`}
-                        >
-                          {icon.node}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </button>
-            ))}
           </div>
         </div>
       )}

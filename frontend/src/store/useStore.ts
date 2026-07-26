@@ -363,8 +363,8 @@ interface EditorState {
   exportFilename: string
   setExportFilename: (name: string) => void
 
-  activeTab: 'import' | 'montage' | 'crop' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
-  setActiveTab: (t: 'import' | 'montage' | 'crop' | 'subtitles' | 'logo' | 'title' | 'border' | 'export') => void
+  activeTab: 'ratio' | 'import' | 'montage' | 'crop' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
+  setActiveTab: (t: 'ratio' | 'import' | 'montage' | 'crop' | 'subtitles' | 'logo' | 'title' | 'border' | 'export') => void
   isProcessing: boolean
   setIsProcessing: (p: boolean) => void
   processedUrl: string | null
@@ -916,7 +916,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
   actionHistory: [],
   pushActionToast: message => set(state => ({
     actionToasts: [...state.actionToasts, { id: createId(), message }].slice(-4),
-    actionHistory: [...state.actionHistory, { id: createId(), message, completedAt: new Date().toISOString() }].slice(-6),
+    actionHistory: [...state.actionHistory, { id: createId(), message, completedAt: new Date().toISOString() }].slice(-50),
   })),
   removeActionToast: id => set(state => ({
     actionToasts: state.actionToasts.filter(toast => toast.id !== id),
