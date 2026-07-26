@@ -494,11 +494,9 @@ function buildLogoOverlayFilters(params: {
   const x = `((${clamp(params.x ?? 0.9, 0, 1)}*main_w)-(overlay_w/2))`
   const y = `((${clamp(params.y ?? 0.1, 0, 1)}*main_h)-(overlay_h/2))`
 
-  const shortestOpt = params.isGif ? ':shortest=1' : ''
-
   return [
     `${logoIn}format=rgba,scale=${targetW}:-1[logo_s]`,
-    `[${params.baseLabel}][logo_s]overlay=${x}:${y}${shortestOpt}[vout]`,
+    `[${params.baseLabel}][logo_s]overlay=${x}:${y}:shortest=1[vout]`,
   ]
 }
 
@@ -1015,6 +1013,8 @@ export function exportVideo(options: ExportOptions, onProgress?: (pct: number) =
       cmd.input(logoPath!)
       if (isGif) {
         cmd.inputOptions(['-ignore_loop 0'])
+      } else {
+        cmd.inputOptions(['-loop 1'])
       }
     }
 

@@ -244,6 +244,12 @@ interface EditorState {
   setAppliedSubtitleStyle: (s: SubtitleStyle | null) => void
   subtitleAppliedSignature: string | null
   setSubtitleAppliedSignature: (s: string | null) => void
+  subtitleLoading: boolean
+  setSubtitleLoading: (l: boolean) => void
+  subtitleLoadingMessage: string | null
+  setSubtitleLoadingMessage: (msg: string | null) => void
+  subtitleProgress: number
+  setSubtitleProgress: (p: number) => void
 
   logoImage: LogoAsset | null
   setLogoImage: (l: LogoAsset | null) => void
@@ -771,6 +777,12 @@ export const useStore = create<EditorState>()(persist((set) => ({
   setAppliedSubtitleStyle: s => set({ appliedSubtitleStyle: s }),
   subtitleAppliedSignature: null,
   setSubtitleAppliedSignature: s => set({ subtitleAppliedSignature: s }),
+  subtitleLoading: false,
+  setSubtitleLoading: l => set({ subtitleLoading: l }),
+  subtitleLoadingMessage: null,
+  setSubtitleLoadingMessage: msg => set({ subtitleLoadingMessage: msg }),
+  subtitleProgress: 0,
+  setSubtitleProgress: p => set({ subtitleProgress: p }),
 
   logoImage: null,
   setLogoImage: l => set({ logoImage: l }),

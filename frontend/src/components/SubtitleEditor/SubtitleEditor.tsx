@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ArrowRight, Plus, Trash2, Upload, FileText } from 'lucide-react'
+import { ArrowRight, Plus, Trash2, Upload, FileText, Loader2 } from 'lucide-react'
 import { autoSubtitles, createSubtitles, getApiErrorMessage, uploadSubtitle } from '../../api/client'
 import { useStore } from '../../store/useStore'
 import { SubtitleEntry } from '../../api/client'
@@ -27,7 +27,9 @@ function getSubtitleSignature(entries: SubtitleEntry[], style: { size: number; c
 
 export default function SubtitleEditor() {
   const { video, trimStart, trimEnd, subtitles, subtitleFilename, setSubtitles, setSubtitleFilename, subtitleStyle,
-    setSubtitleStyle, appliedSubtitleStyle, setAppliedSubtitleStyle, subtitleAppliedSignature, setSubtitleAppliedSignature, pushActionToast } = useStore()
+    setSubtitleStyle, appliedSubtitleStyle, setAppliedSubtitleStyle, subtitleAppliedSignature, setSubtitleAppliedSignature, pushActionToast,
+    subtitleLoading, setSubtitleLoading, subtitleLoadingMessage, setSubtitleLoadingMessage,
+    subtitleProgress, setSubtitleProgress } = useStore()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [autoLoading, setAutoLoading] = useState(false)
@@ -71,12 +73,30 @@ export default function SubtitleEditor() {
     setPendingSubtitleFilename(null)
   }
 
+  const startProgressTimer = () => {
+    setSubtitleProgress(10)
+    const interval = setInterval(() => {
+      const current = useStore.getState().subtitleProgress
+      if (current < 92) {
+        setSubtitleProgress(Math.min(92, current + Math.floor(Math.random() * 6 + 4)))
+      } else {
+        clearInterval(interval)
+      }
+    }, 350)
+    return interval
+  }
+
   const handleSave = async () => {
     if (subtitles.length === 0) return
     setSaving(true)
+    setSubtitleLoading(true)
+    setSubtitleLoadingMessage('Applying subtitles...')
     setError(null)
+    const timer = startProgressTimer()
     try {
       const result = await createSubtitles(subtitles)
+      clearInterval(timer)
+      setSubtitleProgress(100)
       pushActionToast('Subtitles applied successfully.')
       setSubtitleFilename(result.filename)
       setAppliedSubtitleStyle(subtitleStyle)
@@ -84,30 +104,46 @@ export default function SubtitleEditor() {
       setPendingSubtitleFilename(null)
       setJustApplied(true)
     } catch (e: unknown) {
+      clearInterval(timer)
       setError(getApiErrorMessage(e, 'Save failed'))
     } finally {
       setSaving(false)
+      setSubtitleLoading(false)
+      setSubtitleLoadingMessage(null)
+      setTimeout(() => setSubtitleProgress(0), 1000)
     }
   }
   const handleUploadSRT = async (file: File) => {
     setUploadLoading(true)
+    setSubtitleLoading(true)
+    setSubtitleLoadingMessage('Processing subtitle file...')
     setError(null)
+    const timer = startProgressTimer()
     try {
       const result = await uploadSubtitle(file)
+      clearInterval(timer)
+      setSubtitleProgress(100)
       setSubtitles(result.entries)
       setPendingSubtitleFilename(result.filename)
       setPendingSrt(null)
       if (fileRef.current) fileRef.current.value = ''
     } catch (e: unknown) {
+      clearInterval(timer)
       setError(getApiErrorMessage(e, 'Upload failed'))
     } finally {
       setUploadLoading(false)
+      setSubtitleLoading(false)
+      setSubtitleLoadingMessage(null)
+      setTimeout(() => setSubtitleProgress(0), 1000)
     }
   }
   const handleAutoSubtitles = async () => {
     if (!video) return
     setAutoLoading(true)
+    setSubtitleLoading(true)
+    setSubtitleLoadingMessage('Generating AI subtitles with Whisper...')
     setError(null)
+    const timer = startProgressTimer()
     const hasTrim = trimStart > 0 || trimEnd < video.duration
     try {
       const result = await autoSubtitles({
@@ -118,12 +154,18 @@ export default function SubtitleEditor() {
         endTime: hasTrim ? trimEnd : undefined,
         fast: autoFast,
       })
+      clearInterval(timer)
+      setSubtitleProgress(100)
       setSubtitles(result.entries)
       setPendingSubtitleFilename(result.filename)
     } catch (e: unknown) {
+      clearInterval(timer)
       setError(getApiErrorMessage(e, 'Auto subtitles failed'))
     } finally {
       setAutoLoading(false)
+      setSubtitleLoading(false)
+      setSubtitleLoadingMessage(null)
+      setTimeout(() => setSubtitleProgress(0), 1000)
     }
   }
   const handleApply = async () => {
@@ -139,7 +181,7 @@ export default function SubtitleEditor() {
     }
     await handleSave()
   }
-  const isApplying = saving || autoLoading || uploadLoading
+  const isApplying = saving || autoLoading || uploadLoading || subtitleLoading
   const hasUnappliedChanges = subtitleAppliedSignature !== currentSignature
     || JSON.stringify(appliedSubtitleStyle) !== JSON.stringify(subtitleStyle)
   const canApply = subtitles.length > 0 && (!!pendingSubtitleFilename || !subtitleFilename || hasUnappliedChanges)
@@ -151,7 +193,29 @@ export default function SubtitleEditor() {
         <h2 className="text-xl font-semibold text-zinc-900 mb-1">Subtitles</h2>
         <p className="text-xs text-zinc-500">Choose a method then apply subtitles</p>
       </div>
-      <div className="bg-zinc-50 rounded-xl p-2 border border-zinc-200 space-y-1">
+
+      {subtitleLoading && (
+        <div className="rounded-2xl border border-cyan-200 bg-cyan-50/80 p-3.5 space-y-2 shadow-sm animate-in fade-in duration-300">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Loader2 size={16} className="animate-spin text-cyan-600 shrink-0" />
+              <span className="text-xs font-semibold text-zinc-800">
+                {subtitleLoadingMessage || 'Processing subtitles...'}
+              </span>
+            </div>
+            <span className="text-xs font-mono font-bold text-cyan-700">
+              {subtitleProgress}%
+            </span>
+          </div>
+
+          <div className="w-full bg-cyan-200/70 rounded-full h-2 overflow-hidden">
+            <div
+              className="bg-cyan-600 h-full transition-all duration-300 rounded-full"
+              style={{ width: `${Math.min(100, Math.max(0, subtitleProgress))}%` }}
+            />
+          </div>
+        </div>
+      )}      <div className="bg-zinc-50 rounded-xl p-2 border border-zinc-200 space-y-1">
         <h3 className="text-sm font-medium text-zinc-700">Style</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <label className="text-[11px] text-zinc-500">
