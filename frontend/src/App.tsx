@@ -473,15 +473,15 @@ export default function App() {
                     {video.title}
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={reset}
-                  className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50/80 p-2 text-xs font-semibold text-zinc-600 transition-all hover:border-zinc-300 hover:bg-white hover:text-zinc-900 hover:shadow-sm whitespace-nowrap"
-                >
-                  <RotateCcw size={13} /> New project
-                </button>
               </>
             )}
+            <button
+              type="button"
+              onClick={reset}
+              className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50/80 p-2 text-xs font-semibold text-zinc-600 transition-all hover:border-zinc-300 hover:bg-white hover:text-zinc-900 hover:shadow-sm whitespace-nowrap"
+            >
+              <RotateCcw size={13} /> New project
+            </button>
           </div>
           <div className="ml-auto flex-shrink-0">
             {showActionHistoryCard && (

@@ -997,6 +997,12 @@ export const useStore = create<EditorState>()(persist((set) => ({
     actionHistory: [],
     segmentHistory: [],
     seekTo: null,
+    montageClips: [],
+    montageAudioClips: [],
+    timelinePast: [],
+    timelineFuture: [],
+    canUndoTimeline: false,
+    canRedoTimeline: false,
   }),
 
   seekTo: null,
