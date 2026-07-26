@@ -9,22 +9,17 @@ export const PALETTE_COLORS = [
   { hex: '#52525b', name: 'Zinc 600', darkCheck: false },
   { hex: '#B91C1C', name: 'Red 700', darkCheck: false },
   { hex: '#F97316', name: 'Orange', darkCheck: false },
-  { hex: '#EA580C', name: 'Orange 600', darkCheck: false },
   { hex: '#FBBF24', name: 'Yellow', darkCheck: true },
-  { hex: '#D97706', name: 'Amber 600', darkCheck: false },
-  { hex: '#F59E0B', name: 'Amber', darkCheck: true },
+  { hex: '#D97706', name: 'Amber', darkCheck: false },
   { hex: '#22C55E', name: 'Green 500', darkCheck: false },
-  { hex: '#10B981', name: 'Emerald', darkCheck: false },
-  { hex: '#065F46', name: 'Emerald 900', darkCheck: false },
+  { hex: '#065F46', name: 'Emerald', darkCheck: false },
   { hex: '#06B6D4', name: 'Cyan', darkCheck: false },
   { hex: '#0E7490', name: 'Cyan 700', darkCheck: false },
   { hex: '#14B8A6', name: 'Teal', darkCheck: false },
   { hex: '#3B82F6', name: 'Blue', darkCheck: false },
-  { hex: '#1D4ED8', name: 'Blue 700', darkCheck: false },
   { hex: '#1E3A8A', name: 'Blue 900', darkCheck: false },
   { hex: '#6366F1', name: 'Indigo', darkCheck: false },
-  { hex: '#8B5CF6', name: 'Violet', darkCheck: false },
-  { hex: '#7C3AED', name: 'Violet 700', darkCheck: false },
+  { hex: '#7C3AED', name: 'Violet', darkCheck: false },
   { hex: '#EC4899', name: 'Pink', darkCheck: false },
   { hex: '#BE185D', name: 'Pink 700', darkCheck: false },
   { hex: '#F43F5E', name: 'Rose', darkCheck: false },
@@ -58,12 +53,12 @@ export default function ColorPicker({
       {label && (
         <div className="flex items-center justify-between text-xs text-zinc-500">
           <span>{label}</span>
-          <span className="font-mono text-[10px] uppercase font-semibold text-zinc-700">
+          {/* <span className="font-mono text-[10px] uppercase font-semibold text-zinc-700">
             {colorName}
-          </span>
+          </span> */}
         </div>
       )}
-      <div className="flex items-center gap-1.5 flex-wrap">
+      <div className="flex items-center gap-x-5 gap-y-3 flex-wrap">
         {colors.map(color => {
           const isSelected =
             (color.isTransparent && isTransparentSelected) ||
@@ -76,17 +71,15 @@ export default function ColorPicker({
               title={color.name}
               disabled={disabled}
               onClick={() => onChange(color.hex)}
-              className={`relative w-7 h-7 rounded-full border transition-all flex items-center justify-center focus:outline-none shrink-0 ${
-                color.isTransparent
-                  ? 'border-zinc-300 bg-zinc-100 overflow-hidden'
-                  : color.hex === '#ffffff'
+              className={`relative w-7 h-7 rounded-full border transition-all flex items-center justify-center focus:outline-none shrink-0 ${color.isTransparent
+                ? 'border-zinc-300 bg-zinc-100 overflow-hidden'
+                : color.hex === '#ffffff'
                   ? 'border-zinc-300'
                   : 'border-transparent'
-              } ${
-                isSelected
+                } ${isSelected
                   ? 'ring-2 ring-offset-2 ring-cyan-600 scale-105 shadow-sm'
                   : 'hover:scale-105'
-              }`}
+                }`}
               style={color.isTransparent ? undefined : { backgroundColor: color.hex }}
             >
               {color.isTransparent ? (
@@ -103,7 +96,7 @@ export default function ColorPicker({
           )
         })}
 
-        <div className="relative flex items-center shrink-0">
+        {/* <div className="relative flex items-center shrink-0">
           <input
             type="color"
             value={value.startsWith('#') ? value : '#000000'}
@@ -112,7 +105,7 @@ export default function ColorPicker({
             title="Custom color picker"
             className="w-7 h-7 p-0 border border-zinc-200 rounded-full cursor-pointer bg-white overflow-hidden shadow-xs hover:scale-105 transition-transform"
           />
-        </div>
+        </div> */}
       </div>
     </div>
   )

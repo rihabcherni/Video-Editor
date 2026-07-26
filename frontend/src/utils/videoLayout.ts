@@ -30,16 +30,11 @@ export function getRenderedVideoDimensions(params: {
 }) {
   const { sourceWidth, sourceHeight, aspectRatio, borderEnabled, borderWidth, borderHeight } = params
   if (!sourceWidth || !sourceHeight) return { width: 0, height: 0 }
-
   const baseLong = 1280
+  let width = baseLong
+  let height = baseLong
 
-  let width = sourceWidth
-  let height = sourceHeight
-
-  if (!aspectRatio || aspectRatio === 'original') {
-    width = baseLong
-    height = makeEven((sourceHeight / sourceWidth) * baseLong)
-  } else {
+  if (aspectRatio && aspectRatio !== 'original') {
     const { w, h } = aspectRatioMap[aspectRatio] || aspectRatioMap['16:9']
     const ratio = w / h
     if (ratio >= 1) {
@@ -49,7 +44,12 @@ export function getRenderedVideoDimensions(params: {
       height = makeEven(baseLong)
       width = makeEven(baseLong * ratio)
     }
+    // Fixed aspect ratio canvas: border & crop stay contained within the chosen target ratio
+    return { width, height }
   }
+
+  width = baseLong
+  height = makeEven((sourceHeight / sourceWidth) * baseLong)
 
   if (!borderEnabled) return { width, height }
 
