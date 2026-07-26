@@ -916,7 +916,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
   exportFilename: '',
   setExportFilename: name => set({ exportFilename: name }),
 
-  activeTab: 'ratio',
+  activeTab: 'import',
   setActiveTab: t => set({ activeTab: t }),
   isProcessing: false,
   setIsProcessing: p => set({ isProcessing: p }),
@@ -1007,7 +1007,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
     exportAspectRatio: 'original',
     ratioLocked: false,
     exportFilename: '',
-    processedUrl: null, activeTab: 'ratio', editStatus: null,
+    processedUrl: null, activeTab: 'import', editStatus: null,
     previewLoading: false,
     pendingPreviewAction: null,
     actionToasts: [],

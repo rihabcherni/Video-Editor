@@ -207,7 +207,7 @@ export default function AspectRatioPanel() {
           className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25"
         >
           <Lock size={14} />
-          Apply &amp; Lock ratio
+          Apply 
         </button>
       )}
     </div>

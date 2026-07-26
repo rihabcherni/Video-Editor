@@ -12,12 +12,12 @@ import BorderEditor from './components/BorderEditor/BorderEditor'
 import CropEditor from './components/CropEditor/CropEditor'
 import MontageTimeline from './components/MontageTimeline/MontageTimeline'
 
-type Tab = 'ratio' | 'import' | 'montage' | 'crop' | 'border' | 'subtitles' | 'logo' | 'title' | 'export'
+type Tab = 'import' | 'montage' | 'ratio' | 'crop' | 'border' | 'subtitles' | 'logo' | 'title' | 'export'
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode; requiresVideo?: boolean }[] = [
-  { id: 'ratio', label: 'Aspect ratio', icon: <Monitor size={15} /> },
   { id: 'import', label: 'Import', icon: <Upload size={15} /> },
   { id: 'montage', label: 'Montage', icon: <Layers size={15} /> },
+  { id: 'ratio', label: 'Aspect ratio', icon: <Monitor size={15} />, requiresVideo: true },
   { id: 'crop', label: 'Crop', icon: <CropIcon size={15} />, requiresVideo: true },
   { id: 'border', label: 'Border', icon: <Square size={15} />, requiresVideo: true },
   { id: 'subtitles', label: 'Subtitles', icon: <FileText size={15} />, requiresVideo: true },
@@ -172,14 +172,14 @@ export default function App() {
   const hasTitle = titleText.trim().length > 0
   const hasBorder = borderEnabled && (borderWidth > 0 || borderHeight > 0)
   const completedTabs: Partial<Record<Tab, boolean>> = {
-    ratio: exportAspectRatio !== 'original',
     import: mediaAssets.length > 0 || !!video,
     montage: montageClips.length > 0 || montageAudioClips.length > 0,
+    ratio: exportAspectRatio !== 'original',
     crop: hasCrop,
+    border: hasBorder,
     subtitles: hasAppliedSubtitles,
     logo: hasLogo,
     title: hasTitle,
-    border: hasBorder,
     export: !!processedUrl,
   }
 
@@ -454,8 +454,8 @@ export default function App() {
           )}
           <div className={`w-full ${(activeTab === 'import' || activeTab === 'ratio') ? 'lg:flex-1 lg:min-w-0' : 'lg:w-80 xl:w-[28rem] flex-shrink-0'} lg:sticky lg:top-[64px] ${activeTab === 'montage' ? 'hidden' : ''}`}>
             <div className="bg-white rounded-2xl px-4 py-4 border border-zinc-200 min-h-[300px] shadow-sm max-w-full">
-              {activeTab === 'ratio' && <AspectRatioPanel />}
               {activeTab === 'import' && <ImportPanel />}
+              {activeTab === 'ratio' && <AspectRatioPanel />}
               {activeTab === 'crop' && <CropEditor />}
               {activeTab === 'border' && <BorderEditor />}
               {activeTab === 'subtitles' && <SubtitleEditor />}
