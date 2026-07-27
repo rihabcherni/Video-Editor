@@ -873,8 +873,8 @@ export default function MontageTimeline() {
   const rulerMarks = Array.from({ length: Math.ceil(timelineDuration / rulerStep) + 1 }, (_, i) => i * rulerStep)
 
   return (
-    <div className="h-[calc(100vh)] flex flex-col gap-2">
-      <div className="flex-1 grid gap-3 xl:grid-cols-[minmax(450px,1fr)_minmax(400px,0.32fr)] items-stretch min-h-0 w-full">
+    <div className="h-[calc(90h)] flex flex-col gap-3">
+      <div className="grid gap-3 xl:grid-cols-[minmax(450px,1fr)_minmax(400px,0.32fr)] items-stretch min-h-0 w-full">
         <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm flex flex-col min-h-0">
           <div className="flex items-center justify-between border-b border-zinc-200 px-3 py-2 flex-shrink-0">
             <div className="flex min-w-0 items-center gap-2">
@@ -888,9 +888,8 @@ export default function MontageTimeline() {
           <div className="relative flex flex-1 min-h-0 items-center justify-center bg-zinc-950 p-2 overflow-hidden">
             {activeVideoClip ? (
               <div
-                className={`relative flex items-center justify-center max-h-full max-w-full overflow-hidden transition-all duration-300 ${
-                  exportAspectRatio !== 'original' ? 'bg-black shadow-2xl ring-1 ring-white/20 rounded-lg' : ''
-                }`}
+                className={`relative flex items-center justify-center max-h-full max-w-full overflow-hidden transition-all duration-300 ${exportAspectRatio !== 'original' ? 'bg-black shadow-2xl ring-1 ring-white/20 rounded-lg' : ''
+                  }`}
                 style={{
                   aspectRatio: exportAspectRatio !== 'original'
                     ? ({
@@ -1492,6 +1491,15 @@ export default function MontageTimeline() {
             >
               <Scissors size={12} />
               Cut
+            </button>
+            <button
+              type="button"
+              onClick={fitTimeline}
+              title="Fit timeline to view"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1.5 text-xs font-semibold text-zinc-700 ring-1 ring-zinc-200 transition-colors hover:bg-zinc-100"
+            >
+              <Maximize2 size={13} />
+              Fit
             </button>
             <button type="button" onClick={zoomOut} className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-zinc-600 ring-1 ring-zinc-200 hover:bg-zinc-100" aria-label="Zoom out">
               <ZoomOut size={15} />

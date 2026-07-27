@@ -58,7 +58,7 @@ export default function ColorPicker({
           </span> */}
         </div>
       )}
-      <div className="flex items-center gap-x-5 gap-y-3 flex-wrap">
+      <div className="flex items-center gap-x-4 gap-y-2 flex-wrap">
         {colors.map(color => {
           const isSelected =
             (color.isTransparent && isTransparentSelected) ||
