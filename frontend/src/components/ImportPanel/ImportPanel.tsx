@@ -17,9 +17,10 @@ function formatDuration(s: number) {
 
 export default function ImportPanel() {
   const {
-    mediaAssets, addMediaAsset, removeMediaAsset,
+    mediaAssets, removeMediaAsset,
     addMontageClip, addMontageAudioClip, setActiveTab,
-    pushActionToast
+    pushActionToast, videoLoading, videoUploadProgress,
+    audioLoading, audioUploadProgress
   } = useStore()
 
   const [uploadTab, setUploadTab] = useState<'video' | 'audio'>('video')
@@ -111,16 +112,26 @@ export default function ImportPanel() {
               <button
                 type="button"
                 onClick={() => setUploadTab('video')}
-                className={`rounded-s-full px-4 py-2 text-sm font-semibold transition ${uploadTab === 'video' ? 'bg-cyan-600 text-white shadow' : 'bg-transparent text-slate-700 hover:text-slate-900 hover:bg-slate-50'} ${uploadTab === 'video' ? '' : 'border-y border-l border-slate-200'}`}
+                className={`rounded-s-full px-4 py-2 text-sm font-semibold transition flex items-center gap-1.5 ${uploadTab === 'video' ? 'bg-cyan-600 text-white shadow' : 'bg-transparent text-slate-700 hover:text-slate-900 hover:bg-slate-50'} ${uploadTab === 'video' ? '' : 'border-y border-l border-slate-200'}`}
               >
-                Video
+                <span>Video</span>
+                {videoLoading && (
+                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-mono ${uploadTab === 'video' ? 'bg-white/20 text-white' : 'bg-cyan-100 text-cyan-800'}`}>
+                    {videoUploadProgress}%
+                  </span>
+                )}
               </button>
               <button
                 type="button"
                 onClick={() => setUploadTab('audio')}
-                className={`rounded-e-full px-4 py-2 text-sm font-semibold transition ${uploadTab === 'audio' ? 'bg-blue-600 text-white shadow' : 'bg-transparent text-slate-700 hover:text-slate-900 hover:bg-slate-50'} ${uploadTab === 'audio' ? '' : 'border-y border-r border-slate-200'}`}
+                className={`rounded-e-full px-4 py-2 text-sm font-semibold transition flex items-center gap-1.5 ${uploadTab === 'audio' ? 'bg-blue-600 text-white shadow' : 'bg-transparent text-slate-700 hover:text-slate-900 hover:bg-slate-50'} ${uploadTab === 'audio' ? '' : 'border-y border-r border-slate-200'}`}
               >
-                Audio
+                <span>Audio</span>
+                {audioLoading && (
+                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-mono ${uploadTab === 'audio' ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-800'}`}>
+                    {audioUploadProgress}%
+                  </span>
+                )}
               </button>
             </div>
           </div>

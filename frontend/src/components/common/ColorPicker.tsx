@@ -5,23 +5,23 @@ export const PALETTE_COLORS = [
   { hex: 'transparent', name: 'Transparent', darkCheck: true, isTransparent: true },
   { hex: '#ffffff', name: 'White', darkCheck: true },
   { hex: '#000000', name: 'Black', darkCheck: false },
-  { hex: '#a1a1aa', name: 'Zinc 400', darkCheck: false },
-  { hex: '#52525b', name: 'Zinc 600', darkCheck: false },
-  { hex: '#B91C1C', name: 'Red 700', darkCheck: false },
+  { hex: '#a1a1aa', name: 'Light Zinc', darkCheck: false },
+  { hex: '#52525b', name: 'Dark Zinc', darkCheck: false },
+  { hex: '#B91C1C', name: 'Red', darkCheck: false },
   { hex: '#F97316', name: 'Orange', darkCheck: false },
   { hex: '#FBBF24', name: 'Yellow', darkCheck: true },
   { hex: '#D97706', name: 'Amber', darkCheck: false },
-  { hex: '#22C55E', name: 'Green 500', darkCheck: false },
+  { hex: '#22C55E', name: 'Green', darkCheck: false },
   { hex: '#065F46', name: 'Emerald', darkCheck: false },
   { hex: '#06B6D4', name: 'Cyan', darkCheck: false },
-  { hex: '#0E7490', name: 'Cyan 700', darkCheck: false },
+  { hex: '#0E7490', name: 'Dark Cyan', darkCheck: false },
   { hex: '#14B8A6', name: 'Teal', darkCheck: false },
   { hex: '#3B82F6', name: 'Blue', darkCheck: false },
-  { hex: '#1E3A8A', name: 'Blue 900', darkCheck: false },
+  { hex: '#1E3A8A', name: 'Navy', darkCheck: false },
   { hex: '#6366F1', name: 'Indigo', darkCheck: false },
   { hex: '#7C3AED', name: 'Violet', darkCheck: false },
   { hex: '#EC4899', name: 'Pink', darkCheck: false },
-  { hex: '#BE185D', name: 'Pink 700', darkCheck: false },
+  { hex: '#BE185D', name: 'Dark Pink', darkCheck: false },
   { hex: '#F43F5E', name: 'Rose', darkCheck: false },
   { hex: '#D4A017', name: 'Gold', darkCheck: true },
   { hex: '#92400E', name: 'Brown', darkCheck: false },
@@ -53,12 +53,12 @@ export default function ColorPicker({
       {label && (
         <div className="flex items-center justify-between text-xs text-zinc-500">
           <span>{label}</span>
-          {/* <span className="font-mono text-[10px] uppercase font-semibold text-zinc-700">
+          <span className="font-mono text-[10px] uppercase font-semibold text-zinc-700">
             {colorName}
-          </span> */}
+          </span>
         </div>
       )}
-      <div className="flex items-center gap-x-4 gap-y-2 flex-wrap">
+      <div className="flex items-center gap-x-5 gap-y-2 flex-wrap">
         {colors.map(color => {
           const isSelected =
             (color.isTransparent && isTransparentSelected) ||
@@ -96,7 +96,7 @@ export default function ColorPicker({
           )
         })}
 
-        {/* <div className="relative flex items-center shrink-0">
+        <div className="relative flex items-center shrink-0">
           <input
             type="color"
             value={value.startsWith('#') ? value : '#000000'}
@@ -105,7 +105,7 @@ export default function ColorPicker({
             title="Custom color picker"
             className="w-7 h-7 p-0 border border-zinc-200 rounded-full cursor-pointer bg-white overflow-hidden shadow-xs hover:scale-105 transition-transform"
           />
-        </div> */}
+        </div>
       </div>
     </div>
   )

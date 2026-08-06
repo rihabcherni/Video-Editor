@@ -225,13 +225,13 @@ function buildScaleFilter(quality: NonNullable<ExportOptions['quality']>, aspect
 }
 
 function toAssColor(hex?: string) {
-  if (!hex) return '&Hffffff'
+  if (!hex || hex === 'transparent') return '&H00ffffff'
   const clean = hex.replace('#', '')
-  if (clean.length !== 6) return '&Hffffff'
+  if (clean.length !== 6) return '&H00ffffff'
   const r = clean.slice(0, 2)
   const g = clean.slice(2, 4)
   const b = clean.slice(4, 6)
-  return `&H${b}${g}${r}`
+  return `&H00${b}${g}${r}`
 }
 
 function buildSubtitleStyle(style?: SubtitleStyle) {
@@ -241,7 +241,16 @@ function buildSubtitleStyle(style?: SubtitleStyle) {
 
   const size = style?.size ?? defaultSize
   const color = toAssColor(style?.color || defaultColor)
-  const backgroundColor = toAssColor(style?.backgroundColor || defaultBackgroundColor)
+  const rawBg = (style?.backgroundColor || defaultBackgroundColor).trim().toLowerCase()
+  const isTransparent = rawBg === 'transparent'
+
+  if (isTransparent) {
+    // BorderStyle=1 (Outline text, no solid background box)
+    return `FontName=Arial,FontSize=${size},PrimaryColour=${color},OutlineColour=&H00000000,BackColour=&HFF000000,BorderStyle=1,Outline=2,Shadow=1,Alignment=2,MarginL=20,MarginR=20,MarginV=24`
+  }
+
+  const backgroundColor = toAssColor(rawBg)
+  // BorderStyle=3 (Solid background box with chosen color)
   return `FontName=Arial,FontSize=${size},PrimaryColour=${color},OutlineColour=${backgroundColor},BackColour=${backgroundColor},BorderStyle=3,Outline=1,Shadow=0,Alignment=2,MarginL=20,MarginR=20,MarginV=24`
 }
 

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import {
   Download, Loader2, CheckCircle2, Scissors, Crop as CropIcon, Music, FileText,
   Image as ImageIcon, Type, Square, Youtube, Instagram, Facebook, Linkedin, Twitter, Music2, ArrowRight, Monitor, FileVideo, X
@@ -15,6 +15,9 @@ function formatTime(s: number) {
   return `${m}:${sec.toString().padStart(2, '0')}`
 }
 
+// AbortController is a ref kept at module level so it survives tab remounts
+let _exportAbortController: AbortController | null = null
+
 export default function ExportPanel() {
   const {
     video, trimStart, trimEnd, audioTrack, audioDuration, audioApplied, appliedReplaceOriginal,
@@ -24,15 +27,14 @@ export default function ExportPanel() {
     titleY, borderEnabled, borderWidth, borderHeight, borderColor, appliedAudioOffset,
     cropEnabled, crop, exportAspectRatio, setExportAspectRatio, exportFilename,
     setExportFilename, setProcessedUrl, videoSourceWidth, videoSourceHeight,
+    exportLoading, setExportLoading,
+    exportProgress, setExportProgress,
+    exportStep, setExportStep,
+    exportDone, setExportDone,
+    exportError, setExportError,
   } = useStore()
 
-  const [loading, setLoading] = useState(false)
-  const [step, setStep] = useState('')
-  const [exportProgress, setExportProgress] = useState(0)
-  const [done, setDone] = useState<{ url: string; downloadUrl: string } | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const [exportTab, setExportTab] = useState<'name' | 'summary'>('name')
-  const abortControllerRef = useRef<AbortController | null>(null)
 
   const hasTrim = video && (trimStart > 0 || trimEnd < video.duration)
   const hasCrop = cropEnabled && (crop.top > 0 || crop.bottom > 0 || crop.left > 0 || crop.right > 0)
@@ -61,13 +63,13 @@ export default function ExportPanel() {
 
   const handleExport = async () => {
     if (!video) return
-    setLoading(true)
-    setError(null)
-    setDone(null)
+    setExportLoading(true)
+    setExportError(null)
+    setExportDone(null)
     setExportProgress(0)
 
     const controller = new AbortController()
-    abortControllerRef.current = controller
+    _exportAbortController = controller
 
     try {
       if (titleText.trim()) {
@@ -89,7 +91,7 @@ export default function ExportPanel() {
         })
         : null
 
-      setStep('Processing and exporting...')
+      setExportStep('Processing and exporting...')
       const result = await exportVideo(
         {
           filename: video.filename,
@@ -137,36 +139,36 @@ export default function ExportPanel() {
         },
         (pct) => {
           setExportProgress(pct)
-          setStep(`Rendering video... ${pct}%`)
+          setExportStep(`Rendering video... ${pct}%`)
         },
         controller.signal,
       )
 
       setProcessedUrl(result.url)
-      setDone({ url: result.url, downloadUrl: result.downloadUrl })
+      setExportDone({ url: result.url, downloadUrl: result.downloadUrl })
     } catch (e: unknown) {
       if (controller.signal.aborted) {
-        setError('Export cancelled by user.')
+        setExportError('Export cancelled by user.')
       } else {
-        setError(e instanceof Error ? e.message : 'Export failed')
+        setExportError(e instanceof Error ? e.message : 'Export failed')
       }
     } finally {
-      setLoading(false)
-      setStep('')
+      setExportLoading(false)
+      setExportStep('')
       setExportProgress(0)
-      abortControllerRef.current = null
+      _exportAbortController = null
     }
   }
 
   const handleCancelExport = () => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
-      abortControllerRef.current = null
+    if (_exportAbortController) {
+      _exportAbortController.abort()
+      _exportAbortController = null
     }
-    setLoading(false)
+    setExportLoading(false)
     setExportProgress(0)
-    setStep('')
-    setError('Export cancelled by user.')
+    setExportStep('')
+    setExportError('Export cancelled by user.')
   }
 
 
@@ -317,13 +319,13 @@ export default function ExportPanel() {
           </div>
         </div>
       )}
-      {!done ? (
-        loading ? (
+      {!exportDone ? (
+        exportLoading ? (
           <div className="space-y-3 p-4 rounded-xl border border-cyan-200 bg-cyan-50/50 shadow-sm">
             <div className="flex items-center justify-between text-xs font-semibold text-cyan-900">
               <span className="flex items-center gap-2">
                 <Loader2 size={14} className="animate-spin text-cyan-600" />
-                {step || 'Processing...'}
+                {exportStep || 'Processing...'}
               </span>
               <span className="font-mono text-cyan-700 font-bold">{exportProgress}%</span>
             </div>
@@ -345,7 +347,7 @@ export default function ExportPanel() {
         ) : (
           <button type="button"
             onClick={handleExport}
-            disabled={loading}
+            disabled={exportLoading}
             className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-200 disabled:text-zinc-400 text-white rounded-xl font-semibold text-base transition-colors flex items-center justify-center gap-2"
           >
             <Download size={18} />
@@ -359,7 +361,7 @@ export default function ExportPanel() {
             Export complete!
           </div>
           <a
-            href={done.downloadUrl}
+            href={exportDone.downloadUrl}
             download={exportFilename.trim() ? `${exportFilename.trim()}.mp4` : undefined}
             className="w-full py-3.5 bg-green-600 hover:bg-green-500 text-white rounded-xl font-semibold text-base text-center transition-colors flex items-center justify-center gap-2"
           >
@@ -367,7 +369,7 @@ export default function ExportPanel() {
             Download MP4
           </a>
           <button type="button"
-            onClick={() => { setDone(null); setError(null) }}
+            onClick={() => { setExportDone(null); setExportError(null) }}
             className="w-full py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl text-sm transition-colors"
           >
             Export again with different settings
@@ -375,9 +377,9 @@ export default function ExportPanel() {
         </div>
       )}
 
-      {error && (
+      {exportError && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-red-400 text-sm">
-          {error}
+          {exportError}
         </div>
       )}
     </div>

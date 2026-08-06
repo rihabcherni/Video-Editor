@@ -225,12 +225,20 @@ interface EditorState {
   setAudioUrlInput: (url: string) => void
   audioLoading: boolean
   setAudioLoading: (loading: boolean) => void
+  audioUploadProgress: number
+  setAudioUploadProgress: (progress: number) => void
+  audioStatusMessage: string | null
+  setAudioStatusMessage: (msg: string | null) => void
   audioError: string | null
   setAudioError: (error: string | null) => void
   videoUrlInput: string
   setVideoUrlInput: (url: string) => void
   videoLoading: boolean
   setVideoLoading: (loading: boolean) => void
+  videoUploadProgress: number
+  setVideoUploadProgress: (progress: number) => void
+  videoStatusMessage: string | null
+  setVideoStatusMessage: (msg: string | null) => void
   videoError: string | null
   setVideoError: (error: string | null) => void
 
@@ -370,6 +378,18 @@ interface EditorState {
   setRatioLocked: (locked: boolean) => void
   exportFilename: string
   setExportFilename: (name: string) => void
+
+  // Export progress (persisted across tab switches)
+  exportLoading: boolean
+  setExportLoading: (v: boolean) => void
+  exportProgress: number
+  setExportProgress: (v: number) => void
+  exportStep: string
+  setExportStep: (s: string) => void
+  exportDone: { url: string; downloadUrl: string } | null
+  setExportDone: (v: { url: string; downloadUrl: string } | null) => void
+  exportError: string | null
+  setExportError: (e: string | null) => void
 
   activeTab: 'ratio' | 'import' | 'montage' | 'crop' | 'subtitles' | 'logo' | 'title' | 'border' | 'export'
   setActiveTab: (t: 'ratio' | 'import' | 'montage' | 'crop' | 'subtitles' | 'logo' | 'title' | 'border' | 'export') => void
@@ -756,12 +776,20 @@ export const useStore = create<EditorState>()(persist((set) => ({
   setAudioUrlInput: url => set({ audioUrlInput: url }),
   audioLoading: false,
   setAudioLoading: loading => set({ audioLoading: loading }),
+  audioUploadProgress: 0,
+  setAudioUploadProgress: progress => set({ audioUploadProgress: progress }),
+  audioStatusMessage: null,
+  setAudioStatusMessage: msg => set({ audioStatusMessage: msg }),
   audioError: null,
   setAudioError: error => set({ audioError: error }),
   videoUrlInput: '',
   setVideoUrlInput: url => set({ videoUrlInput: url }),
   videoLoading: false,
   setVideoLoading: loading => set({ videoLoading: loading }),
+  videoUploadProgress: 0,
+  setVideoUploadProgress: progress => set({ videoUploadProgress: progress }),
+  videoStatusMessage: null,
+  setVideoStatusMessage: msg => set({ videoStatusMessage: msg }),
   videoError: null,
   setVideoError: error => set({ videoError: error }),
 
@@ -916,6 +944,17 @@ export const useStore = create<EditorState>()(persist((set) => ({
   exportFilename: '',
   setExportFilename: name => set({ exportFilename: name }),
 
+  exportLoading: false,
+  setExportLoading: v => set({ exportLoading: v }),
+  exportProgress: 0,
+  setExportProgress: v => set({ exportProgress: v }),
+  exportStep: '',
+  setExportStep: s => set({ exportStep: s }),
+  exportDone: null,
+  setExportDone: v => set({ exportDone: v }),
+  exportError: null,
+  setExportError: e => set({ exportError: e }),
+
   activeTab: 'import',
   setActiveTab: t => set({ activeTab: t }),
   isProcessing: false,
@@ -1008,6 +1047,7 @@ export const useStore = create<EditorState>()(persist((set) => ({
     ratioLocked: false,
     exportFilename: '',
     processedUrl: null, activeTab: 'import', editStatus: null,
+    exportLoading: false, exportProgress: 0, exportStep: '', exportDone: null, exportError: null,
     previewLoading: false,
     pendingPreviewAction: null,
     actionToasts: [],

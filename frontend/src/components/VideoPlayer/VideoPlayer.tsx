@@ -287,8 +287,8 @@ export default function VideoPlayer() {
   const activeSubtitleStyle = activeTab === 'subtitles' ? subtitleStyle : (appliedSubtitleStyle || subtitleStyle)
 
   const renderedVideoDimensions = getRenderedVideoDimensions({
-    sourceWidth: effectiveSourceDimensions.width,
-    sourceHeight: effectiveSourceDimensions.height,
+    sourceWidth: baseSourceWidth,
+    sourceHeight: baseSourceHeight,
     aspectRatio: exportAspectRatio,
     borderEnabled: previewBorderEnabled,
     borderWidth: previewBorderWidth,

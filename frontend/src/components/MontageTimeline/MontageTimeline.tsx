@@ -873,7 +873,7 @@ export default function MontageTimeline() {
   const rulerMarks = Array.from({ length: Math.ceil(timelineDuration / rulerStep) + 1 }, (_, i) => i * rulerStep)
 
   return (
-    <div className="h-[calc(90h)] flex flex-col gap-3">
+    <div className="flex flex-col gap-3">
       <div className="grid gap-3 xl:grid-cols-[minmax(450px,1fr)_minmax(400px,0.32fr)] items-stretch min-h-0 w-full">
         <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm flex flex-col min-h-0">
           <div className="flex items-center justify-between border-b border-zinc-200 px-3 py-2 flex-shrink-0">
@@ -885,11 +885,12 @@ export default function MontageTimeline() {
             </div>
             <span className="rounded-lg bg-zinc-100 px-2 py-1 font-mono text-xs text-zinc-600">{formatDurationHMS(playhead)} - {formatDurationHMS(timelineDuration)}</span>
           </div>
-          <div className="relative flex flex-1 min-h-0 items-center justify-center bg-zinc-950 p-2 overflow-hidden">
+          <div className="relative bg-zinc-950 rounded-b-2xl overflow-hidden w-full flex items-center justify-center h-[40vh] min-h-[372px] p-2">
             {activeVideoClip ? (
               <div
-                className={`relative flex items-center justify-center max-h-full max-w-full overflow-hidden transition-all duration-300 ${exportAspectRatio !== 'original' ? 'bg-black shadow-2xl ring-1 ring-white/20 rounded-lg' : ''
-                  }`}
+                className={`relative flex items-center justify-center max-h-full max-w-full overflow-hidden transition-all duration-300 ${
+                  exportAspectRatio !== 'original' ? 'bg-black shadow-2xl ring-1 ring-white/20 rounded-lg' : ''
+                }`}
                 style={{
                   aspectRatio: exportAspectRatio !== 'original'
                     ? ({
@@ -902,7 +903,7 @@ export default function MontageTimeline() {
                       '3:2': '3 / 2',
                     }[exportAspectRatio] || 'auto')
                     : 'auto',
-                  height: exportAspectRatio !== 'original' ? '100%' : 'auto',
+                  height: '100%',
                   maxHeight: '100%',
                   maxWidth: '100%',
                 }}
@@ -910,7 +911,7 @@ export default function MontageTimeline() {
                 <video
                   ref={videoRef}
                   src={withMediaBase(activeVideoClip.video.url)}
-                  className="h-full w-full object-contain"
+                  className="max-h-full max-w-full h-full w-full object-contain"
                   onEnded={() => setPlaying(false)}
                   onClick={(e) => {
                     e.preventDefault()
@@ -928,7 +929,7 @@ export default function MontageTimeline() {
               <button
                 type="button"
                 onClick={togglePlay}
-                className="absolute bottom-4 left-1/2 flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-full bg-cyan-600 text-white shadow-lg shadow-cyan-600/20 transition-colors hover:bg-cyan-500"
+                className="absolute bottom-4 left-1/2 flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-full bg-cyan-600 text-white shadow-lg shadow-cyan-600/20 transition-colors hover:bg-cyan-500 z-10"
                 aria-label={playing ? 'Pause montage preview' : 'Play montage preview'}
               >
                 {playing ? <Pause size={20} /> : <Play size={20} className="ml-0.5" />}
